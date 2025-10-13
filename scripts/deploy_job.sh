@@ -2,9 +2,9 @@
 
 set -e  # Exit immediately if a command exits with a non-zero status
 
-host=$(az keyvault secret show --vault-name p05 --name hostname --query value --output tsv)
-apiClientId=$(az keyvault secret show --vault-name p05 --name backup-api-client-id --query value --output tsv)
-cronJobClientId=$(az keyvault secret show --vault-name p05 --name backup-cron-job-client-id --query value --output tsv)
+host=$(az keyvault secret show --vault-name p06 --name dns-zone --query value --output tsv)
+apiClientId=$(az keyvault secret show --vault-name p06 --name backup-api-client-id --query value --output tsv)
+cronJobClientId=$(az keyvault secret show --vault-name p06 --name backup-cron-job-client-id --query value --output tsv)
 latestTag=$(curl -s "https://registry.hub.docker.com/v2/repositories/mucsi96/postgres-azure-backup-job/tags/" | jq -r '.results |  map(select(.name != "latest")) | sort_by(.last_updated) | reverse | .[0].name')
 
 echo "Deploying mucsi96/postgres-azure-backup-job:$latestTag to backup.$host"
