@@ -23,10 +23,10 @@ export class TablesService {
     },
     { databaseName?: string }
   >({
-    request: () => ({
+    params: () => ({
       databaseName: this.selectedDatabaseService.databaseName(),
     }),
-    loader: async ({ request: { databaseName } }) => {
+    loader: async ({ params: { databaseName } }) => {
       if (!databaseName) {
         return { tables: [], totalRowCount: 0 };
       }

@@ -17,10 +17,10 @@ export class BackupsService {
   private readonly selectedDatabaseService = inject(SelectedDatabaseService);
   readonly processing = signal(false);
   readonly backups = resource<Backup[], { databaseName?: string }>({
-    request: () => ({
+    params: () => ({
       databaseName: this.selectedDatabaseService.databaseName(),
     }),
-    loader: async ({ request: { databaseName } }) => {
+    loader: async ({ params: { databaseName } }) => {
       if (!databaseName) {
         return [];
       }
@@ -44,10 +44,10 @@ export class BackupsService {
     Date | undefined,
     { databaseName?: string }
   >({
-    request: () => ({
+    params: () => ({
       databaseName: this.selectedDatabaseService.databaseName(),
     }),
-    loader: async ({ request: { databaseName } }) => {
+    loader: async ({ params: { databaseName } }) => {
       if (!databaseName) {
         return undefined;
       }
