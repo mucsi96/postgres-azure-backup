@@ -11,8 +11,9 @@
   "tasks": [
     {
       "type": "shell",
-      "command": "scripts/install_dependencies.sh",
+      "command": "bash",
       "label": "Install dependencies",
+      "args": ["scripts/install_dependencies.sh"],
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -20,8 +21,9 @@
     },
     {
       "type": "shell",
-      "command": "scripts/deploy.sh",
+      "command": "bash",
       "label": "Deploy",
+      "args": ["scripts/deploy.sh"],
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -29,8 +31,9 @@
     },
     {
       "type": "shell",
-      "command": "scripts/deploy_job.sh",
+      "command": "bash",
       "label": "Deploy job",
+      "args": ["scripts/deploy_job.sh"],
       "options": {
         "cwd": "${workspaceFolder}"
       },
