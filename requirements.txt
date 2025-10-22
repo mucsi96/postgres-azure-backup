@@ -1,7 +1,1 @@
-azure-identity ==1.25.1
-azure-storage-blob ==12.27.0
 mucsi96.publish-tools == 41.0.0
-playwright ==1.55.0
-psycopg2-binary ==2.9.11
-pytest ==8.4.2
-pytest-playwright ==0.7.1

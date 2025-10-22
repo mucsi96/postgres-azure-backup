@@ -25,8 +25,6 @@
     ],
     "python.analysis.autoImportCompletions": true,
     "python.analysis.typeCheckingMode": "basic",
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true,
     "java.configuration.updateBuildConfiguration": "interactive",
     "vs-kubernetes": {
         "vs-kubernetes.kubeconfig": "${workspaceFolder}/.kube/config"
