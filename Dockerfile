@@ -24,7 +24,7 @@ VOLUME /tmp
 ARG DEPENDENCY=/workspace/server/target/dependency
 ARG SPRING_PROFILES_ACTIVE=prod
 
-RUN apk add postgresql16-client curl
+RUN apk add postgresql17-client curl
 
 COPY --from=build-server ${DEPENDENCY}/BOOT-INF/lib /app/lib
 COPY --from=build-server ${DEPENDENCY}/META-INF /app/META-INF
