@@ -13,7 +13,7 @@ export const test = base.extend<TestFixtures>({
   setupTestEnvironment: [async ({}, use) => {
     // Setup before each test
     process.env.REQUESTS_CA_BUNDLE = resolve(__dirname, '../.certs/rootCA.pem');
-    // process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
     // Cleanup and setup initial state
     await cleanupBackups();
