@@ -29,5 +29,4 @@ pip install -r requirements.txt
 
 cd server && mvn clean install && cd ..
 cd client && npm install && cd ..
-
-playwright install --with-deps chromium
+cd test && npm install && npx playwright install --with-deps chromium && cd ..
