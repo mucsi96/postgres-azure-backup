@@ -1,4 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
+import { resolve } from 'path';
+
+process.env.NODE_EXTRA_CA_CERTS = resolve(__dirname, '../.certs/rootCA.pem');
 
 export default defineConfig({
   testDir: './tests',

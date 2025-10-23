@@ -11,10 +11,6 @@ type TestFixtures = {
 export const test = base.extend<TestFixtures>({
   // This fixture runs automatically for each test
   setupTestEnvironment: [async ({}, use) => {
-    // Setup before each test
-    process.env.REQUESTS_CA_BUNDLE = resolve(__dirname, '../.certs/rootCA.pem');
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
     // Cleanup and setup initial state
     await cleanupBackups();
 
