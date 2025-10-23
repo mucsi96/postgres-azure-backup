@@ -16,7 +16,8 @@ Simple PostgreSQL backup tool to Azure with UI
 - Cleanup expired backups
 - Restore backups
 - Exclude tables from backup
-- Can be used without UI as REST API. For example using a cronjob and curl
+- Built-in scheduled backups (daily, weekly, monthly) using Spring @Scheduled
+- Can be used without UI as REST API for manual/external triggers
 - Fully covered with E2E Selenium tests
 - Compatible with PostgreSQL 16
 - Secured with Microsoft Entra ID
@@ -40,6 +41,14 @@ Simple PostgreSQL backup tool to Azure with UI
 - `STORAGE_ACCOUNT_CONTAINER_NAME`
 - `DATABASES_CONFIG_PATH`
 - `UI_CLIENT_ID`
+
+## Optional environment variables for backup scheduling
+
+- `BACKUP_SCHEDULE_ENABLED` - Enable/disable scheduled backups (default: `true`)
+- `BACKUP_DAILY_CRON` - Cron expression for daily backups (default: `0 30 6 2-31 * MON-SAT`)
+- `BACKUP_WEEKLY_CRON` - Cron expression for weekly backups (default: `0 30 6 * * SUN`)
+- `BACKUP_MONTHLY_CRON` - Cron expression for monthly backups (default: `0 30 6 1 * *`)
+- `BACKUP_CLEANUP_CRON` - Cron expression for cleanup (default: `0 0 7 * * *`)
 
 ## Database config file
 
@@ -76,6 +85,17 @@ Simple PostgreSQL backup tool to Azure with UI
 - `custom` (default) - Output a custom-format archive suitable for input into pg_restore. Together with the directory output format, this is the most flexible output format in that it allows manual selection and reordering of archived items during restore. This format is also compressed by default.
 - `directory` - Output a directory-format archive suitable for input into pg_restore. This will create a directory with one file for each table and large object being dumped, plus a so-called Table of Contents file describing the dumped objects in a machine-readable format that pg_restore can read. A directory format archive can be manipulated with standard Unix tools; for example, files in an uncompressed archive can be compressed with the gzip, lz4, or zstd tools. This format is compressed by default using gzip and also supports parallel dumps.
 - `tar` - Output a tar-format archive suitable for input into pg_restore. The tar format is compatible with the directory format: extracting a tar-format archive produces a valid directory-format archive. However, the tar format does not support compression. Also, when using tar format the relative order of table data items cannot be changed during restore.
+
+## Scheduled Backups
+
+The application includes built-in scheduled backups with the following default schedule:
+
+- **Daily backups**: Run at 06:30 every day (except Sunday and 1st of month) with 7-day retention
+- **Weekly backups**: Run at 06:30 every Sunday with 30-day retention
+- **Monthly backups**: Run at 06:30 on the 1st of every month with 356-day retention
+- **Cleanup**: Run at 07:00 daily to remove expired backups
+
+Scheduling can be disabled by setting `BACKUP_SCHEDULE_ENABLED=false` or customized using the cron environment variables.
 
 ## Deployment with Helm
 

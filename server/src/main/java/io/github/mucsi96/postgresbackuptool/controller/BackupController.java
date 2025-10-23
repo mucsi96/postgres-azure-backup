@@ -3,7 +3,6 @@ package io.github.mucsi96.postgresbackuptool.controller;
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,6 +21,7 @@ import io.github.mucsi96.postgresbackuptool.configuration.DatabaseConfiguration;
 import io.github.mucsi96.postgresbackuptool.model.Backup;
 import io.github.mucsi96.postgresbackuptool.model.BackupType;
 import io.github.mucsi96.postgresbackuptool.model.BackupUrl;
+import io.github.mucsi96.postgresbackuptool.service.BackupOrchestrationService;
 import io.github.mucsi96.postgresbackuptool.service.BackupService;
 import io.github.mucsi96.postgresbackuptool.service.DatabaseService;
 import jakarta.validation.constraints.Max;
@@ -35,7 +35,7 @@ import lombok.RequiredArgsConstructor;
 public class BackupController {
     private final BackupService backupService;
     private final DatabaseService databaseService;
-    private final DateTimeFormatter dateTimeFormatter;
+    private final BackupOrchestrationService backupOrchestrationService;
 
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupCreator')")
     @PostMapping("/backup")
@@ -43,43 +43,14 @@ public class BackupController {
     void create(
             @RequestParam("retention_period") @Min(1) @Max(356) int retentionPeriod)
             throws IOException, InterruptedException {
-
-        String timeString = dateTimeFormatter.format(Instant.now());
-        databaseService.getDatabases().forEach(databaseConfiguration -> {
-            try {
-                createDump(retentionPeriod, databaseConfiguration.getName(),
-                        databaseConfiguration.getPrefix(),
-                        databaseConfiguration.getDumpFormat().getValue(),
-                        timeString);
-
-                if (databaseConfiguration.isCreatePlainDump()) {
-                    createDump(retentionPeriod, databaseConfiguration.getName(),
-                            databaseConfiguration.getPrefix(), "plain",
-                            timeString);
-                }
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
-
-    private void createDump(int retentionPeriod, String name, String prefix,
-            String dumpFormat, String timeString)
-            throws IOException, InterruptedException {
-        File dumpFile = databaseService.createDump(name, retentionPeriod,
-                dumpFormat, timeString);
-        backupService.createBackup(prefix, dumpFile);
-
-        dumpFile.delete();
+        backupOrchestrationService.performBackup(retentionPeriod);
     }
 
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupCleaner')")
     @PostMapping("/cleanup")
     @ResponseBody
     void cleanup() {
-        databaseService.getDatabases().stream()
-                .map(DatabaseConfiguration::getPrefix)
-                .forEach(backupService::cleanup);
+        backupOrchestrationService.performCleanup();
     }
 
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupsReader') and hasAuthority('SCOPE_readBackups')")
