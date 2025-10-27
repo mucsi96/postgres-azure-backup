@@ -220,3 +220,24 @@ export function listWithoutKeys<T extends Record<string, any>>(
 ): Partial<T>[] {
   return data.map(row => withoutKeys(row, keys));
 }
+
+export async function getBackupsFromStorage(prefix: string, type: 'pgdump' | 'sql' = 'pgdump') {
+  const containerClient = blobServiceClient.getContainerClient('backups');
+
+  if (!(await containerClient.exists())) {
+    return [];
+  }
+
+  const backups = [];
+  for await (const blob of containerClient.listBlobsFlat({ prefix: `${prefix}/` })) {
+    const parts = blob.name.split('/')[1].split('.');
+    backups.push({
+      name: blob.name,
+      rowsCount: parseInt(parts[1]),
+      retention: parseInt(parts[2]),
+      size: blob.properties.contentLength
+    });
+  }
+
+  return backups.sort((a, b) => b.name.localeCompare(a.name)).filter(backup => backup.name.endsWith(`.${type}`));
+}

@@ -40,29 +40,38 @@ public class BackupService {
     }
 
     public List<Backup> getBackups(String prefix, boolean hasPlainDump) {
-        BlobContainerClient blobContainerClient = blobServiceClient
-                .getBlobContainerClient(containerName);
+        return Optional.of(blobServiceClient.getBlobContainerClient(containerName))
+                .filter(BlobContainerClient::exists)
+                .map(container -> listAndTransformBlobs(container, prefix, hasPlainDump))
+                .orElse(Collections.emptyList());
+    }
 
-        if (!blobContainerClient.exists()) {
-            return Collections.emptyList();
-        }
-
-        return blobContainerClient
+    private List<Backup> listAndTransformBlobs(BlobContainerClient container,
+                                                String prefix,
+                                                boolean hasPlainDump) {
+        return container
                 .listBlobs(new ListBlobsOptions().setPrefix(prefix + "/"), null)
-                .stream().filter(blob -> !blob.getName().endsWith(".sql"))
-                .map(blob -> {
-                    String name = getBackupName(prefix, blob);
-                    return Backup.builder().name(getBackupName(prefix, blob))
-                            .lastModified(dateTimeFormatter.parse(
-                                    name.substring(0, 15), Instant::from))
-                            .size(blob.getProperties().getContentLength())
-                            .totalRowCount(getTotalCountFromName(prefix, blob))
-                            .retentionPeriod(
-                                    getRetentionPeriodFromName(prefix, blob))
-                            .hasPlainDump(hasPlainDump).build();
-                }).sorted((a, b) -> b.getLastModified()
-                        .compareTo(a.getLastModified()))
+                .stream()
+                .filter(blob -> !blob.getName().endsWith(".sql"))
+                .map(blob -> createBackupFromBlob(blob, prefix, hasPlainDump))
+                .sorted((a, b) -> b.getLastModified().compareTo(a.getLastModified()))
                 .toList();
+    }
+
+    private Backup createBackupFromBlob(BlobItem blob, String prefix, boolean hasPlainDump) {
+        String name = getBackupName(prefix, blob);
+        return Backup.builder()
+                .name(name)
+                .lastModified(parseBackupTimestamp(name))
+                .size(blob.getProperties().getContentLength())
+                .totalRowCount(getTotalCountFromName(prefix, blob))
+                .retentionPeriod(getRetentionPeriodFromName(prefix, blob))
+                .hasPlainDump(hasPlainDump)
+                .build();
+    }
+
+    private Instant parseBackupTimestamp(String name) {
+        return dateTimeFormatter.parse(name.substring(0, 15), Instant::from);
     }
 
     public void createBackup(String prefix, File dumpFile) {

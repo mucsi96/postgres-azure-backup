@@ -24,6 +24,8 @@ import io.github.mucsi96.postgresbackuptool.model.BackupUrl;
 import io.github.mucsi96.postgresbackuptool.service.BackupOrchestrationService;
 import io.github.mucsi96.postgresbackuptool.service.BackupService;
 import io.github.mucsi96.postgresbackuptool.service.DatabaseService;
+import io.github.mucsi96.postgresbackuptool.service.SmartBackupService;
+import io.github.mucsi96.postgresbackuptool.service.SmartBackupService.SmartBackupResult;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,14 @@ public class BackupController {
     private final BackupService backupService;
     private final DatabaseService databaseService;
     private final BackupOrchestrationService backupOrchestrationService;
+    private final SmartBackupService smartBackupService;
+
+    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupCreator')")
+    @PostMapping("/smart-backup")
+    @ResponseBody
+    SmartBackupResult performSmartBackup() {
+        return smartBackupService.performSmartBackup();
+    }
 
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupCreator')")
     @PostMapping("/backup")

@@ -5,20 +5,9 @@ blobstorage:
 databasesConfigPath: ${DATABASES_CONFIG_PATH}
 
 backup:
-  schedule:
-    daily:
-      # At 06:30 on every day-of-month from 2 through 31 and on every day-of-week from Monday through Saturday
-      cron: ${BACKUP_DAILY_CRON:0 30 6 2-31 * MON-SAT}
-    weekly:
-      # At 06:30 every Sunday
-      cron: ${BACKUP_WEEKLY_CRON:0 30 6 * * SUN}
-    monthly:
-      # At 06:30 on the first day of every month
-      cron: ${BACKUP_MONTHLY_CRON:0 30 6 1 * *}
-    cleanup:
-      # At 07:00 every day
-      cron: ${BACKUP_CLEANUP_CRON:0 0 7 * * *}
-    enabled: ${BACKUP_SCHEDULE_ENABLED:true}
+  smart:
+    # Enable smart backup on startup and via REST endpoint
+    enabled: ${SMART_BACKUP_ENABLED:true}
 
 management:
   server:
