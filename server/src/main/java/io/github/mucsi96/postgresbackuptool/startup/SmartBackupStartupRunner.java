@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import io.github.mucsi96.postgresbackuptool.service.SmartBackupService;
@@ -12,16 +11,12 @@ import io.github.mucsi96.postgresbackuptool.service.SmartBackupService.SmartBack
 import lombok.RequiredArgsConstructor;
 
 /**
- * Startup runner that executes smart backup analysis and operations
- * when the application starts.
+ * Startup runner that always executes smart backup analysis and operations
+ * when the application starts. This ensures backups are automatically maintained
+ * according to the defined retention periods (daily, weekly, monthly).
  */
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(
-    name = "backup.smart.enabled",
-    havingValue = "true",
-    matchIfMissing = true
-)
 public class SmartBackupStartupRunner implements ApplicationRunner {
     private static final Logger logger = LoggerFactory.getLogger(SmartBackupStartupRunner.class);
 

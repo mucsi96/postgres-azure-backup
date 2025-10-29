@@ -62,6 +62,42 @@ public class BackupOrchestrationService {
     }
 
     /**
+     * Performs backup for a specific database with the specified retention period.
+     *
+     * @param databaseConfiguration The database configuration
+     * @param retentionPeriod Number of days to retain the backup
+     * @throws IOException If an I/O error occurs
+     * @throws InterruptedException If the backup process is interrupted
+     */
+    public void performBackupForDatabase(DatabaseConfiguration databaseConfiguration, int retentionPeriod)
+            throws IOException, InterruptedException {
+        String timeString = dateTimeFormatter.format(Instant.now());
+
+        try {
+            logger.info("Creating backup for database: {} with retention: {} days",
+                    databaseConfiguration.getName(), retentionPeriod);
+
+            // Create main dump
+            createDump(retentionPeriod, databaseConfiguration.getName(),
+                    databaseConfiguration.getPrefix(),
+                    databaseConfiguration.getDumpFormat().getValue(),
+                    timeString);
+
+            // Create plain dump if configured
+            if (databaseConfiguration.isCreatePlainDump()) {
+                createDump(retentionPeriod, databaseConfiguration.getName(),
+                        databaseConfiguration.getPrefix(), "plain",
+                        timeString);
+            }
+
+            logger.info("Backup completed for database: {}", databaseConfiguration.getName());
+        } catch (IOException | InterruptedException e) {
+            logger.error("Failed to backup database: {}", databaseConfiguration.getName(), e);
+            throw new RuntimeException("Failed to backup database: " + databaseConfiguration.getName(), e);
+        }
+    }
+
+    /**
      * Performs cleanup of expired backups for all configured databases.
      */
     public void performCleanup() {

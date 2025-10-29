@@ -1,6 +1,5 @@
 package io.github.mucsi96.postgresbackuptool.service;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -68,21 +67,21 @@ public class SmartBackupService {
                 // Check and perform daily backup if needed
                 if (isBackupNeeded(backupsByRetention.get(DAILY_RETENTION), DAILY_INTERVAL)) {
                     logger.info("Daily backup needed for database: {}", databaseConfig.getName());
-                    performBackupWithRetention(DAILY_RETENTION);
+                    performBackupForDatabase(databaseConfig, DAILY_RETENTION);
                     result.addBackupPerformed(databaseConfig.getName(), DAILY_RETENTION);
                 }
 
                 // Check and perform weekly backup if needed
                 if (isBackupNeeded(backupsByRetention.get(WEEKLY_RETENTION), WEEKLY_INTERVAL)) {
                     logger.info("Weekly backup needed for database: {}", databaseConfig.getName());
-                    performBackupWithRetention(WEEKLY_RETENTION);
+                    performBackupForDatabase(databaseConfig, WEEKLY_RETENTION);
                     result.addBackupPerformed(databaseConfig.getName(), WEEKLY_RETENTION);
                 }
 
                 // Check and perform monthly backup if needed
                 if (isBackupNeeded(backupsByRetention.get(MONTHLY_RETENTION), MONTHLY_INTERVAL)) {
                     logger.info("Monthly backup needed for database: {}", databaseConfig.getName());
-                    performBackupWithRetention(MONTHLY_RETENTION);
+                    performBackupForDatabase(databaseConfig, MONTHLY_RETENTION);
                     result.addBackupPerformed(databaseConfig.getName(), MONTHLY_RETENTION);
                 }
             }
@@ -136,18 +135,23 @@ public class SmartBackupService {
     }
 
     /**
-     * Performs a backup with the specified retention period.
+     * Performs a backup for a specific database with the specified retention period.
      *
+     * @param databaseConfig Database configuration
      * @param retentionPeriod Number of days to retain the backup
      */
-    private void performBackupWithRetention(int retentionPeriod) {
+    private void performBackupForDatabase(DatabaseConfiguration databaseConfig, int retentionPeriod) {
         try {
-            logger.info("Performing backup with {}-day retention", retentionPeriod);
-            backupOrchestrationService.performBackup(retentionPeriod);
-            logger.info("Backup with {}-day retention completed successfully", retentionPeriod);
+            logger.info("Performing backup for database {} with {}-day retention",
+                databaseConfig.getName(), retentionPeriod);
+            backupOrchestrationService.performBackupForDatabase(databaseConfig, retentionPeriod);
+            logger.info("Backup for database {} with {}-day retention completed successfully",
+                databaseConfig.getName(), retentionPeriod);
         } catch (Exception e) {
-            logger.error("Failed to perform backup with {}-day retention", retentionPeriod, e);
-            throw new RuntimeException("Backup failed for retention period: " + retentionPeriod, e);
+            logger.error("Failed to perform backup for database {} with {}-day retention",
+                databaseConfig.getName(), retentionPeriod, e);
+            throw new RuntimeException("Backup failed for database " + databaseConfig.getName() +
+                " with retention period: " + retentionPeriod, e);
         }
     }
 

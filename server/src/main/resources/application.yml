@@ -4,11 +4,6 @@ blobstorage:
 
 databasesConfigPath: ${DATABASES_CONFIG_PATH}
 
-backup:
-  smart:
-    # Enable smart backup on startup and via REST endpoint
-    enabled: ${SMART_BACKUP_ENABLED:true}
-
 management:
   server:
     port: ${SPRING_ACTUATOR_PORT}
