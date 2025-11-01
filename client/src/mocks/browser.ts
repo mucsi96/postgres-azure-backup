@@ -68,15 +68,6 @@ const mocks = [
       totalRowCount: number;
     });
   }),
-  http.post('/api/cleanup', async () => {
-    await delay(400);
-    return HttpResponse.json(null);
-  }),
-  http.post('/api/backup', async () => {
-    await delay(200);
-    databases.forEach((db) => getDatabase(db.name).backupsCount++);
-    return HttpResponse.json(null);
-  }),
   http.post('/api/database/:name/restore/:backupName', async () => {
     await delay(200);
     return HttpResponse.json(null);

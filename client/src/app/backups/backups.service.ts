@@ -1,9 +1,6 @@
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable, resource, signal } from '@angular/core';
-import {
-  ErrorNotificationEvent,
-  SuccessNotificationEvent,
-} from '@mucsi96/ui-elements';
+import { inject, Injectable, resource } from '@angular/core';
+import { ErrorNotificationEvent } from '@mucsi96/ui-elements';
 import { environment } from '../../environments/environment';
 import { Backup } from '../../types';
 import { SelectedDatabaseService } from '../database/selected-database.service';
@@ -15,7 +12,6 @@ import { fetchJson } from '../utils/fetchJson';
 export class BackupsService {
   private readonly http = inject(HttpClient);
   private readonly selectedDatabaseService = inject(SelectedDatabaseService);
-  readonly processing = signal(false);
   readonly backups = resource<Backup[], { databaseName?: string }>({
     params: () => ({
       databaseName: this.selectedDatabaseService.databaseName(),
@@ -67,45 +63,4 @@ export class BackupsService {
       }
     },
   });
-
-  async createBackup(retentionPeriod: number) {
-    try {
-      this.processing.set(true);
-      await fetchJson<void>(
-        this.http,
-        environment.apiContextPath +
-          `/backup?retention_period=${retentionPeriod}`,
-        { method: 'post' }
-      );
-      document.dispatchEvent(new SuccessNotificationEvent('Backup created'));
-    } catch (error) {
-      document.dispatchEvent(
-        new ErrorNotificationEvent('Could not create backup.')
-      );
-    }
-    this.processing.set(false);
-    this.backups.reload();
-    this.lastBackupTime.reload();
-  }
-
-  async cleanupBackups() {
-    try {
-      this.processing.set(true);
-      await fetchJson<void>(
-        this.http,
-        environment.apiContextPath + `/cleanup`,
-        { method: 'post' }
-      );
-      document.dispatchEvent(
-        new SuccessNotificationEvent('Backup cleanup finished')
-      );
-    } catch (error) {
-      document.dispatchEvent(
-        new ErrorNotificationEvent('Could not cleanup backups')
-      );
-    }
-    this.processing.set(false);
-    this.backups.reload();
-    this.lastBackupTime.reload();
-  }
 }

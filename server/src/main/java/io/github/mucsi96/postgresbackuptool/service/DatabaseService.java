@@ -144,7 +144,7 @@ public class DatabaseService {
         System.out.println("Restore db prepared");
 
         new ProcessBuilder("pg_restore", "--dbname", restoreConnectionString,
-                "--verbose", dumpFile.getName()).inheritIO().start().waitFor();
+                "--verbose", dumpFile.getAbsolutePath()).inheritIO().start().waitFor();
 
         System.out.println("Restore complete");
 

@@ -29,7 +29,7 @@ export class BackupsComponent {
   private readonly backupsService = inject(BackupsService);
   private readonly tableService = inject(TablesService);
   backups = this.backupsService.backups;
-  processing = this.backupsService.processing;
+  processing = this.tableService.processing;
   loading = this.backupsService.backups.isLoading();
   selectedBackup = signal<string | undefined>(undefined);
 

@@ -8,7 +8,17 @@
     "username": "postgres",
     "password": "postgres",
     "excludeTables": ["passwords", "secrets"],
-    "createPlainDump": true
+    "createPlainDump": true,
+    "blobBackups": [
+      {
+        "containerName": "user-uploads",
+        "prefix": "production/"
+      },
+      {
+        "containerName": "documents",
+        "prefix": "active/"
+      }
+    ]
   },
   {
     "name": "db2",

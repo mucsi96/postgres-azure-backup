@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures';
-import { extractTableData, cleanupBackups, cleanupDb, getDb1Tables } from '../utils';
+import { extractTableData, cleanupBackups, cleanupDb, getDb1Tables, triggerBackup } from '../utils';
 
 test.describe('Database Tests', () => {
   test('switches to other db', async ({ page }) => {
@@ -44,17 +44,22 @@ test.describe('Database Tests', () => {
 
   test('restores backup', async ({ page }) => {
     await cleanupBackups();
-    await page.goto('http://localhost:8080');
-    await page.getByRole('button', { name: 'Backup' }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Backup created' })).toBeVisible();
+
+    // Create backup via API
+    const response = await triggerBackup();
+    expect(response.ok).toBe(true);
+
+    // Wait for backup to complete
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     await cleanupDb();
-    await page.reload();
+
+    await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 0');
     await expect(page.getByRole('heading', { name: 'Tables' })).toHaveText('Tables 0');
 
-    await page.locator(':text("Backups") + table').getByText('1 day').click();
+    await page.locator(':text("Backups") + table').getByText('356 days').click();
     await page.getByRole('button', { name: 'Restore' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Backup restored' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 9');
@@ -63,13 +68,19 @@ test.describe('Database Tests', () => {
 
   test('doesnt restore excluded tables', async ({ page }) => {
     await cleanupBackups();
-    await page.goto('http://localhost:8080');
-    await page.getByRole('button', { name: 'Backup' }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Backup created' })).toBeVisible();
+
+    // Create backup via API
+    const response = await triggerBackup();
+    expect(response.ok).toBe(true);
+
+    // Wait for backup to complete
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     await cleanupDb();
+
+    await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
-    await page.locator(':text("Backups") + table').getByText('1 day').click();
+    await page.locator(':text("Backups") + table').getByText('356 days').click();
     await page.getByRole('button', { name: 'Restore' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Backup restored' })).toBeVisible();
 

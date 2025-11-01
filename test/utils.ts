@@ -74,7 +74,7 @@ export async function createBackup(options: CreateBackupOptions): Promise<void> 
   const minutes = String(backupTime.getUTCMinutes()).padStart(2, '0');
   const seconds = String(backupTime.getUTCSeconds()).padStart(2, '0');
 
-  const filename = `${prefix}/${year}${month}${day}-${hours}${minutes}${seconds}.${rowsCount}.${retention}.pgdump`;
+  const filename = `${prefix}/${year}${month}${day}-${hours}${minutes}${seconds}.${rowsCount}.${retention}.zip`;
 
   const blockBlobClient = containerClient.getBlockBlobClient(filename);
   const content = 'a'.repeat(size);
@@ -221,7 +221,7 @@ export function listWithoutKeys<T extends Record<string, any>>(
   return data.map(row => withoutKeys(row, keys));
 }
 
-export async function getBackupsFromStorage(prefix: string, type: 'pgdump' | 'sql' = 'pgdump') {
+export async function getBackupsFromStorage(prefix: string) {
   const containerClient = blobServiceClient.getContainerClient('backups');
 
   if (!(await containerClient.exists())) {
@@ -230,6 +230,11 @@ export async function getBackupsFromStorage(prefix: string, type: 'pgdump' | 'sq
 
   const backups = [];
   for await (const blob of containerClient.listBlobsFlat({ prefix: `${prefix}/` })) {
+    // Only return ZIP backups
+    if (!blob.name.endsWith('.zip')) {
+      continue;
+    }
+
     const parts = blob.name.split('/')[1].split('.');
     backups.push({
       name: blob.name,
@@ -239,5 +244,126 @@ export async function getBackupsFromStorage(prefix: string, type: 'pgdump' | 'sq
     });
   }
 
-  return backups.sort((a, b) => b.name.localeCompare(a.name)).filter(backup => backup.name.endsWith(`.${type}`));
+  return backups.sort((a, b) => b.name.localeCompare(a.name));
 }
+
+export async function createBlobContainer(containerName: string): Promise<void> {
+  const containerClient = blobServiceClient.getContainerClient(containerName);
+  if (!(await containerClient.exists())) {
+    await containerClient.create();
+  }
+}
+
+export async function uploadBlob(containerName: string, blobName: string, content: string): Promise<void> {
+  const containerClient = blobServiceClient.getContainerClient(containerName);
+  if (!(await containerClient.exists())) {
+    await containerClient.create();
+  }
+
+  const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+  await blockBlobClient.upload(content, content.length);
+}
+
+export async function getBlobContent(containerName: string, blobName: string): Promise<string> {
+  const containerClient = blobServiceClient.getContainerClient(containerName);
+  const blobClient = containerClient.getBlobClient(blobName);
+
+  const downloadResponse = await blobClient.download();
+  const downloaded = await streamToBuffer(downloadResponse.readableStreamBody!);
+  return downloaded.toString();
+}
+
+export async function blobExists(containerName: string, blobName: string): Promise<boolean> {
+  const containerClient = blobServiceClient.getContainerClient(containerName);
+  if (!(await containerClient.exists())) {
+    return false;
+  }
+
+  const blobClient = containerClient.getBlobClient(blobName);
+  return await blobClient.exists();
+}
+
+export async function listBlobs(containerName: string, prefix?: string): Promise<string[]> {
+  const containerClient = blobServiceClient.getContainerClient(containerName);
+  if (!(await containerClient.exists())) {
+    return [];
+  }
+
+  const blobs: string[] = [];
+  const options = prefix ? { prefix } : {};
+  for await (const blob of containerClient.listBlobsFlat(options)) {
+    blobs.push(blob.name);
+  }
+  return blobs;
+}
+
+export async function cleanupBlobContainer(containerName: string): Promise<void> {
+  const containerClient = blobServiceClient.getContainerClient(containerName);
+
+  if (!(await containerClient.exists())) {
+    return;
+  }
+
+  for await (const blob of containerClient.listBlobsFlat()) {
+    const blobClient = containerClient.getBlobClient(blob.name);
+    await blobClient.delete();
+  }
+}
+
+async function streamToBuffer(readableStream: NodeJS.ReadableStream): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    readableStream.on('data', (data: Buffer) => {
+      chunks.push(data);
+    });
+    readableStream.on('end', () => {
+      resolve(Buffer.concat(chunks));
+    });
+    readableStream.on('error', reject);
+  });
+}
+
+export function getBlobServiceClient(): BlobServiceClient {
+  return blobServiceClient;
+}
+
+export async function triggerBackup(): Promise<Response> {
+  const response = await fetch(`http://localhost:8080/api/smart-backup`, {
+    method: 'POST',
+  });
+  return response;
+}
+
+export async function getBackupsList(databaseName: string): Promise<any[]> {
+  const response = await fetch(`http://localhost:8080/api/database/${databaseName}/backups`);
+  return await response.json();
+}
+
+export async function restoreBackup(databaseName: string, backupKey: string): Promise<Response> {
+  const response = await fetch(`http://localhost:8080/api/database/${databaseName}/restore/${backupKey}`, {
+    method: 'POST',
+  });
+  return response;
+}
+
+export async function downloadZipBackup(databaseName: string): Promise<Buffer> {
+  const containerClient = blobServiceClient.getContainerClient('backups');
+  let zipBlobName = '';
+
+  for await (const blob of containerClient.listBlobsFlat({ prefix: `${databaseName}/` })) {
+    if (blob.name.endsWith('.zip')) {
+      zipBlobName = blob.name;
+      break;
+    }
+  }
+
+  if (!zipBlobName) {
+    throw new Error(`No ZIP backup found for database ${databaseName}`);
+  }
+
+  const blobClient = containerClient.getBlobClient(zipBlobName);
+  const downloadResponse = await blobClient.download();
+  return await streamToBuffer(downloadResponse.readableStreamBody!);
+}
+
+export { streamToBuffer };

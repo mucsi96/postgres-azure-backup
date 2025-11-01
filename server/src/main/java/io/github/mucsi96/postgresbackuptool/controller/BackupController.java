@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.github.mucsi96.postgresbackuptool.configuration.DatabaseConfiguration;
 import io.github.mucsi96.postgresbackuptool.model.Backup;
-import io.github.mucsi96.postgresbackuptool.model.BackupType;
 import io.github.mucsi96.postgresbackuptool.model.BackupUrl;
 import io.github.mucsi96.postgresbackuptool.service.BackupOrchestrationService;
 import io.github.mucsi96.postgresbackuptool.service.BackupService;
@@ -47,43 +46,25 @@ public class BackupController {
         return smartBackupService.performSmartBackup();
     }
 
-    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupCreator')")
-    @PostMapping("/backup")
-    @ResponseBody
-    void create(
-            @RequestParam("retention_period") @Min(1) @Max(356) int retentionPeriod)
-            throws IOException, InterruptedException {
-        backupOrchestrationService.performBackup(retentionPeriod);
-    }
-
-    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupCleaner')")
-    @PostMapping("/cleanup")
-    @ResponseBody
-    void cleanup() {
-        backupOrchestrationService.performCleanup();
-    }
-
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupsReader') and hasAuthority('SCOPE_readBackups')")
     @GetMapping("/database/{database_name}/backups")
     @ResponseBody
     List<Backup> list(@PathVariable("database_name") String databaseName) {
         DatabaseConfiguration databaseConfiguration = databaseService
                 .getDatabaseConfiguration(databaseName);
-        return backupService.getBackups(databaseConfiguration.getPrefix(),
-                databaseConfiguration.isCreatePlainDump());
+        return backupService.getBackups(databaseConfiguration.getPrefix());
     }
 
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupDownloader') and hasAuthority('SCOPE_downloadBackup')")
     @GetMapping("/database/{database_name}/backup/{key}")
     @ResponseBody
     BackupUrl download(@PathVariable("database_name") String databaseName,
-            @PathVariable String key, @RequestParam String type)
+            @PathVariable String key)
             throws IOException, InterruptedException {
         DatabaseConfiguration databaseConfiguration = databaseService
                 .getDatabaseConfiguration(databaseName);
         String url = backupService.getBackupUrl(
-                databaseConfiguration.getPrefix(), key,
-                BackupType.valueOf(type.toUpperCase()));
+                databaseConfiguration.getPrefix(), key);
 
         return BackupUrl.builder().url(url).build();
     }
@@ -95,11 +76,11 @@ public class BackupController {
             @PathVariable String key) throws IOException, InterruptedException {
         DatabaseConfiguration databaseConfiguration = databaseService
                 .getDatabaseConfiguration(databaseName);
-        File dumpFile = backupService
+        File backupFile = backupService
                 .downloadBackup(databaseConfiguration.getPrefix(), key);
-        databaseService.restoreDump(databaseName, dumpFile);
+        backupOrchestrationService.restoreBackup(databaseConfiguration, backupFile);
 
-        dumpFile.delete();
+        backupFile.delete();
     }
 
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupsReader') and hasAuthority('SCOPE_readBackups')")
@@ -109,8 +90,6 @@ public class BackupController {
             @PathVariable("database_name") String databaseName) {
         DatabaseConfiguration databaseConfiguration = databaseService
                 .getDatabaseConfiguration(databaseName);
-        return backupService.getLastBackupTime(
-                databaseConfiguration.getPrefix(),
-                databaseConfiguration.isCreatePlainDump());
+        return backupService.getLastBackupTime(databaseConfiguration.getPrefix());
     }
 }

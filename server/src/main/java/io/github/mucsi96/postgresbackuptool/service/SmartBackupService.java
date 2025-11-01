@@ -56,33 +56,42 @@ public class SmartBackupService {
                 logger.info("Analyzing backups for database: {}", databaseConfig.getName());
 
                 List<Backup> existingBackups = backupService.getBackups(
-                    databaseConfig.getPrefix(),
-                    databaseConfig.isCreatePlainDump()
+                    databaseConfig.getPrefix()
                 );
 
                 // Group backups by retention period
                 Map<Integer, List<Backup>> backupsByRetention = existingBackups.stream()
                     .collect(Collectors.groupingBy(Backup::getRetentionPeriod));
 
-                // Check and perform daily backup if needed
-                if (isBackupNeeded(backupsByRetention.get(DAILY_RETENTION), DAILY_INTERVAL)) {
-                    logger.info("Daily backup needed for database: {}", databaseConfig.getName());
-                    performBackupForDatabase(databaseConfig, DAILY_RETENTION);
-                    result.addBackupPerformed(databaseConfig.getName(), DAILY_RETENTION);
-                }
-
-                // Check and perform weekly backup if needed
-                if (isBackupNeeded(backupsByRetention.get(WEEKLY_RETENTION), WEEKLY_INTERVAL)) {
-                    logger.info("Weekly backup needed for database: {}", databaseConfig.getName());
-                    performBackupForDatabase(databaseConfig, WEEKLY_RETENTION);
-                    result.addBackupPerformed(databaseConfig.getName(), WEEKLY_RETENTION);
-                }
+                // Check retention periods from longest to shortest
+                // Higher retention backups satisfy lower retention requirements
 
                 // Check and perform monthly backup if needed
                 if (isBackupNeeded(backupsByRetention.get(MONTHLY_RETENTION), MONTHLY_INTERVAL)) {
                     logger.info("Monthly backup needed for database: {}", databaseConfig.getName());
                     performBackupForDatabase(databaseConfig, MONTHLY_RETENTION);
                     result.addBackupPerformed(databaseConfig.getName(), MONTHLY_RETENTION);
+                }
+                // Check weekly backup - consider monthly backups as well
+                else if (isBackupNeededConsideringHigherRetention(
+                    backupsByRetention.get(WEEKLY_RETENTION),
+                    backupsByRetention.get(MONTHLY_RETENTION),
+                    WEEKLY_INTERVAL)) {
+                    logger.info("Weekly backup needed for database: {}", databaseConfig.getName());
+                    performBackupForDatabase(databaseConfig, WEEKLY_RETENTION);
+                    result.addBackupPerformed(databaseConfig.getName(), WEEKLY_RETENTION);
+                }
+                // Check daily backup - consider both weekly and monthly backups
+                else if (isBackupNeededConsideringHigherRetention(
+                    backupsByRetention.get(DAILY_RETENTION),
+                    combineBackupLists(
+                        backupsByRetention.get(WEEKLY_RETENTION),
+                        backupsByRetention.get(MONTHLY_RETENTION)
+                    ),
+                    DAILY_INTERVAL)) {
+                    logger.info("Daily backup needed for database: {}", databaseConfig.getName());
+                    performBackupForDatabase(databaseConfig, DAILY_RETENTION);
+                    result.addBackupPerformed(databaseConfig.getName(), DAILY_RETENTION);
                 }
             }
 
@@ -132,6 +141,46 @@ public class SmartBackupService {
         }
 
         return needed;
+    }
+
+    /**
+     * Determines if a backup is needed considering both current retention period
+     * backups and higher retention period backups.
+     * Higher retention backups can satisfy lower retention requirements.
+     *
+     * @param currentRetentionBackups Backups for the current retention period
+     * @param higherRetentionBackups Backups from higher retention periods
+     * @param interval Required interval between backups
+     * @return true if a new backup is needed
+     */
+    private boolean isBackupNeededConsideringHigherRetention(
+        List<Backup> currentRetentionBackups,
+        List<Backup> higherRetentionBackups,
+        Duration interval) {
+
+        // Combine current and higher retention backups
+        List<Backup> allRelevantBackups = combineBackupLists(
+            currentRetentionBackups,
+            higherRetentionBackups
+        );
+
+        return isBackupNeeded(allRelevantBackups, interval);
+    }
+
+    /**
+     * Combines multiple backup lists into a single list.
+     *
+     * @param lists Variable number of backup lists to combine
+     * @return Combined list of backups
+     */
+    private List<Backup> combineBackupLists(List<Backup>... lists) {
+        List<Backup> combined = new ArrayList<>();
+        for (List<Backup> list : lists) {
+            if (list != null) {
+                combined.addAll(list);
+            }
+        }
+        return combined;
     }
 
     /**

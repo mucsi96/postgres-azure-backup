@@ -17,6 +17,8 @@ Simple PostgreSQL backup tool to Azure with UI
 - Restore backups
 - Exclude tables from backup
 - Built-in scheduled backups (daily, weekly, monthly) using Spring @Scheduled
+- Smart backup with automatic retention management (daily/7-day, weekly/30-day, monthly/356-day)
+- Blob storage backup support - package database dumps with blob storage files in unified ZIP archives
 - Can be used without UI as REST API for manual/external triggers
 - Fully covered with E2E Selenium tests
 - Compatible with PostgreSQL 16
@@ -64,7 +66,13 @@ Simple PostgreSQL backup tool to Azure with UI
     "password": "postgres",
     "excludeTables": ["passwords", "secrets"],
     "dumpFormat": "custom",
-    "createPlainDump": true
+    "createPlainDump": true,
+    "blobBackups": [
+      {
+        "containerName": "user-uploads",
+        "prefix": "production/"
+      }
+    ]
   },
   {
     "name": "db2",
@@ -80,11 +88,60 @@ Simple PostgreSQL backup tool to Azure with UI
 ]
 ```
 
+### Blob Backup Configuration (Optional)
+
+Add a `blobBackups` array to include Azure Blob Storage files in backups. When configured, backups are created as ZIP archives containing both the database dump and specified blob files.
+
+**Configuration:**
+- `containerName` (required): Azure Blob Storage container name
+- `prefix` (optional): Only backup blobs with this path prefix (default: empty string = all blobs)
+
+**Example - backup multiple containers:**
+```json
+"blobBackups": [
+  {
+    "containerName": "user-uploads",
+    "prefix": "production/"
+  },
+  {
+    "containerName": "documents",
+    "prefix": ""
+  }
+]
+```
+
+**Backup structure:**
+```
+backup.zip
+├── database.pgdump
+├── database.sql (optional)
+├── blobs/
+│   └── user-uploads/
+│       └── production/
+│           └── file.pdf
+└── MANIFEST.json
+```
+
 ## Dump formats
 
 - `custom` (default) - Output a custom-format archive suitable for input into pg_restore. Together with the directory output format, this is the most flexible output format in that it allows manual selection and reordering of archived items during restore. This format is also compressed by default.
 - `directory` - Output a directory-format archive suitable for input into pg_restore. This will create a directory with one file for each table and large object being dumped, plus a so-called Table of Contents file describing the dumped objects in a machine-readable format that pg_restore can read. A directory format archive can be manipulated with standard Unix tools; for example, files in an uncompressed archive can be compressed with the gzip, lz4, or zstd tools. This format is compressed by default using gzip and also supports parallel dumps.
 - `tar` - Output a tar-format archive suitable for input into pg_restore. The tar format is compatible with the directory format: extracting a tar-format archive produces a valid directory-format archive. However, the tar format does not support compression. Also, when using tar format the relative order of table data items cannot be changed during restore.
+
+## Smart Backup
+
+Smart backup (`POST /api/smart-backup`) intelligently determines which backups are needed based on existing backups and elapsed time. It analyzes backup history and creates only necessary backups with appropriate retention periods.
+
+**How it works:**
+1. Checks time since last backup for each retention tier (daily/weekly/monthly)
+2. Creates backups only when the interval has elapsed:
+   - **Daily**: If 1+ days passed since last daily/weekly/monthly backup → create 7-day retention backup
+   - **Weekly**: If 7+ days passed since last weekly/monthly backup → create 30-day retention backup
+   - **Monthly**: If 30+ days passed since last monthly backup → create 356-day retention backup
+3. Higher retention backups satisfy lower retention requirements (e.g., a monthly backup also counts as a weekly backup)
+4. Performs cleanup of expired backups after creating new ones
+
+**Example:** If a monthly backup was created 5 days ago, smart backup will skip daily and weekly backups since the monthly backup satisfies those requirements.
 
 ## Scheduled Backups
 
