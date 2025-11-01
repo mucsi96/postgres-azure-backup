@@ -13,6 +13,8 @@
       <th>Name</th>
       <th bt-center-align>Records</th>
       <th bt-center-align>Size</th>
+      <th bt-center-align>Blobs</th>
+      <th bt-center-align>Blob Size</th>
       <th bt-right-align>Retention</th>
       <th></th>
     </tr>
@@ -32,6 +34,8 @@
       <td bt-no-wrap>{{ backup.name }}</td>
       <td bt-center-align>{{ backup.totalRowCount }}</td>
       <td bt-no-wrap bt-center-align>{{ backup.size | size }}</td>
+      <td bt-center-align>{{ backup.blobCount }}</td>
+      <td bt-no-wrap bt-center-align>{{ backup.blobsTotalSize | size }}</td>
       <td bt-right-align>{{ backup.retentionPeriod | retention }}</td>
       <td bt-center-align>
         <div

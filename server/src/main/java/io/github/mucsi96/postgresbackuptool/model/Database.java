@@ -10,6 +10,7 @@ public class Database {
   private String name;
   private int tablesCount;
   private int totalRowCount;
+  private int blobCount;
   private int backupsCount;
   private Instant lastBackupTime;
 }

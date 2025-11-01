@@ -80,6 +80,25 @@
     },
     {
       "type": "shell",
+      "label": "Test client",
+      "command": "npm test",
+      "options": {
+        "cwd": "${workspaceFolder}/client"
+      },
+      "problemMatcher": []
+    },
+    {
+      "type": "shell",
+      "label": "Test client (UI)",
+      "command": "npm run test:ui",
+      "isBackground": true,
+      "options": {
+        "cwd": "${workspaceFolder}/client"
+      },
+      "problemMatcher": []
+    },
+    {
+      "type": "shell",
       "label": "Test e2e",
       "command": "mvn test",
       "isBackground": true,

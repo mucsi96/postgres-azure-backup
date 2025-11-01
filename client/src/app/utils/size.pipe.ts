@@ -6,14 +6,14 @@ import { Pipe, PipeTransform } from '@angular/core';
 })
 export class SizePipe implements PipeTransform {
   transform(size: number): string {
-    for (const unit of ['', 'K', 'M']) {
-      if (Math.abs(size) < 1024) {
-        return `${size.toFixed(1)} ${unit}B`;
-      }
+    const units = ['B', 'kB', 'MB', 'GB'];
+    let unitIndex = 0;
 
+    while (Math.abs(size) >= 1024 && unitIndex < units.length - 1) {
       size /= 1024;
+      unitIndex++;
     }
 
-    return `${size.toFixed(1)} GB`;
+    return `${size.toFixed(1)} ${units[unitIndex]}`;
   }
 }

@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,8 +12,6 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.github.mucsi96.postgresbackuptool.service.BlobBackupService.BlobBackupItem;
 import lombok.Builder;
@@ -25,33 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ZipService {
     private static final String BLOBS_DIR = "blobs/";
-    private static final String MANIFEST_FILE = "MANIFEST.json";
-    private final ObjectMapper objectMapper;
-
-    public ZipService(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
-
-    @Data
-    @Builder
-    public static class BackupManifest {
-        private String timestamp;
-        private String databaseDump;
-        private String plainDump;
-        private int totalRowCount;
-        private int retentionPeriod;
-        @Builder.Default
-        private List<BlobManifestEntry> blobs = new ArrayList<>();
-    }
-
-    @Data
-    @Builder
-    public static class BlobManifestEntry {
-        private String containerName;
-        private String blobName;
-        private String pathInZip;
-        private long size;
-    }
 
     @Data
     @Builder
@@ -59,7 +29,6 @@ public class ZipService {
         private File databaseDumpFile;
         private File plainDumpFile;
         private List<BlobRestorationItem> blobs;
-        private BackupManifest manifest;
     }
 
     @Data
@@ -83,10 +52,12 @@ public class ZipService {
         List<BlobBackupItem> blobItems,
         String timestamp,
         int totalRowCount,
-        int retentionPeriod
+        int retentionPeriod,
+        int blobCount,
+        long blobsTotalSize
     ) throws IOException {
-        // Use the same naming convention as before: YYYYMMDD-HHMMSS.rowCount.retention.zip
-        String fileName = String.format("%s.%d.%d.zip", timestamp, totalRowCount, retentionPeriod);
+        // Filename format: YYYYMMDD-HHMMSS.rowCount.blobCount.blobsTotalSize.retention.zip
+        String fileName = String.format("%s.%d.%d.%d.%d.zip", timestamp, totalRowCount, blobCount, blobsTotalSize, retentionPeriod);
         File zipFile = Files.createTempFile("backup-", ".zip").toFile();
         log.info("Creating backup ZIP file: {} (will be uploaded as: {})", zipFile.getPath(), fileName);
 
@@ -105,41 +76,14 @@ public class ZipService {
             }
 
             // Add blobs
-            List<BlobManifestEntry> blobManifestEntries = new ArrayList<>();
             for (BlobBackupItem blobItem : blobItems) {
                 if (blobItem.getDownloadedFile() != null && blobItem.getDownloadedFile().exists()) {
                     String pathInZip = BLOBS_DIR + blobItem.getContainerName() + "/" + blobItem.getRelativePath();
                     addFileToZip(zipOut, blobItem.getDownloadedFile(), pathInZip);
-
-                    blobManifestEntries.add(BlobManifestEntry.builder()
-                        .containerName(blobItem.getContainerName())
-                        .blobName(blobItem.getBlobName())
-                        .pathInZip(pathInZip)
-                        .size(blobItem.getSize())
-                        .build());
-
                     log.debug("Added blob to ZIP: {}", pathInZip);
                 }
             }
 
-            // Create and add manifest
-            BackupManifest manifest = BackupManifest.builder()
-                .timestamp(timestamp)
-                .databaseDump(dumpFileName)
-                .plainDump(plainDumpFileName)
-                .totalRowCount(totalRowCount)
-                .retentionPeriod(retentionPeriod)
-                .blobs(blobManifestEntries)
-                .build();
-
-            String manifestJson = objectMapper.writerWithDefaultPrettyPrinter()
-                .writeValueAsString(manifest);
-
-            ZipEntry manifestEntry = new ZipEntry(MANIFEST_FILE);
-            zipOut.putNextEntry(manifestEntry);
-            zipOut.write(manifestJson.getBytes(StandardCharsets.UTF_8));
-            zipOut.closeEntry();
-            log.debug("Added manifest to ZIP");
         }
 
         log.info("Successfully created backup ZIP: {} ({} blobs included)",
@@ -159,11 +103,9 @@ public class ZipService {
 
         File databaseDumpFile = null;
         File plainDumpFile = null;
-        BackupManifest manifest = null;
-        List<File> extractedBlobFiles = new ArrayList<>();
-        List<String> blobPaths = new ArrayList<>();
+        List<BlobRestorationItem> blobs = new ArrayList<>();
 
-        // First pass: Extract all files and read manifest
+        // Extract all files
         try (ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFile))) {
             ZipEntry entry;
             while ((entry = zipIn.getNextEntry()) != null) {
@@ -178,18 +120,24 @@ public class ZipService {
                 // Ensure parent directory exists
                 extractedFile.getParentFile().mkdirs();
 
-                if (entryName.equals(MANIFEST_FILE)) {
-                    // Read manifest
-                    byte[] manifestBytes = zipIn.readAllBytes();
-                    String manifestJson = new String(manifestBytes, StandardCharsets.UTF_8);
-                    manifest = objectMapper.readValue(manifestJson, BackupManifest.class);
-                    log.debug("Read manifest from ZIP");
-                } else if (entryName.startsWith(BLOBS_DIR)) {
-                    // Extract blob
+                if (entryName.startsWith(BLOBS_DIR)) {
+                    // Extract blob and derive container/blob name from path
                     extractFileFromZip(zipIn, extractedFile);
-                    extractedBlobFiles.add(extractedFile);
-                    blobPaths.add(entryName);
-                    log.debug("Extracted blob: {}", entryName);
+
+                    // Parse container and blob name from path: blobs/containerName/blobName
+                    String relativePath = entryName.substring(BLOBS_DIR.length());
+                    int firstSlash = relativePath.indexOf('/');
+                    if (firstSlash > 0) {
+                        String containerName = relativePath.substring(0, firstSlash);
+                        String blobName = relativePath.substring(firstSlash + 1);
+
+                        blobs.add(BlobRestorationItem.builder()
+                            .containerName(containerName)
+                            .blobName(blobName)
+                            .extractedFile(extractedFile)
+                            .build());
+                        log.debug("Extracted blob: {} -> {}/{}", entryName, containerName, blobName);
+                    }
                 } else if (entryName.endsWith(".sql")) {
                     // Plain dump
                     extractFileFromZip(zipIn, extractedFile);
@@ -206,28 +154,6 @@ public class ZipService {
             }
         }
 
-        // Second pass: Match extracted blobs with manifest entries
-        List<BlobRestorationItem> blobs = new ArrayList<>();
-        if (manifest != null) {
-            for (int i = 0; i < extractedBlobFiles.size(); i++) {
-                File extractedFile = extractedBlobFiles.get(i);
-                String blobPath = blobPaths.get(i);
-
-                manifest.getBlobs().stream()
-                    .filter(bme -> bme.getPathInZip().equals(blobPath))
-                    .findFirst()
-                    .ifPresent(bme -> {
-                        blobs.add(BlobRestorationItem.builder()
-                            .containerName(bme.getContainerName())
-                            .blobName(bme.getBlobName())
-                            .extractedFile(extractedFile)
-                            .build());
-                        log.debug("Matched blob for restoration: {} -> {}",
-                            blobPath, bme.getBlobName());
-                    });
-            }
-        }
-
         log.info("Successfully extracted backup ZIP: {} files, {} blobs",
             databaseDumpFile != null ? 1 : 0, blobs.size());
 
@@ -235,7 +161,6 @@ public class ZipService {
             .databaseDumpFile(databaseDumpFile)
             .plainDumpFile(plainDumpFile)
             .blobs(blobs)
-            .manifest(manifest)
             .build();
     }
 

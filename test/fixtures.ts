@@ -21,6 +21,8 @@ export const test = base.extend<TestFixtures>({
       timeDelta: { hours: 10 },
       retention: 1,
       size: 100,
+      blobCount: 5,
+      blobsTotalSize: 2048,
     });
 
     await createBackup({
@@ -29,6 +31,8 @@ export const test = base.extend<TestFixtures>({
       timeDelta: { days: 3, hours: 10 },
       retention: 7,
       size: 150,
+      blobCount: 12,
+      blobsTotalSize: 524288,
     });
 
     // Setup database

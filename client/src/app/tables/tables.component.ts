@@ -14,5 +14,8 @@ export class TablesComponent {
   totalRowCount = computed(
     () => this.tableData.value()?.totalRowCount
   );
+  blobCount = computed(
+    () => this.tableData.value()?.blobCount
+  );
   processing = this.tabeService.processing;
 }

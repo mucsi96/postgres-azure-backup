@@ -356,9 +356,16 @@ test.describe('Smart Backup Tests', () => {
     const db1Backups = await getBackupsFromStorage('db1');
     const blobs = db1Backups.map(backup => backup.name);
 
-    // Check filename format: prefix/YYYYMMDD-HHMMSS.rowCount.retention.zip
+    // Check filename format: prefix/YYYYMMDD-HHMMSS.rowCount.blobCount.blobsTotalSize.retention.zip
     blobs.forEach(filename => {
-      expect(filename).toMatch(/^db1\/\d{8}-\d{6}\.\d+\.(7|30|356)\.zip$/);
+      expect(filename).toMatch(/^db1\/\d{8}-\d{6}\.\d+\.\d+\.\d+\.(7|30|356)\.zip$/);
+    });
+
+    // Verify blob metadata in filename
+    db1Backups.forEach(backup => {
+      expect(backup.blobCount).toBeGreaterThanOrEqual(0);
+      expect(backup.blobsTotalSize).toBeGreaterThanOrEqual(0);
+      expect(backup.retention).toBeGreaterThan(0);
     });
 
     // Should only have one backup (monthly - highest priority when no backups exist)

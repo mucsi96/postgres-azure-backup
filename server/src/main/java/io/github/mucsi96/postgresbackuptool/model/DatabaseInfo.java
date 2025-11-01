@@ -10,4 +10,5 @@ import lombok.Data;
 public class DatabaseInfo {
   List<Table> tables;
   int totalRowCount;
+  int blobCount;
 }

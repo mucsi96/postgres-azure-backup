@@ -54,7 +54,7 @@ test.describe('Blob Backup Tests', () => {
     expect(zipBackup).toBeDefined();
   });
 
-  test('verifies ZIP contains database dump, manifest, and all blobs', async () => {
+  test('verifies ZIP contains database dump and all blobs', async () => {
     await cleanupBackups();
 
     // Trigger backup via API
@@ -75,9 +75,6 @@ test.describe('Blob Backup Tests', () => {
     // Verify database dump exists
     expect(entryNames.some((name: string) => name.endsWith('.pgdump'))).toBe(true);
 
-    // Verify manifest exists
-    expect(entryNames).toContain('MANIFEST.json');
-
     // Verify blobs directory exists
     const blobEntries = entryNames.filter(name => name.startsWith('blobs/'));
     expect(blobEntries.length).toBeGreaterThan(0);
@@ -91,7 +88,7 @@ test.describe('Blob Backup Tests', () => {
     expect(entryNames).toContain('blobs/documents/active/data.xlsx');
   });
 
-  test('shows blob count and size in backup listing', async () => {
+  test('shows blob count and size in backup listing', async ({ page }) => {
     await cleanupBackups();
 
     // Trigger backup via API
@@ -109,7 +106,16 @@ test.describe('Blob Backup Tests', () => {
     const backup = backups[0];
     expect(backup).toHaveProperty('blobCount');
     expect(backup).toHaveProperty('blobsTotalSize');
-    expect(backup.blobCount).toBeGreaterThan(0);
+    expect(backup.blobCount).toBe(6); // 4 from user-uploads + 2 from documents
+
+    // Verify UI shows blob count on home screen
+    await page.goto('http://localhost:8080');
+    const db1Row = page.getByRole('row').filter({ hasText: 'db1' });
+    await expect(db1Row.getByRole('cell').nth(4)).toHaveText('6'); // Blobs column
+
+    // Verify UI shows blob count on database details page
+    await page.getByText('db1').click();
+    await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 6');
   });
 
   test('restores blobs along with database from ZIP backup', async ({ page }) => {
@@ -130,6 +136,11 @@ test.describe('Blob Backup Tests', () => {
     // Wait for backup to complete
     await new Promise(resolve => setTimeout(resolve, 2000));
 
+    // Verify UI shows blob count before deletion
+    await page.goto('http://localhost:8080');
+    await page.getByText('db1').click();
+    await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 2');
+
     // Delete the blobs to simulate data loss
     await cleanupBlobContainer('user-uploads');
     await cleanupBlobContainer('documents');
@@ -138,11 +149,12 @@ test.describe('Blob Backup Tests', () => {
     expect(await blobExists('user-uploads', 'production/avatar-1.jpg')).toBe(false);
 
     // Restore backup via UI
-    await page.goto('http://localhost:8080');
-    await page.getByText('db1').click();
     await page.locator(':text("Backups") + table').getByText('356 days').click();
     await page.getByRole('button', { name: 'Restore' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Backup restored' })).toBeVisible();
+
+    // Verify UI still shows blob count after restore (blob count is from backup metadata, not live blobs)
+    await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 2');
 
     // Verify blobs are restored
     expect(await blobExists('user-uploads', 'production/avatar-1.jpg')).toBe(true);
@@ -206,7 +218,7 @@ test.describe('Blob Backup Tests', () => {
     expect(entryNames.some((name: string) => name.includes('production/'))).toBe(true);
   });
 
-  test('handles empty blob containers gracefully', async () => {
+  test('handles empty blob containers gracefully', async ({ page }) => {
     await cleanupBackups();
 
     // Clean all blobs from configured containers
@@ -232,19 +244,25 @@ test.describe('Blob Backup Tests', () => {
     const zipBackup = backups.find((name: string) => name.endsWith('.zip'));
     expect(zipBackup).toBeDefined();
 
-    // Verify ZIP still has database dump and manifest, just no blobs
+    // Verify UI shows 0 blobs on home screen
+    await page.goto('http://localhost:8080');
+    const db1Row = page.getByRole('row').filter({ hasText: 'db1' });
+    await expect(db1Row.getByRole('cell').nth(4)).toHaveText('0'); // Blobs column
+
+    // Verify UI shows 0 blobs on database details page
+    await page.getByText('db1').click();
+    await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 0');
+
+    // Verify ZIP still has database dump, just no blobs
     const downloaded = await downloadZipBackup('db1');
 
     const zip = new AdmZip(downloaded);
     const entryNames = zip.getEntries().map(entry => entry.entryName);
 
     expect(entryNames.some((name: string) => name.endsWith('.pgdump'))).toBe(true);
-    expect(entryNames).toContain('MANIFEST.json');
 
-    // Verify manifest shows 0 blobs
-    const manifestEntry = zip.getEntry('MANIFEST.json');
-    const manifestContent = manifestEntry!.getData().toString('utf8');
-    const manifest = JSON.parse(manifestContent);
-    expect(manifest.blobs.length).toBe(0);
+    // Verify no blobs directory
+    const blobEntries = entryNames.filter(name => name.startsWith('blobs/'));
+    expect(blobEntries.length).toBe(0);
   });
 });

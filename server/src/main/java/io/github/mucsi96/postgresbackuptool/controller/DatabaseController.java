@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.github.mucsi96.postgresbackuptool.configuration.DatabaseConfiguration;
+import io.github.mucsi96.postgresbackuptool.model.Backup;
 import io.github.mucsi96.postgresbackuptool.model.Database;
 import io.github.mucsi96.postgresbackuptool.model.DatabaseInfo;
 import io.github.mucsi96.postgresbackuptool.service.BackupService;
@@ -39,12 +40,16 @@ public class DatabaseController {
                     .getDatabaseConfiguration(databaseName);
             Optional<Instant> lastBackupTime = backupService.getLastBackupTime(
                     databaseConfiguration.getPrefix());
+            List<Backup> backups = backupService
+                    .getBackups(databaseConfiguration.getPrefix());
+            int totalBlobCount = backups.stream()
+                    .mapToInt(Backup::getBlobCount)
+                    .sum();
             return Database.builder().name(databaseName)
                     .totalRowCount(databaseInfo.getTotalRowCount())
                     .tablesCount(databaseInfo.getTables().size())
-                    .backupsCount(backupService
-                            .getBackups(databaseConfiguration.getPrefix())
-                            .size())
+                    .blobCount(totalBlobCount)
+                    .backupsCount(backups.size())
                     .lastBackupTime(lastBackupTime.orElse(null)).build();
         }).toList();
     }
@@ -54,6 +59,18 @@ public class DatabaseController {
     @ResponseBody
     public DatabaseInfo getDatabaseInfo(
             @PathVariable("database_name") String databaseName) {
-        return databaseService.getDatabaseInfo(databaseName);
+        DatabaseInfo databaseInfo = databaseService.getDatabaseInfo(databaseName);
+        DatabaseConfiguration databaseConfiguration = databaseService
+                .getDatabaseConfiguration(databaseName);
+        List<Backup> backups = backupService
+                .getBackups(databaseConfiguration.getPrefix());
+        int totalBlobCount = backups.stream()
+                .mapToInt(Backup::getBlobCount)
+                .sum();
+        return DatabaseInfo.builder()
+                .tables(databaseInfo.getTables())
+                .totalRowCount(databaseInfo.getTotalRowCount())
+                .blobCount(totalBlobCount)
+                .build();
     }
 }

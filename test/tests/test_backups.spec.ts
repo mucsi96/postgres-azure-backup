@@ -35,6 +35,8 @@ test.describe('Backups Tests', () => {
         'Date': '10 hours ago',
         'Records': '8',
         'Size': '100.0 B',
+        'Blobs': '5',
+        'Blob size': '2.0 kB',
         'Retention': '1 day',
       },
       {
@@ -42,6 +44,8 @@ test.describe('Backups Tests', () => {
         'Date': '3 days ago',
         'Records': '7',
         'Size': '150.0 B',
+        'Blobs': '12',
+        'Blob size': '512.0 kB',
         'Retention': '7 days',
       },
     ]);

@@ -12,6 +12,7 @@
       <th>Name</th>
       <th bt-center-align>Tables</th>
       <th bt-center-align>Records</th>
+      <th bt-center-align>Blobs</th>
       <th bt-center-align>Backups</th>
       <th bt-right-align>Last backup</th>
     </tr>
@@ -23,6 +24,7 @@
       <td bt-no-wrap bt-now-wrap bt-highlighted>{{ database.name }}</td>
       <td bt-no-wrap bt-center-align>{{ database.tablesCount }}</td>
       <td bt-no-wrap bt-center-align>{{ database.totalRowCount }}</td>
+      <td bt-no-wrap bt-center-align>{{ database.blobCount }}</td>
       <td bt-no-wrap bt-center-align>{{ database.backupsCount }}</td>
 
       <td

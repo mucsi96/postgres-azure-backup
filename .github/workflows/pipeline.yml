@@ -11,8 +11,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  test-client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+      - name: Install dependencies
+        working-directory: client
+        run: npm ci
+      - name: Run client tests
+        working-directory: client
+        run: npm test
   test-e2e:
     runs-on: ubuntu-latest
+    needs: test-client
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6

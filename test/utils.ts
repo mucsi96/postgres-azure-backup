@@ -47,10 +47,12 @@ interface CreateBackupOptions {
   retention: number;
   size: number;
   timeDelta: TimeDelta;
+  blobCount?: number;
+  blobsTotalSize?: number;
 }
 
 export async function createBackup(options: CreateBackupOptions): Promise<void> {
-  const { prefix, rowsCount, retention, size, timeDelta } = options;
+  const { prefix, rowsCount, retention, size, timeDelta, blobCount = 0, blobsTotalSize = 0 } = options;
 
   const containerClient = blobServiceClient.getContainerClient('backups');
 
@@ -74,7 +76,8 @@ export async function createBackup(options: CreateBackupOptions): Promise<void> 
   const minutes = String(backupTime.getUTCMinutes()).padStart(2, '0');
   const seconds = String(backupTime.getUTCSeconds()).padStart(2, '0');
 
-  const filename = `${prefix}/${year}${month}${day}-${hours}${minutes}${seconds}.${rowsCount}.${retention}.zip`;
+  // Filename format: YYYYMMDD-HHMMSS.rowCount.blobCount.blobsTotalSize.retention.zip
+  const filename = `${prefix}/${year}${month}${day}-${hours}${minutes}${seconds}.${rowsCount}.${blobCount}.${blobsTotalSize}.${retention}.zip`;
 
   const blockBlobClient = containerClient.getBlockBlobClient(filename);
   const content = 'a'.repeat(size);
@@ -235,11 +238,14 @@ export async function getBackupsFromStorage(prefix: string) {
       continue;
     }
 
+    // Filename format: YYYYMMDD-HHMMSS.rowCount.blobCount.blobsTotalSize.retention.zip
     const parts = blob.name.split('/')[1].split('.');
     backups.push({
       name: blob.name,
       rowsCount: parseInt(parts[1]),
-      retention: parseInt(parts[2]),
+      blobCount: parseInt(parts[2]),
+      blobsTotalSize: parseInt(parts[3]),
+      retention: parseInt(parts[4]),
       size: blob.properties.contentLength
     });
   }

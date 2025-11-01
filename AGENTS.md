@@ -128,39 +128,19 @@ This document provides a comprehensive overview of the postgres-azure-backup app
 
 **Responsibilities:**
 - Create ZIP archives containing database dumps and blob files
-- Generate and embed manifest.json with metadata
 - Extract and parse backup archives
 - Maintain structured blob directory layout
+- Derive container and blob names from ZIP path structure
 
 **ZIP structure:**
 ```
 backup.zip
 ├── 20241101-143022.100.7.pgdump  # PostgreSQL custom format
 ├── 20241101-143022.100.7.sql     # Plain SQL (optional)
-├── MANIFEST.json                  # Backup metadata
 └── blobs/
     └── user-uploads/
         └── production/
             └── file.pdf
-```
-
-**Manifest format:**
-```json
-{
-  "timestamp": "20241101-143022",
-  "databaseDump": "20241101-143022.100.7.pgdump",
-  "plainDump": "20241101-143022.100.7.sql",
-  "totalRowCount": 100,
-  "retentionPeriod": 7,
-  "blobs": [
-    {
-      "containerName": "user-uploads",
-      "blobName": "production/file.pdf",
-      "pathInZip": "blobs/user-uploads/production/file.pdf",
-      "size": 1024000
-    }
-  ]
-}
 ```
 
 ### BlobBackupService
@@ -170,7 +150,6 @@ backup.zip
 - Collect blobs from configured containers with prefix filtering
 - Download blobs to local filesystem
 - Upload blobs to blob storage containers
-- Calculate total blob size for manifest
 
 ## API Endpoints
 
@@ -361,7 +340,7 @@ For each database:
     ├─ DatabaseService.createDump() [plain SQL]
     ├─ BlobBackupService.collectBlobs()
     ├─ BlobBackupService.downloadBlob() [each]
-    ├─ ZipService.createBackupZip() [+ manifest]
+    ├─ ZipService.createBackupZip()
     └─ BackupService.createBackup() [upload]
   ↓
 BackupOrchestrationService.performCleanup()

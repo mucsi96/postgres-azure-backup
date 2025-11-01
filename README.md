@@ -115,11 +115,10 @@ Add a `blobBackups` array to include Azure Blob Storage files in backups. When c
 backup.zip
 ├── database.pgdump
 ├── database.sql (optional)
-├── blobs/
-│   └── user-uploads/
-│       └── production/
-│           └── file.pdf
-└── MANIFEST.json
+└── blobs/
+    └── user-uploads/
+        └── production/
+            └── file.pdf
 ```
 
 ## Dump formats

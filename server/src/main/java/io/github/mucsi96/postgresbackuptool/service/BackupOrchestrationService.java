@@ -150,6 +150,10 @@ public class BackupOrchestrationService {
             // Get total row count for metadata
             int totalRowCount = databaseService.getDatabaseInfo(databaseConfiguration.getName()).getTotalRowCount();
 
+            // Get blob metadata
+            int blobCount = blobItems.size();
+            long blobsTotalSize = blobBackupService.getTotalSize(blobItems);
+
             // Create ZIP file
             logger.info("Creating ZIP archive with dump and {} blobs", blobItems.size());
             ZipService.ZipCreationResult zipResult = zipService.createBackupZip(
@@ -158,7 +162,9 @@ public class BackupOrchestrationService {
                     blobItems,
                     timeString,
                     totalRowCount,
-                    retentionPeriod);
+                    retentionPeriod,
+                    blobCount,
+                    blobsTotalSize);
             zipFile = zipResult.getZipFile();
 
             // Upload ZIP to blob storage with proper filename
