@@ -15,7 +15,7 @@ if username == None:
     exit(1)
 
 version = version_utils.get_version(
-    src=root_directory, ignore=[str(root_directory / 'backup-job')], tag_prefix="server")
+    src=root_directory, ignore=[str(root_directory / 'server')], tag_prefix="server")
 
 docker_utils.build_and_push_docker_img(
     src=root_directory,
