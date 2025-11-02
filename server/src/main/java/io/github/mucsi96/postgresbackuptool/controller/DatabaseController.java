@@ -18,6 +18,7 @@ import io.github.mucsi96.postgresbackuptool.model.Backup;
 import io.github.mucsi96.postgresbackuptool.model.Database;
 import io.github.mucsi96.postgresbackuptool.model.DatabaseInfo;
 import io.github.mucsi96.postgresbackuptool.service.BackupService;
+import io.github.mucsi96.postgresbackuptool.service.BlobBackupService;
 import io.github.mucsi96.postgresbackuptool.service.DatabaseService;
 import lombok.RequiredArgsConstructor;
 
@@ -28,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class DatabaseController {
     private final DatabaseService databaseService;
     private final BackupService backupService;
+    private final BlobBackupService blobBackupService;
 
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupsReader') && hasAuthority('SCOPE_readBackups')")
     @GetMapping("/databases")
@@ -42,9 +44,8 @@ public class DatabaseController {
                     databaseConfiguration.getPrefix());
             List<Backup> backups = backupService
                     .getBackups(databaseConfiguration.getPrefix());
-            int totalBlobCount = backups.stream()
-                    .mapToInt(Backup::getBlobCount)
-                    .sum();
+            int totalBlobCount = blobBackupService
+                    .collectBlobs(databaseConfiguration.getBlobBackups()).size();
             return Database.builder().name(databaseName)
                     .totalRowCount(databaseInfo.getTotalRowCount())
                     .tablesCount(databaseInfo.getTables().size())
@@ -62,11 +63,8 @@ public class DatabaseController {
         DatabaseInfo databaseInfo = databaseService.getDatabaseInfo(databaseName);
         DatabaseConfiguration databaseConfiguration = databaseService
                 .getDatabaseConfiguration(databaseName);
-        List<Backup> backups = backupService
-                .getBackups(databaseConfiguration.getPrefix());
-        int totalBlobCount = backups.stream()
-                .mapToInt(Backup::getBlobCount)
-                .sum();
+        int totalBlobCount = blobBackupService
+                .collectBlobs(databaseConfiguration.getBlobBackups()).size();
         return DatabaseInfo.builder()
                 .tables(databaseInfo.getTables())
                 .totalRowCount(databaseInfo.getTotalRowCount())

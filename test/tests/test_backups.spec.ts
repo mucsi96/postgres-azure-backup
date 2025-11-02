@@ -2,12 +2,10 @@ import { test, expect } from '../fixtures';
 import {
   extractTableData,
   listWithoutKeys,
-  cleanupBackups,
-  cleanupDb,
-  populateDb,
   triggerBackup,
   uploadBlob,
-  cleanupBlobContainer,
+  populateDb,
+  createBackup,
 } from '../utils';
 import AdmZip from 'adm-zip';
 import { readFile } from 'fs/promises';
@@ -15,46 +13,27 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 
 test.describe('Backups Tests', () => {
-  test.beforeEach(async () => {
-    // Setup test blob containers and files
-    await cleanupBlobContainer('user-uploads');
-    await cleanupBlobContainer('documents');
-
-    // Create test blobs
-    await uploadBlob(
-      'user-uploads',
-      'production/avatar-1.jpg',
-      'fake-jpg-content-1'
-    );
-    await uploadBlob(
-      'user-uploads',
-      'production/avatar-2.png',
-      'fake-png-content-2'
-    );
-    await uploadBlob(
-      'user-uploads',
-      'production/document-1.pdf',
-      'fake-pdf-content-1'
-    );
-    await uploadBlob(
-      'user-uploads',
-      'production/video.mp4',
-      'fake-video-content'
-    );
-    await uploadBlob(
-      'user-uploads',
-      'production/image-5.jpg',
-      'fake-jpg-content-5'
-    );
-
-    await uploadBlob('documents', 'active/report.docx', 'fake-docx-content');
-
-    // Setup database
-    await cleanupDb();
-    await populateDb();
-  });
-
   test('shows number of backups', async ({ page }) => {
+    await createBackup({
+      prefix: 'db1',
+      rowsCount: 8,
+      timeDelta: { hours: 10 },
+      retention: 1,
+      size: 100,
+      blobCount: 5,
+      blobsTotalSize: 2048,
+    });
+
+    await createBackup({
+      prefix: 'db1',
+      rowsCount: 7,
+      timeDelta: { days: 3, hours: 10 },
+      retention: 7,
+      size: 150,
+      blobCount: 12,
+      blobsTotalSize: 524288,
+    });
+
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Backups' })).toHaveText(
@@ -63,7 +42,7 @@ test.describe('Backups Tests', () => {
   });
 
   test('shows last backup time', async ({ page }) => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create a backup via API
     await triggerBackup();
@@ -78,6 +57,26 @@ test.describe('Backups Tests', () => {
   });
 
   test('shows backups', async ({ page }) => {
+    await createBackup({
+      prefix: 'db1',
+      rowsCount: 8,
+      timeDelta: { hours: 10 },
+      retention: 1,
+      size: 100,
+      blobCount: 5,
+      blobsTotalSize: 2048,
+    });
+
+    await createBackup({
+      prefix: 'db1',
+      rowsCount: 7,
+      timeDelta: { days: 3, hours: 10 },
+      retention: 7,
+      size: 150,
+      blobCount: 12,
+      blobsTotalSize: 524288,
+    });
+
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Backups' })).toHaveText(
@@ -110,8 +109,6 @@ test.describe('Backups Tests', () => {
   });
 
   test('switches to other db', async ({ page }) => {
-    await cleanupBackups();
-
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
     await page.getByRole('button', { name: 'db1' }).click();
@@ -127,7 +124,35 @@ test.describe('Backups Tests', () => {
   test('downloads archive backup and verifies ZIP contents', async ({
     page,
   }) => {
-    await cleanupBackups();
+    await populateDb();
+
+    // Setup test blob containers and files
+    await uploadBlob(
+      'user-uploads',
+      'production/avatar-1.jpg',
+      'fake-jpg-content-1'
+    );
+    await uploadBlob(
+      'user-uploads',
+      'production/avatar-2.png',
+      'fake-png-content-2'
+    );
+    await uploadBlob(
+      'user-uploads',
+      'production/document-1.pdf',
+      'fake-pdf-content-1'
+    );
+    await uploadBlob(
+      'user-uploads',
+      'production/video.mp4',
+      'fake-video-content'
+    );
+    await uploadBlob(
+      'user-uploads',
+      'production/image-5.jpg',
+      'fake-jpg-content-5'
+    );
+    await uploadBlob('documents', 'active/report.docx', 'fake-docx-content');
 
     // Create a backup via API
     await triggerBackup();
@@ -189,7 +214,7 @@ test.describe('Backups Tests', () => {
   });
 
   test('downloads pgdump backup', async ({ page }) => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create a backup via API
     await triggerBackup();
@@ -211,7 +236,7 @@ test.describe('Backups Tests', () => {
   });
 
   test('downloads SQL backup and verifies content', async ({ page }) => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create a backup via API
     await triggerBackup();

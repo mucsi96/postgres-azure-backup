@@ -3,13 +3,13 @@ import {
   cleanupBackups,
   createBackup,
   getBackupsFromStorage,
+  populateDb,
   triggerBackup
 } from '../utils';
 
 test.describe('Smart Backup Tests', () => {
   test('triggers smart backup when no backups exist', async () => {
-    // Clean all existing backups
-    await cleanupBackups();
+    await populateDb();
 
     // Trigger smart backup via REST endpoint
     const response = await triggerBackup();
@@ -33,7 +33,7 @@ test.describe('Smart Backup Tests', () => {
   });
 
   test('skips daily backup when recent backup exists', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create a recent daily backup (12 hours ago)
     await createBackup({
@@ -65,7 +65,7 @@ test.describe('Smart Backup Tests', () => {
   });
 
   test('creates daily backup when last one is older than 24 hours', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create an old daily backup (25 hours ago)
     await createBackup({
@@ -97,7 +97,7 @@ test.describe('Smart Backup Tests', () => {
   });
 
   test('skips weekly backup when recent one exists', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create a recent weekly backup (5 days ago)
     await createBackup({
@@ -129,7 +129,7 @@ test.describe('Smart Backup Tests', () => {
   });
 
   test('creates weekly backup when last one is older than 7 days', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create an old weekly backup (8 days ago)
     await createBackup({
@@ -161,7 +161,7 @@ test.describe('Smart Backup Tests', () => {
   });
 
   test('skips monthly backup when recent one exists', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create a recent monthly backup (20 days ago)
     await createBackup({
@@ -193,7 +193,7 @@ test.describe('Smart Backup Tests', () => {
   });
 
   test('creates monthly backup when last one is older than 30 days', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create an old monthly backup (31 days ago)
     await createBackup({
@@ -225,7 +225,7 @@ test.describe('Smart Backup Tests', () => {
   });
 
   test('performs cleanup during smart backup', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create expired backups
     await createBackup({
@@ -275,7 +275,7 @@ test.describe('Smart Backup Tests', () => {
   });
 
   test('handles multiple databases in smart backup', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create backups for db2 (2 days old daily backup)
     await createBackup({
@@ -313,7 +313,7 @@ test.describe('Smart Backup Tests', () => {
   });
 
   test('verifies smart backup REST endpoint response structure', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Trigger smart backup via REST endpoint
     const response = await triggerBackup();
@@ -346,7 +346,7 @@ test.describe('Smart Backup Tests', () => {
   });
 
   test('creates correct backup filenames with retention periods', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Trigger smart backup
     const response = await triggerBackup();
@@ -374,7 +374,7 @@ test.describe('Smart Backup Tests', () => {
   });
 
   test('creates daily backup when monthly and weekly exist but daily is old', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create a recent monthly backup (10 days ago)
     await createBackup({
@@ -413,7 +413,7 @@ test.describe('Smart Backup Tests', () => {
   });
 
   test('creates weekly backup when monthly exists and weekly is old', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create a recent monthly backup (10 days ago)
     await createBackup({
@@ -441,7 +441,7 @@ test.describe('Smart Backup Tests', () => {
   });
 
   test('verifies backup retention periods are correctly set', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Trigger first smart backup - should create monthly
     const response1 = await triggerBackup();
@@ -483,7 +483,7 @@ test.describe('Smart Backup Tests', () => {
   });
 
   test('verifies cleanup removes only expired backups during smart backup', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create multiple backups with different retention periods
     // Expired backup (retention 1 day, created 2 days ago)

@@ -1,35 +1,25 @@
 import { test, expect } from '../fixtures';
 import {
-  cleanupBackups,
-  cleanupBlobContainer,
   uploadBlob,
   blobExists,
   getBlobContent,
   triggerBackup,
   getBackupsList,
   getBlobServiceClient,
+  populateDb,
 } from '../utils';
 import AdmZip from 'adm-zip';
 
 test.describe('Blob Backup Tests', () => {
-  test.beforeEach(async () => {
-    // Setup test blob containers and files
-    await cleanupBlobContainer('user-uploads');
-    await cleanupBlobContainer('documents');
+  test('creates ZIP backup with database dump and blobs', async () => {
+    await populateDb();
 
-    // Create test blobs in user-uploads container
     await uploadBlob('user-uploads', 'production/avatar-1.jpg', 'fake-jpg-content-1');
     await uploadBlob('user-uploads', 'production/avatar-2.png', 'fake-png-content-2');
     await uploadBlob('user-uploads', 'production/document-1.pdf', 'fake-pdf-content-1');
     await uploadBlob('user-uploads', 'production/video.mp4', 'fake-video-content');
-
-    // Create test blobs in documents container
     await uploadBlob('documents', 'active/report.docx', 'fake-docx-content');
     await uploadBlob('documents', 'active/data.xlsx', 'fake-xlsx-content');
-  });
-
-  test('creates ZIP backup with database dump and blobs', async () => {
-    await cleanupBackups();
 
     // Trigger backup via API
     const response = await triggerBackup();
@@ -51,7 +41,14 @@ test.describe('Blob Backup Tests', () => {
   });
 
   test('verifies ZIP contains database dump and all blobs', async ({ page }) => {
-    await cleanupBackups();
+    await populateDb();
+
+    await uploadBlob('user-uploads', 'production/avatar-1.jpg', 'fake-jpg-content-1');
+    await uploadBlob('user-uploads', 'production/avatar-2.png', 'fake-png-content-2');
+    await uploadBlob('user-uploads', 'production/document-1.pdf', 'fake-pdf-content-1');
+    await uploadBlob('user-uploads', 'production/video.mp4', 'fake-video-content');
+    await uploadBlob('documents', 'active/report.docx', 'fake-docx-content');
+    await uploadBlob('documents', 'active/data.xlsx', 'fake-xlsx-content');
 
     // Trigger backup via API
     const response = await triggerBackup();
@@ -97,7 +94,14 @@ test.describe('Blob Backup Tests', () => {
   });
 
   test('shows blob count and size in backup listing', async ({ page }) => {
-    await cleanupBackups();
+    await populateDb();
+
+    await uploadBlob('user-uploads', 'production/avatar-1.jpg', 'fake-jpg-content-1');
+    await uploadBlob('user-uploads', 'production/avatar-2.png', 'fake-png-content-2');
+    await uploadBlob('user-uploads', 'production/document-1.pdf', 'fake-pdf-content-1');
+    await uploadBlob('user-uploads', 'production/video.mp4', 'fake-video-content');
+    await uploadBlob('documents', 'active/report.docx', 'fake-docx-content');
+    await uploadBlob('documents', 'active/data.xlsx', 'fake-xlsx-content');
 
     // Trigger backup via API
     const response = await triggerBackup();
@@ -124,13 +128,8 @@ test.describe('Blob Backup Tests', () => {
   });
 
   test('restores blobs along with database from ZIP backup', async ({ page }) => {
-    await cleanupBackups();
+    await populateDb();
 
-    // Clean up destination blobs to ensure restore is working
-    await cleanupBlobContainer('user-uploads');
-    await cleanupBlobContainer('documents');
-
-    // Re-create source blobs
     await uploadBlob('user-uploads', 'production/avatar-1.jpg', 'original-jpg-content');
     await uploadBlob('user-uploads', 'production/document-1.pdf', 'original-pdf-content');
 
@@ -144,8 +143,12 @@ test.describe('Blob Backup Tests', () => {
     await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 2');
 
     // Delete the blobs to simulate data loss
-    await cleanupBlobContainer('user-uploads');
-    await cleanupBlobContainer('documents');
+    await uploadBlob('user-uploads', 'production/avatar-1.jpg', '');
+    await uploadBlob('user-uploads', 'production/document-1.pdf', '');
+    const blobServiceClient = getBlobServiceClient();
+    const userUploadsClient = blobServiceClient.getContainerClient('user-uploads');
+    await userUploadsClient.getBlobClient('production/avatar-1.jpg').delete();
+    await userUploadsClient.getBlobClient('production/document-1.pdf').delete();
 
     // Verify blobs are deleted
     expect(await blobExists('user-uploads', 'production/avatar-1.jpg')).toBe(false);
@@ -168,7 +171,7 @@ test.describe('Blob Backup Tests', () => {
   });
 
   test('creates ZIP backup for all databases', async () => {
-    await cleanupBackups();
+    await populateDb();
 
     // Trigger backup via API (backup happens for all databases)
     const response = await triggerBackup();
@@ -190,9 +193,9 @@ test.describe('Blob Backup Tests', () => {
   });
 
   test('filters blobs by prefix correctly', async ({ page }) => {
-    await cleanupBackups();
+    await populateDb();
 
-    // Add blobs outside the configured prefix
+    await uploadBlob('user-uploads', 'production/avatar-1.jpg', 'fake-jpg-content-1');
     await uploadBlob('user-uploads', 'staging/avatar-staging.jpg', 'staging-content');
     await uploadBlob('user-uploads', 'archive/old-file.pdf', 'archive-content');
 
@@ -230,11 +233,7 @@ test.describe('Blob Backup Tests', () => {
   });
 
   test('handles empty blob containers gracefully', async ({ page }) => {
-    await cleanupBackups();
-
-    // Clean all blobs from configured containers
-    await cleanupBlobContainer('user-uploads');
-    await cleanupBlobContainer('documents');
+    await populateDb();
 
     // Trigger backup via API
     const response = await triggerBackup();

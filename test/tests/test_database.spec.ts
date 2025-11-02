@@ -1,8 +1,10 @@
 import { test, expect } from '../fixtures';
-import { extractTableData, cleanupBackups, cleanupDb, getDb1Tables, triggerBackup } from '../utils';
+import { extractTableData, cleanupDb, getDb1Tables, triggerBackup, populateDb, uploadBlob } from '../utils';
 
 test.describe('Database Tests', () => {
   test('switches to other db', async ({ page }) => {
+    await populateDb();
+
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
     await page.getByRole('button', { name: 'db1' }).click();
@@ -20,29 +22,47 @@ test.describe('Database Tests', () => {
   });
 
   test('shows total record count in db', async ({ page }) => {
+    await populateDb();
+
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 9');
   });
 
   test('shows total blob count in db', async ({ page }) => {
+    await populateDb();
+
+    // Upload blobs to the containers configured for db1
+    // db1 has: user-uploads/production/ and documents/active/
+    await uploadBlob('user-uploads', 'production/file1.jpg', 'content1');
+    await uploadBlob('user-uploads', 'production/file2.jpg', 'content2');
+    await uploadBlob('documents', 'active/doc1.pdf', 'doc1');
+
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
-    await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 17');
+    await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 3');
   });
 
   test('shows total table count in db', async ({ page }) => {
+    await populateDb();
+
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Tables' })).toHaveText('Tables 2');
   });
 
   test('shows tables and record count in db', async ({ page }) => {
+    await populateDb();
+
+    // Upload some blobs for db1
+    await uploadBlob('user-uploads', 'production/file1.jpg', 'content1');
+    await uploadBlob('documents', 'active/doc1.pdf', 'doc1');
+
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Tables' })).toHaveText('Tables 2');
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 9');
-    await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 17');
+    await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 2');
 
     const tableData = await extractTableData(page.locator(':text("Tables") + table'));
     expect(tableData).toEqual([
@@ -52,7 +72,7 @@ test.describe('Database Tests', () => {
   });
 
   test('restores backup', async ({ page }) => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create backup via API
     const response = await triggerBackup();
@@ -75,7 +95,7 @@ test.describe('Database Tests', () => {
   });
 
   test('doesnt restore excluded tables', async ({ page }) => {
-    await cleanupBackups();
+    await populateDb();
 
     // Create backup via API
     const response = await triggerBackup();
