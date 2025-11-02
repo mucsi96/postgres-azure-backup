@@ -58,9 +58,6 @@ test.describe('Database Tests', () => {
     const response = await triggerBackup();
     expect(response.ok).toBe(true);
 
-    // Wait for backup to complete
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
     await cleanupDb();
 
     await page.goto('http://localhost:8080');
@@ -83,9 +80,6 @@ test.describe('Database Tests', () => {
     // Create backup via API
     const response = await triggerBackup();
     expect(response.ok).toBe(true);
-
-    // Wait for backup to complete
-    await new Promise(resolve => setTimeout(resolve, 2000));
 
     await cleanupDb();
 

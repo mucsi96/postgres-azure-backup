@@ -10,6 +10,7 @@ import {
   cleanupBlobContainer,
 } from '../utils';
 import AdmZip from 'adm-zip';
+import { readFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -66,7 +67,6 @@ test.describe('Backups Tests', () => {
 
     // Create a backup via API
     await triggerBackup();
-    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
@@ -131,7 +131,6 @@ test.describe('Backups Tests', () => {
 
     // Create a backup via API
     await triggerBackup();
-    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
@@ -194,7 +193,6 @@ test.describe('Backups Tests', () => {
 
     // Create a backup via API
     await triggerBackup();
-    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
@@ -217,7 +215,6 @@ test.describe('Backups Tests', () => {
 
     // Create a backup via API
     await triggerBackup();
-    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
@@ -238,8 +235,7 @@ test.describe('Backups Tests', () => {
     const path = join(tmpdir(), download.suggestedFilename());
     await download.saveAs(path);
 
-    const fs = await import('fs/promises');
-    const content = await fs.readFile(path, 'utf-8');
+    const content = await readFile(path, 'utf-8');
 
     // Verify SQL content contains expected data from the populated database
     expect(content).toContain('test1');

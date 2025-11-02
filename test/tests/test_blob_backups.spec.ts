@@ -35,9 +35,6 @@ test.describe('Blob Backup Tests', () => {
     const response = await triggerBackup();
     expect(response.ok).toBe(true);
 
-    // Wait for backup to complete
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
     // Verify backup was created in blob storage
     const blobServiceClient = getBlobServiceClient();
     const containerClient = blobServiceClient.getContainerClient('backups');
@@ -59,9 +56,6 @@ test.describe('Blob Backup Tests', () => {
     // Trigger backup via API
     const response = await triggerBackup();
     expect(response.ok).toBe(true);
-
-    // Wait for backup to complete
-    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Download the ZIP backup via UI
     await page.goto('http://localhost:8080');
@@ -109,9 +103,6 @@ test.describe('Blob Backup Tests', () => {
     const response = await triggerBackup();
     expect(response.ok).toBe(true);
 
-    // Wait for backup to complete
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
     // Get backups list via API
     const backups = await getBackupsList('db1');
     expect(backups.length).toBe(1);
@@ -146,9 +137,6 @@ test.describe('Blob Backup Tests', () => {
     // Create backup via API
     const response = await triggerBackup();
     expect(response.ok).toBe(true);
-
-    // Wait for backup to complete
-    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Verify UI shows blob count before deletion
     await page.goto('http://localhost:8080');
@@ -186,9 +174,6 @@ test.describe('Blob Backup Tests', () => {
     const response = await triggerBackup();
     expect(response.ok).toBe(true);
 
-    // Wait for backup to complete
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
     // Verify backup was created in blob storage for db2
     const blobServiceClient = getBlobServiceClient();
     const containerClient = blobServiceClient.getContainerClient('backups');
@@ -214,9 +199,6 @@ test.describe('Blob Backup Tests', () => {
     // Trigger backup via API
     const response = await triggerBackup();
     expect(response.ok).toBe(true);
-
-    // Wait for backup to complete
-    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Download ZIP via UI
     await page.goto('http://localhost:8080');
@@ -257,9 +239,6 @@ test.describe('Blob Backup Tests', () => {
     // Trigger backup via API
     const response = await triggerBackup();
     expect(response.ok).toBe(true);
-
-    // Wait for backup to complete
-    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Verify backup still created (just without blobs)
     const blobServiceClient = getBlobServiceClient();

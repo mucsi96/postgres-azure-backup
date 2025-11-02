@@ -1,3 +1,2 @@
-- drop await new Promise(resolve => setTimeout(resolve, 2000));
 - fix broken layout with download icons
 - drop db initializetion in fixture to make test cases for self suffisient and more readbale.
