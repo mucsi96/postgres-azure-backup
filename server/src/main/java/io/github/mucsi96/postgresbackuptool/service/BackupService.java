@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
@@ -13,14 +12,10 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.ListBlobsOptions;
-import com.azure.storage.blob.models.UserDelegationKey;
-import com.azure.storage.blob.sas.BlobSasPermission;
-import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 
 import io.github.mucsi96.postgresbackuptool.model.Backup;
 import lombok.extern.slf4j.Slf4j;
@@ -93,26 +88,6 @@ public class BackupService {
                 .downloadToFile(key);
 
         return new File(key);
-    }
-
-    public String getBackupUrl(String prefix, String key) throws IOException {
-        BlobContainerClient blobContainerClient = blobServiceClient
-                .getBlobContainerClient(containerName);
-
-        BlobSasPermission permission = new BlobSasPermission()
-                .setReadPermission(true);
-        OffsetDateTime expiryTime = OffsetDateTime.now().plusMinutes(2);
-        BlobServiceSasSignatureValues values = new BlobServiceSasSignatureValues(
-                expiryTime, permission).setStartTime(OffsetDateTime.now());
-
-        UserDelegationKey userDelegationKey = blobServiceClient
-                .getUserDelegationKey(OffsetDateTime.now(), expiryTime);
-
-        // All backups are ZIP files
-        BlobClient blobClient = blobContainerClient
-                .getBlobClient(prefix + "/" + key);
-        return blobClient.getBlobUrl() + "?" + blobClient
-                .generateUserDelegationSas(values, userDelegationKey);
     }
 
     public void cleanup(String prefix) {

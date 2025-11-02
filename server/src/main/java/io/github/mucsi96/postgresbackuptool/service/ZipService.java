@@ -188,4 +188,66 @@ public class ZipService {
             }
         }
     }
+
+    /**
+     * Extracts and returns the pgdump (custom format) file from a backup ZIP.
+     * The file is extracted to a temporary location.
+     *
+     * @param zipFile The backup ZIP file
+     * @return The extracted pgdump file (caller is responsible for cleanup)
+     * @throws IOException If an I/O error occurs or pgdump file not found
+     */
+    public File extractPgdumpFile(File zipFile) throws IOException {
+        log.info("Extracting pgdump file from ZIP: {}", zipFile.getPath());
+
+        try (ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFile))) {
+            ZipEntry entry;
+            while ((entry = zipIn.getNextEntry()) != null) {
+                String entryName = entry.getName();
+
+                // Find the pgdump file (not .sql, not in blobs/ directory)
+                if (!entry.isDirectory() && !entryName.startsWith(BLOBS_DIR) && !entryName.endsWith(".sql")) {
+                    File tempFile = Files.createTempFile("pgdump-", ".pgdump").toFile();
+                    extractFileFromZip(zipIn, tempFile);
+                    log.info("Extracted pgdump file to: {}", tempFile.getPath());
+                    return tempFile;
+                }
+
+                zipIn.closeEntry();
+            }
+        }
+
+        throw new IOException("Pgdump file not found in backup ZIP");
+    }
+
+    /**
+     * Extracts and returns the plain SQL file from a backup ZIP.
+     * The file is extracted to a temporary location.
+     *
+     * @param zipFile The backup ZIP file
+     * @return The extracted SQL file (caller is responsible for cleanup)
+     * @throws IOException If an I/O error occurs or SQL file not found
+     */
+    public File extractPlainSqlFile(File zipFile) throws IOException {
+        log.info("Extracting plain SQL file from ZIP: {}", zipFile.getPath());
+
+        try (ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFile))) {
+            ZipEntry entry;
+            while ((entry = zipIn.getNextEntry()) != null) {
+                String entryName = entry.getName();
+
+                // Find the .sql file (not in blobs/ directory)
+                if (!entry.isDirectory() && !entryName.startsWith(BLOBS_DIR) && entryName.endsWith(".sql")) {
+                    File tempFile = Files.createTempFile("sql-", ".sql").toFile();
+                    extractFileFromZip(zipIn, tempFile);
+                    log.info("Extracted SQL file to: {}", tempFile.getPath());
+                    return tempFile;
+                }
+
+                zipIn.closeEntry();
+            }
+        }
+
+        throw new IOException("Plain SQL file not found in backup ZIP");
+    }
 }

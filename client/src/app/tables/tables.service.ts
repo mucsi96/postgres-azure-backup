@@ -70,20 +70,33 @@ export class TablesService {
     this.tables.reload();
   }
 
-  async downloadBackup(selectedBackup: string, type: 'plain' | 'archive') {
+  async downloadBackup(selectedBackup: string, type: 'plain' | 'archive' | 'pgdump') {
     const databaseName = this.selectedDatabaseService.databaseName();
     if (!databaseName) {
       return;
     }
     try {
-      const { url } = await fetchJson<{ url: string }>(
-        this.http,
-        environment.apiContextPath +
-          `/database/${databaseName}/backup/${selectedBackup}?type=${type}`
-      );
-      window
-        .open(url, '_blank')
-        ?.focus();
+      let downloadUrl: string;
+
+      // Use new streaming endpoints for all download types
+      if (type === 'pgdump') {
+        downloadUrl = environment.apiContextPath +
+          `/database/${databaseName}/backup/${selectedBackup}/pgdump`;
+      } else if (type === 'plain') {
+        downloadUrl = environment.apiContextPath +
+          `/database/${databaseName}/backup/${selectedBackup}/sql`;
+      } else {
+        downloadUrl = environment.apiContextPath +
+          `/database/${databaseName}/backup/${selectedBackup}/archive`;
+      }
+
+      // Trigger download by creating a temporary link
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = ''; // Browser will use filename from Content-Disposition header
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (error) {
       dispatchEvent(new ErrorNotificationEvent('Could not download backup.'));
     }

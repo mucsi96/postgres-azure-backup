@@ -16,11 +16,11 @@
   }
 
   &:not(.hasPlainDump) {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto auto 1fr;
   }
 
   &.hasPlainDump {
-    grid-template-columns: auto auto 1fr;
+    grid-template-columns: auto auto auto 1fr;
   }
 }
 

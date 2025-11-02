@@ -7,7 +7,6 @@ import {
   getBlobContent,
   triggerBackup,
   getBackupsList,
-  downloadZipBackup,
   getBlobServiceClient,
 } from '../utils';
 import AdmZip from 'adm-zip';
@@ -54,7 +53,7 @@ test.describe('Blob Backup Tests', () => {
     expect(zipBackup).toBeDefined();
   });
 
-  test('verifies ZIP contains database dump and all blobs', async () => {
+  test('verifies ZIP contains database dump and all blobs', async ({ page }) => {
     await cleanupBackups();
 
     // Trigger backup via API
@@ -64,11 +63,26 @@ test.describe('Blob Backup Tests', () => {
     // Wait for backup to complete
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Download the ZIP backup
-    const downloaded = await downloadZipBackup('db1');
+    // Download the ZIP backup via UI
+    await page.goto('http://localhost:8080');
+    await page.getByText('db1').click();
+
+    const firstBackupRow = page.locator('#backups tbody tr').first();
+    await firstBackupRow.click();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download archive' }).click();
+    const download = await downloadPromise;
+
+    const path = await download.path();
+    expect(path).toBeTruthy();
+
+    if (!path) {
+      throw new Error('Download failed');
+    }
 
     // Parse ZIP content
-    const zip = new AdmZip(downloaded);
+    const zip = new AdmZip(path);
     const zipEntries = zip.getEntries();
     const entryNames = zipEntries.map(entry => entry.entryName);
 
@@ -190,7 +204,7 @@ test.describe('Blob Backup Tests', () => {
     expect(zipBackup).toBeDefined();
   });
 
-  test('filters blobs by prefix correctly', async () => {
+  test('filters blobs by prefix correctly', async ({ page }) => {
     await cleanupBackups();
 
     // Add blobs outside the configured prefix
@@ -204,10 +218,25 @@ test.describe('Blob Backup Tests', () => {
     // Wait for backup to complete
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Download and verify ZIP
-    const downloaded = await downloadZipBackup('db1');
+    // Download ZIP via UI
+    await page.goto('http://localhost:8080');
+    await page.getByText('db1').click();
 
-    const zip = new AdmZip(downloaded);
+    const firstBackupRow = page.locator('#backups tbody tr').first();
+    await firstBackupRow.click();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download archive' }).click();
+    const download = await downloadPromise;
+
+    const path = await download.path();
+    expect(path).toBeTruthy();
+
+    if (!path) {
+      throw new Error('Download failed');
+    }
+
+    const zip = new AdmZip(path);
     const entryNames = zip.getEntries().map(entry => entry.entryName);
 
     // Verify blobs outside "production/" prefix are NOT included
@@ -254,9 +283,21 @@ test.describe('Blob Backup Tests', () => {
     await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 0');
 
     // Verify ZIP still has database dump, just no blobs
-    const downloaded = await downloadZipBackup('db1');
+    const firstBackupRow = page.locator('#backups tbody tr').first();
+    await firstBackupRow.click();
 
-    const zip = new AdmZip(downloaded);
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download archive' }).click();
+    const download = await downloadPromise;
+
+    const path = await download.path();
+    expect(path).toBeTruthy();
+
+    if (!path) {
+      throw new Error('Download failed');
+    }
+
+    const zip = new AdmZip(path);
     const entryNames = zip.getEntries().map(entry => entry.entryName);
 
     expect(entryNames.some((name: string) => name.endsWith('.pgdump'))).toBe(true);

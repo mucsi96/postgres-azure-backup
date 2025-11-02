@@ -43,7 +43,7 @@ export class BackupsComponent {
     this.tableService.restoreBackup(selectedBackup);
   }
 
-  downloadBackup({ type }: { type: 'plain' | 'archive' }) {
+  downloadBackup({ type }: { type: 'plain' | 'archive' | 'pgdump' }) {
     const selectedBackup = this.selectedBackup();
 
     if (this.processing() || !selectedBackup) {

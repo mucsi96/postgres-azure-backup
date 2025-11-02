@@ -49,15 +49,14 @@ This document provides a comprehensive overview of the postgres-azure-backup app
 **Responsibilities:**
 - List backups from Azure Blob Storage
 - Extract and parse backup metadata from ZIP files
-- Download backups from blob storage
-- Generate temporary SAS URLs for secure backup downloads
+- Download backups from blob storage for streaming
 - Execute cleanup based on retention periods
 - Track last backup timestamp
 
 **Key methods:**
 - `getBackups(prefix)` - Lists all backups for a database
 - `createBackup(prefix, file, fileName)` - Uploads backup to blob storage
-- `downloadBackup(prefix, key)` - Downloads backup file
+- `downloadBackup(prefix, key)` - Downloads backup file for streaming
 - `cleanup(prefix)` - Removes expired backups
 
 ### BackupOrchestrationService
@@ -128,9 +127,16 @@ This document provides a comprehensive overview of the postgres-azure-backup app
 
 **Responsibilities:**
 - Create ZIP archives containing database dumps and blob files
-- Extract and parse backup archives
+- Extract and parse backup archives for restoration
+- Extract specific files from backups for streaming downloads
 - Maintain structured blob directory layout
 - Derive container and blob names from ZIP path structure
+
+**Key methods:**
+- `createBackupZip()` - Creates ZIP with dumps and blobs
+- `extractBackupZip()` - Extracts all files for restoration
+- `extractPgdumpFile()` - Extracts only pgdump file for download
+- `extractPlainSqlFile()` - Extracts only SQL file for download
 
 **ZIP structure:**
 ```
@@ -159,7 +165,9 @@ backup.zip
 |----------|--------|-----------|---------|
 | `/api/smart-backup` | POST | DatabaseBackupCreator | Execute intelligent backup |
 | `/api/database/{name}/backups` | GET | DatabaseBackupsReader | List all backups |
-| `/api/database/{name}/backup/{key}` | GET | DatabaseBackupDownloader | Get SAS URL for download |
+| `/api/database/{name}/backup/{key}/archive` | GET | DatabaseBackupDownloader | Stream ZIP archive download |
+| `/api/database/{name}/backup/{key}/pgdump` | GET | DatabaseBackupDownloader | Stream pgdump file download |
+| `/api/database/{name}/backup/{key}/sql` | GET | DatabaseBackupDownloader | Stream SQL file download |
 | `/api/database/{name}/restore/{key}` | POST | DatabaseBackupRestorer | Restore backup |
 | `/api/database/{name}/last-backup-time` | GET | DatabaseBackupsReader | Get last backup timestamp |
 
@@ -307,9 +315,10 @@ JSON file with database configurations:
 - `APPROLE_DatabaseBackupRestorer` - Restore backups
 
 ### Secure Downloads
-- Azure Blob Storage SAS (Shared Access Signature)
-- 2-minute expiration
-- User delegation key-based signing
+- Server-side file streaming through backend endpoints
+- No direct blob URLs exposed to browser
+- Files extracted from ZIP archives on-demand
+- Temporary files cleaned up after streaming
 
 ## Key Workflows
 
@@ -344,6 +353,24 @@ For each database:
     └─ BackupService.createBackup() [upload]
   ↓
 BackupOrchestrationService.performCleanup()
+```
+
+### Download
+```
+GET /api/database/{name}/backup/{key}/{type}
+  ↓
+BackupService.downloadBackup() [from blob storage]
+  ↓
+ZipService.extractPgdumpFile() OR extractPlainSqlFile() [if needed]
+  ↓
+Stream file to browser with Content-Disposition header
+  ↓
+Clean up temporary files
+
+Types:
+- /archive → Stream entire ZIP file
+- /pgdump → Extract and stream pgdump file
+- /sql → Extract and stream SQL file
 ```
 
 ### Restore

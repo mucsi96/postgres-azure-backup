@@ -51,12 +51,20 @@
           >
             <mat-icon>folder_zip</mat-icon>
           </button>
+          <button
+            mat-icon-button
+            (click)="downloadBackup({ type: 'pgdump' })"
+            class="download"
+            aria-label="Download pgdump"
+          >
+            <mat-icon>database</mat-icon>
+          </button>
           @if (backup.hasPlainDump) {
           <button
             mat-icon-button
             (click)="downloadBackup({ type: 'plain' })"
             class="download"
-            aria-label="Download plain dump"
+            aria-label="Download plain SQL"
           >
             <mat-icon>description</mat-icon>
           </button>

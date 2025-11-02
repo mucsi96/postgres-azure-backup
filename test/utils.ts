@@ -352,24 +352,4 @@ export async function restoreBackup(databaseName: string, backupKey: string): Pr
   return response;
 }
 
-export async function downloadZipBackup(databaseName: string): Promise<Buffer> {
-  const containerClient = blobServiceClient.getContainerClient('backups');
-  let zipBlobName = '';
-
-  for await (const blob of containerClient.listBlobsFlat({ prefix: `${databaseName}/` })) {
-    if (blob.name.endsWith('.zip')) {
-      zipBlobName = blob.name;
-      break;
-    }
-  }
-
-  if (!zipBlobName) {
-    throw new Error(`No ZIP backup found for database ${databaseName}`);
-  }
-
-  const blobClient = containerClient.getBlobClient(zipBlobName);
-  const downloadResponse = await blobClient.download();
-  return await streamToBuffer(downloadResponse.readableStreamBody!);
-}
-
 export { streamToBuffer };
