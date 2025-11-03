@@ -1,0 +1,1 @@
+- Drop .env files in favor of on demand secret pulling

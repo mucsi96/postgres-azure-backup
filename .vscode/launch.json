@@ -7,8 +7,7 @@
       "cwd": "${workspaceFolder}/server",
       "mainClass": "io.github.mucsi96.postgresbackuptool.App",
       "projectName": "postgres-azure-backup",
-      "args": "",
-      "envFile": "${workspaceFolder}/.env"
+      "args": "--spring.profiles.active=local",
     },
     {
       "name": "Python: Unittest",
