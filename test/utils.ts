@@ -3,11 +3,12 @@ import { BlobServiceClient } from '@azure/storage-blob';
 import { Client } from 'pg';
 
 const connectionString =
-  "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;" +
-  "AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;" +
-  "BlobEndpoint=https://localhost:8081/devstoreaccount1;";
+  'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;' +
+  'AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;' +
+  'BlobEndpoint=http://localhost:8081/devstoreaccount1;';
 
-const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
+const blobServiceClient =
+  BlobServiceClient.fromConnectionString(connectionString);
 
 export interface TableData {
   [key: string]: string;
@@ -15,8 +16,8 @@ export interface TableData {
 
 export async function extractTableData(table: Locator): Promise<TableData[]> {
   const headers = await table.locator('thead th').allInnerTexts();
-  const capitalizedHeaders = headers.map(header =>
-    header.charAt(0).toUpperCase() + header.slice(1).toLowerCase()
+  const capitalizedHeaders = headers.map(
+    (header) => header.charAt(0).toUpperCase() + header.slice(1).toLowerCase()
   );
 
   const rows = await table.locator('tbody tr').all();
@@ -51,8 +52,18 @@ interface CreateBackupOptions {
   blobsTotalSize?: number;
 }
 
-export async function createBackup(options: CreateBackupOptions): Promise<void> {
-  const { prefix, rowsCount, retention, size, timeDelta, blobCount = 0, blobsTotalSize = 0 } = options;
+export async function createBackup(
+  options: CreateBackupOptions
+): Promise<void> {
+  const {
+    prefix,
+    rowsCount,
+    retention,
+    size,
+    timeDelta,
+    blobCount = 0,
+    blobsTotalSize = 0,
+  } = options;
 
   const containerClient = blobServiceClient.getContainerClient('backups');
 
@@ -190,14 +201,17 @@ export async function getDb1Tables(): Promise<string[]> {
   );
   await client.end();
 
-  return result.rows.map(row => row.table_name);
+  return result.rows.map((row) => row.table_name);
 }
 
 export async function mockWindowOpen(page: Page): Promise<void> {
   await page.evaluate(() => {
     (window as any).open = (url: string) => {
-      if (url && url.startsWith("https://blobstorage:10000")) {
-        url = url.replace("https://blobstorage:10000", "https://localhost:8081");
+      if (url && url.startsWith('https://blobstorage:10000')) {
+        url = url.replace(
+          'https://blobstorage:10000',
+          'https://localhost:8081'
+        );
         window.location.href = url;
       }
     };
@@ -221,7 +235,7 @@ export function listWithoutKeys<T extends Record<string, any>>(
   data: T[],
   keys: string[]
 ): Partial<T>[] {
-  return data.map(row => withoutKeys(row, keys));
+  return data.map((row) => withoutKeys(row, keys));
 }
 
 export async function getBackupsFromStorage(prefix: string) {
@@ -232,7 +246,9 @@ export async function getBackupsFromStorage(prefix: string) {
   }
 
   const backups = [];
-  for await (const blob of containerClient.listBlobsFlat({ prefix: `${prefix}/` })) {
+  for await (const blob of containerClient.listBlobsFlat({
+    prefix: `${prefix}/`,
+  })) {
     // Only return ZIP backups
     if (!blob.name.endsWith('.zip')) {
       continue;
@@ -246,21 +262,27 @@ export async function getBackupsFromStorage(prefix: string) {
       blobCount: parseInt(parts[2]),
       blobsTotalSize: parseInt(parts[3]),
       retention: parseInt(parts[4]),
-      size: blob.properties.contentLength
+      size: blob.properties.contentLength,
     });
   }
 
   return backups.sort((a, b) => b.name.localeCompare(a.name));
 }
 
-export async function createBlobContainer(containerName: string): Promise<void> {
+export async function createBlobContainer(
+  containerName: string
+): Promise<void> {
   const containerClient = blobServiceClient.getContainerClient(containerName);
   if (!(await containerClient.exists())) {
     await containerClient.create();
   }
 }
 
-export async function uploadBlob(containerName: string, blobName: string, content: string): Promise<void> {
+export async function uploadBlob(
+  containerName: string,
+  blobName: string,
+  content: string
+): Promise<void> {
   const containerClient = blobServiceClient.getContainerClient(containerName);
   if (!(await containerClient.exists())) {
     await containerClient.create();
@@ -270,7 +292,10 @@ export async function uploadBlob(containerName: string, blobName: string, conten
   await blockBlobClient.upload(content, content.length);
 }
 
-export async function getBlobContent(containerName: string, blobName: string): Promise<string> {
+export async function getBlobContent(
+  containerName: string,
+  blobName: string
+): Promise<string> {
   const containerClient = blobServiceClient.getContainerClient(containerName);
   const blobClient = containerClient.getBlobClient(blobName);
 
@@ -279,7 +304,10 @@ export async function getBlobContent(containerName: string, blobName: string): P
   return downloaded.toString();
 }
 
-export async function blobExists(containerName: string, blobName: string): Promise<boolean> {
+export async function blobExists(
+  containerName: string,
+  blobName: string
+): Promise<boolean> {
   const containerClient = blobServiceClient.getContainerClient(containerName);
   if (!(await containerClient.exists())) {
     return false;
@@ -289,7 +317,10 @@ export async function blobExists(containerName: string, blobName: string): Promi
   return await blobClient.exists();
 }
 
-export async function listBlobs(containerName: string, prefix?: string): Promise<string[]> {
+export async function listBlobs(
+  containerName: string,
+  prefix?: string
+): Promise<string[]> {
   const containerClient = blobServiceClient.getContainerClient(containerName);
   if (!(await containerClient.exists())) {
     return [];
@@ -303,7 +334,9 @@ export async function listBlobs(containerName: string, prefix?: string): Promise
   return blobs;
 }
 
-export async function cleanupBlobContainer(containerName: string): Promise<void> {
+export async function cleanupBlobContainer(
+  containerName: string
+): Promise<void> {
   const containerClient = blobServiceClient.getContainerClient(containerName);
 
   if (!(await containerClient.exists())) {
@@ -316,7 +349,9 @@ export async function cleanupBlobContainer(containerName: string): Promise<void>
   }
 }
 
-async function streamToBuffer(readableStream: NodeJS.ReadableStream): Promise<Buffer> {
+async function streamToBuffer(
+  readableStream: NodeJS.ReadableStream
+): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     readableStream.on('data', (data: Buffer) => {
@@ -341,14 +376,22 @@ export async function triggerBackup(): Promise<Response> {
 }
 
 export async function getBackupsList(databaseName: string): Promise<any[]> {
-  const response = await fetch(`http://localhost:8080/api/database/${databaseName}/backups`);
+  const response = await fetch(
+    `http://localhost:8080/api/database/${databaseName}/backups`
+  );
   return await response.json();
 }
 
-export async function restoreBackup(databaseName: string, backupKey: string): Promise<Response> {
-  const response = await fetch(`http://localhost:8080/api/database/${databaseName}/restore/${backupKey}`, {
-    method: 'POST',
-  });
+export async function restoreBackup(
+  databaseName: string,
+  backupKey: string
+): Promise<Response> {
+  const response = await fetch(
+    `http://localhost:8080/api/database/${databaseName}/restore/${backupKey}`,
+    {
+      method: 'POST',
+    }
+  );
   return response;
 }
 

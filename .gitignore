@@ -7,7 +7,6 @@ screenshots
 
 .ansible/
 .kube/
-.certs/
 
 node_modules
 

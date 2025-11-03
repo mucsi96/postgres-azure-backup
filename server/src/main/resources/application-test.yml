@@ -1,3 +1,5 @@
+blobstorage:
+  connectionString: ${BLOBSTORAGE_CONNECTION_STRING:}
 spring:
   autoconfigure:
     exclude:

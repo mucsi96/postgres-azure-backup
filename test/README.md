@@ -99,10 +99,6 @@ This ensures each test runs in a clean, isolated environment without requiring m
 
 ## Troubleshooting
 
-If you encounter SSL/TLS errors, ensure that:
-- The `NODE_TLS_REJECT_UNAUTHORIZED` environment variable is set correctly
-- The CA certificate is available at `./.certs/rootCA.pem`
-
 For database connection issues, verify that:
 - PostgreSQL containers are running on the correct ports
 - Database credentials match those in the test configuration
