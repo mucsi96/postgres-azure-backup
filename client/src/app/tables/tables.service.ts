@@ -7,6 +7,7 @@ import {
 import { environment } from '../../environments/environment';
 import { Table } from '../../types';
 import { SelectedDatabaseService } from '../database/selected-database.service';
+import { downloadBlob } from '../utils/downloadBlob';
 import { fetchJson } from '../utils/fetchJson';
 
 @Injectable({
@@ -77,26 +78,25 @@ export class TablesService {
     }
     try {
       let downloadUrl: string;
+      let filename: string;
 
       // Use new streaming endpoints for all download types
       if (type === 'pgdump') {
         downloadUrl = environment.apiContextPath +
           `/database/${databaseName}/backup/${selectedBackup}/pgdump`;
+        filename = selectedBackup.replace('.zip', '.pgdump');
       } else if (type === 'plain') {
         downloadUrl = environment.apiContextPath +
           `/database/${databaseName}/backup/${selectedBackup}/sql`;
+        filename = selectedBackup.replace('.zip', '.sql');
       } else {
         downloadUrl = environment.apiContextPath +
           `/database/${databaseName}/backup/${selectedBackup}/archive`;
+        filename = selectedBackup;
       }
 
-      // Trigger download by creating a temporary link
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = ''; // Browser will use filename from Content-Disposition header
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Use HttpClient to make authenticated request and download blob
+      await downloadBlob(this.http, downloadUrl, filename);
     } catch (error) {
       dispatchEvent(new ErrorNotificationEvent('Could not download backup.'));
     }
