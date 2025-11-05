@@ -85,7 +85,7 @@ test.describe('Backups Tests', () => {
 
     const tableData = listWithoutKeys(
       await extractTableData(page.locator(':text("Backups") + table')),
-      ['Name', 'Date']
+      ['Date']
     );
 
     expect(tableData).toEqual([

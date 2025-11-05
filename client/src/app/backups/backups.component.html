@@ -10,7 +10,6 @@
     <tr>
       <th></th>
       <th bt-right-align>Date</th>
-      <th>Name</th>
       <th bt-center-align>Records</th>
       <th bt-center-align>Size</th>
       <th bt-center-align>Blobs</th>
@@ -31,7 +30,6 @@
         {{ backup.lastModified | relativeTime }}
         } @else { - }
       </td>
-      <td bt-no-wrap>{{ backup.name }}</td>
       <td bt-center-align>{{ backup.totalRowCount }}</td>
       <td bt-no-wrap bt-center-align>{{ backup.size | size }}</td>
       <td bt-center-align>{{ backup.blobCount }}</td>
