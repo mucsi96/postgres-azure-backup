@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -13,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import io.github.mucsi96.postgresbackuptool.configuration.DatabaseConfiguration;
-import io.github.mucsi96.postgresbackuptool.service.BlobBackupService.BlobBackupItem;
+import io.github.mucsi96.postgresbackuptool.service.FolderBackupService.FolderBackupItem;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -28,12 +27,12 @@ public class BackupOrchestrationService {
     private final BackupService backupService;
     private final DatabaseService databaseService;
     private final DateTimeFormatter dateTimeFormatter;
-    private final BlobBackupService blobBackupService;
+    private final FolderBackupService folderBackupService;
     private final ZipService zipService;
 
     /**
      * Performs backup for all configured databases with the specified retention period.
-     * All backups are created as ZIP files containing pgdump, SQL dump, and blobs (if configured).
+     * All backups are created as ZIP files containing pgdump, SQL dump, and folder files (if configured).
      *
      * @param retentionPeriod Number of days to retain the backup
      * @throws IOException If an I/O error occurs
@@ -60,7 +59,7 @@ public class BackupOrchestrationService {
 
     /**
      * Performs backup for a specific database with the specified retention period.
-     * All backups are created as ZIP files containing pgdump, SQL dump, and blobs (if configured).
+     * All backups are created as ZIP files containing pgdump, SQL dump, and folder files (if configured).
      *
      * @param databaseConfiguration The database configuration
      * @param retentionPeriod Number of days to retain the backup
@@ -106,8 +105,6 @@ public class BackupOrchestrationService {
         File dumpFile = null;
         File plainDumpFile = null;
         File zipFile = null;
-        List<File> downloadedBlobFiles = new ArrayList<>();
-        File blobDownloadDir = null;
 
         try {
             // Always create custom format dump (pgdump)
@@ -126,78 +123,50 @@ public class BackupOrchestrationService {
                     "plain",
                     timeString);
 
-            // Collect blobs
-            logger.info("Collecting blobs for backup from {} containers",
-                    databaseConfiguration.getBlobBackups().size());
-            List<BlobBackupItem> blobItems = blobBackupService.collectBlobs(
-                    databaseConfiguration.getBlobBackups());
-
-            // Download blobs to temporary directory
-            if (!blobItems.isEmpty()) {
-                blobDownloadDir = Files.createTempDirectory("blob-backup-").toFile();
-                logger.info("Downloading {} blobs to temporary directory: {}",
-                        blobItems.size(), blobDownloadDir.getPath());
-
-                for (BlobBackupItem blobItem : blobItems) {
-                    File blobFile = new File(blobDownloadDir,
-                            blobItem.getContainerName() + "-" + blobItem.getBlobName().replace("/", "-"));
-                    blobFile.getParentFile().mkdirs();
-                    blobBackupService.downloadBlob(blobItem, blobFile);
-                    downloadedBlobFiles.add(blobFile);
-                }
-            }
+            // Collect folder files from local file system
+            logger.info("Collecting files for backup from {} folders",
+                    databaseConfiguration.getFolderBackups().size());
+            List<FolderBackupItem> folderItems = folderBackupService.collectFolders(
+                    databaseConfiguration.getFolderBackups());
 
             // Get total row count for metadata
             int totalRowCount = databaseService.getDatabaseInfo(databaseConfiguration.getName()).getTotalRowCount();
 
-            // Get blob metadata
-            int blobCount = blobItems.size();
-            long blobsTotalSize = blobBackupService.getTotalSize(blobItems);
+            // Get folder file metadata
+            int fileCount = folderItems.size();
+            long filesTotalSize = folderBackupService.getTotalSize(folderItems);
 
             // Create ZIP file
-            logger.info("Creating ZIP archive with dump and {} blobs", blobItems.size());
+            logger.info("Creating ZIP archive with dump and {} files", folderItems.size());
             ZipService.ZipCreationResult zipResult = zipService.createBackupZip(
                     dumpFile,
                     plainDumpFile,
-                    blobItems,
+                    folderItems,
                     timeString,
                     totalRowCount,
                     retentionPeriod,
-                    blobCount,
-                    blobsTotalSize);
+                    fileCount,
+                    filesTotalSize);
             zipFile = zipResult.getZipFile();
 
             // Upload ZIP to blob storage with proper filename
             logger.info("Uploading ZIP backup to blob storage as: {}", zipResult.getFileName());
             backupService.createBackup(databaseConfiguration.getPrefix(), zipFile, zipResult.getFileName());
 
-            logger.info("Successfully created ZIP backup with {} blobs (total size: {} bytes)",
-                    blobItems.size(), blobBackupService.getTotalSize(blobItems));
+            logger.info("Successfully created ZIP backup with {} files (total size: {} bytes)",
+                    folderItems.size(), folderBackupService.getTotalSize(folderItems));
 
         } finally {
             // Clean up temporary files
             cleanupTempFile(dumpFile, "dump file");
             cleanupTempFile(plainDumpFile, "plain dump file");
             cleanupTempFile(zipFile, "ZIP file");
-
-            // Clean up downloaded blob files
-            for (File blobFile : downloadedBlobFiles) {
-                cleanupTempFile(blobFile, "downloaded blob file");
-            }
-
-            // Clean up blob download directory
-            if (blobDownloadDir != null && blobDownloadDir.exists()) {
-                boolean deleted = blobDownloadDir.delete();
-                if (!deleted) {
-                    logger.warn("Failed to delete blob download directory: {}", blobDownloadDir.getAbsolutePath());
-                }
-            }
         }
     }
 
     /**
      * Restores a ZIP backup for a specific database.
-     * All backups are ZIP files containing pgdump, SQL dump, and blobs (if configured).
+     * All backups are ZIP files containing pgdump, SQL dump, and folder files (if configured).
      *
      * @param databaseConfiguration The database configuration
      * @param backupFile The ZIP backup file to restore
@@ -233,23 +202,26 @@ public class BackupOrchestrationService {
                 throw new IOException("No database dump found in ZIP backup");
             }
 
-            // Restore blobs
-            if (!result.getBlobs().isEmpty()) {
-                logger.info("Restoring {} blobs to blob storage", result.getBlobs().size());
+            // Restore folder files to local file system
+            if (!result.getFolderFiles().isEmpty()) {
+                logger.info("Restoring {} files to local folders", result.getFolderFiles().size());
 
-                for (ZipService.BlobRestorationItem blobItem : result.getBlobs()) {
-                    blobBackupService.uploadBlob(
-                        blobItem.getContainerName(),
-                        blobItem.getBlobName(),
-                        blobItem.getExtractedFile()
+                for (ZipService.FolderFileRestorationItem fileItem : result.getFolderFiles()) {
+                    File targetFile = new File(fileItem.getFolderPath(), fileItem.getRelativePath());
+                    targetFile.getParentFile().mkdirs();
+
+                    java.nio.file.Files.copy(
+                        fileItem.getExtractedFile().toPath(),
+                        targetFile.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
                     );
-                    logger.debug("Restored blob: {} to container: {}",
-                        blobItem.getBlobName(), blobItem.getContainerName());
+                    logger.debug("Restored file: {} to {}",
+                        fileItem.getRelativePath(), targetFile.getAbsolutePath());
                 }
 
-                logger.info("Successfully restored {} blobs", result.getBlobs().size());
+                logger.info("Successfully restored {} files", result.getFolderFiles().size());
             } else {
-                logger.info("No blobs to restore in this backup");
+                logger.info("No folder files to restore in this backup");
             }
 
         } finally {

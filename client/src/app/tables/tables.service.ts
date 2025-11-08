@@ -21,7 +21,7 @@ export class TablesService {
     {
       tables: Table[];
       totalRowCount: number;
-      blobCount: number;
+      fileCount: number;
     },
     { databaseName?: string }
   >({
@@ -30,13 +30,13 @@ export class TablesService {
     }),
     loader: async ({ params: { databaseName } }) => {
       if (!databaseName) {
-        return { tables: [], totalRowCount: 0, blobCount: 0 };
+        return { tables: [], totalRowCount: 0, fileCount: 0 };
       }
       try {
         const response = await fetchJson<{
           tables: Table[];
           totalRowCount: number;
-          blobCount: number;
+          fileCount: number;
         }>(
           this.http,
           environment.apiContextPath + `/database/${databaseName}/tables`
@@ -44,7 +44,7 @@ export class TablesService {
         return response;
       } catch (error) {
         dispatchEvent(new ErrorNotificationEvent('Could not get tables.'));
-        return { tables: [], totalRowCount: 0, blobCount: 0 };
+        return { tables: [], totalRowCount: 0, fileCount: 0 };
       }
     },
   });

@@ -18,5 +18,3 @@ export const environment = {
   apiClientId: window.__env.apiClientId,
   mockAuth: window.__env.mockAuth,
 };
-
-export async function bootstrapEnvironment() {}

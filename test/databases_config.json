@@ -9,14 +9,12 @@
     "password": "postgres",
     "excludeTables": ["passwords", "secrets"],
     "createPlainDump": true,
-    "blobBackups": [
+    "folderBackups": [
       {
-        "containerName": "user-uploads",
-        "prefix": "production/"
+        "path": "/tmp/test-uploads"
       },
       {
-        "containerName": "documents",
-        "prefix": "active/"
+        "path": "/tmp/test-documents"
       }
     ]
   },

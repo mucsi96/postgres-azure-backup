@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 
-import io.github.mucsi96.postgresbackuptool.model.BlobBackupConfig;
+import io.github.mucsi96.postgresbackuptool.model.FolderBackupConfig;
 import io.github.mucsi96.postgresbackuptool.model.DumpFormat;
 import lombok.Getter;
 
@@ -46,7 +46,7 @@ public class DatabaseConfiguration {
 
     private boolean createPlainDump = false;
 
-    private List<BlobBackupConfig> blobBackups = List.of();
+    private List<FolderBackupConfig> folderBackups = List.of();
 
     @JsonIgnore
     public String getPrefix() {

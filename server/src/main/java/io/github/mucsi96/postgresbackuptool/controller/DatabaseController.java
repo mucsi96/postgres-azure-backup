@@ -18,7 +18,7 @@ import io.github.mucsi96.postgresbackuptool.model.Backup;
 import io.github.mucsi96.postgresbackuptool.model.Database;
 import io.github.mucsi96.postgresbackuptool.model.DatabaseInfo;
 import io.github.mucsi96.postgresbackuptool.service.BackupService;
-import io.github.mucsi96.postgresbackuptool.service.BlobBackupService;
+import io.github.mucsi96.postgresbackuptool.service.FolderBackupService;
 import io.github.mucsi96.postgresbackuptool.service.DatabaseService;
 import lombok.RequiredArgsConstructor;
 
@@ -29,7 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class DatabaseController {
     private final DatabaseService databaseService;
     private final BackupService backupService;
-    private final BlobBackupService blobBackupService;
+    private final FolderBackupService folderBackupService;
 
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupsReader') && hasAuthority('SCOPE_readBackups')")
     @GetMapping("/databases")
@@ -44,12 +44,12 @@ public class DatabaseController {
                     databaseConfiguration.getPrefix());
             List<Backup> backups = backupService
                     .getBackups(databaseConfiguration.getPrefix());
-            int totalBlobCount = blobBackupService
-                    .collectBlobs(databaseConfiguration.getBlobBackups()).size();
+            int totalFileCount = folderBackupService
+                    .collectFolders(databaseConfiguration.getFolderBackups()).size();
             return Database.builder().name(databaseName)
                     .totalRowCount(databaseInfo.getTotalRowCount())
                     .tablesCount(databaseInfo.getTables().size())
-                    .blobCount(totalBlobCount)
+                    .fileCount(totalFileCount)
                     .backupsCount(backups.size())
                     .lastBackupTime(lastBackupTime.orElse(null)).build();
         }).toList();
@@ -63,12 +63,12 @@ public class DatabaseController {
         DatabaseInfo databaseInfo = databaseService.getDatabaseInfo(databaseName);
         DatabaseConfiguration databaseConfiguration = databaseService
                 .getDatabaseConfiguration(databaseName);
-        int totalBlobCount = blobBackupService
-                .collectBlobs(databaseConfiguration.getBlobBackups()).size();
+        int totalFileCount = folderBackupService
+                .collectFolders(databaseConfiguration.getFolderBackups()).size();
         return DatabaseInfo.builder()
                 .tables(databaseInfo.getTables())
                 .totalRowCount(databaseInfo.getTotalRowCount())
-                .blobCount(totalBlobCount)
+                .fileCount(totalFileCount)
                 .build();
     }
 }

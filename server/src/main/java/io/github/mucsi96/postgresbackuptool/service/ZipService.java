@@ -13,7 +13,7 @@ import java.util.zip.ZipOutputStream;
 
 import org.springframework.stereotype.Service;
 
-import io.github.mucsi96.postgresbackuptool.service.BlobBackupService.BlobBackupItem;
+import io.github.mucsi96.postgresbackuptool.service.FolderBackupService.FolderBackupItem;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -21,21 +21,21 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 public class ZipService {
-    private static final String BLOBS_DIR = "blobs/";
+    private static final String FOLDERS_DIR = "folders/";
 
     @Data
     @Builder
     public static class ZipExtractionResult {
         private File databaseDumpFile;
         private File plainDumpFile;
-        private List<BlobRestorationItem> blobs;
+        private List<FolderFileRestorationItem> folderFiles;
     }
 
     @Data
     @Builder
-    public static class BlobRestorationItem {
-        private String containerName;
-        private String blobName;
+    public static class FolderFileRestorationItem {
+        private String folderPath;
+        private String relativePath;
         private File extractedFile;
     }
 
@@ -49,15 +49,15 @@ public class ZipService {
     public ZipCreationResult createBackupZip(
         File databaseDumpFile,
         File plainDumpFile,
-        List<BlobBackupItem> blobItems,
+        List<FolderBackupItem> folderItems,
         String timestamp,
         int totalRowCount,
         int retentionPeriod,
-        int blobCount,
-        long blobsTotalSize
+        int fileCount,
+        long filesTotalSize
     ) throws IOException {
-        // Filename format: YYYYMMDD-HHMMSS.rowCount.blobCount.blobsTotalSize.retention.zip
-        String fileName = String.format("%s.%d.%d.%d.%d.zip", timestamp, totalRowCount, blobCount, blobsTotalSize, retentionPeriod);
+        // Filename format: YYYYMMDD-HHMMSS.rowCount.fileCount.filesTotalSize.retention.zip
+        String fileName = String.format("%s.%d.%d.%d.%d.zip", timestamp, totalRowCount, fileCount, filesTotalSize, retentionPeriod);
         File zipFile = Files.createTempFile("backup-", ".zip").toFile();
         log.info("Creating backup ZIP file: {} (will be uploaded as: {})", zipFile.getPath(), fileName);
 
@@ -75,19 +75,23 @@ public class ZipService {
                 log.debug("Added plain dump to ZIP: {}", plainDumpFileName);
             }
 
-            // Add blobs
-            for (BlobBackupItem blobItem : blobItems) {
-                if (blobItem.getDownloadedFile() != null && blobItem.getDownloadedFile().exists()) {
-                    String pathInZip = BLOBS_DIR + blobItem.getContainerName() + "/" + blobItem.getRelativePath();
-                    addFileToZip(zipOut, blobItem.getDownloadedFile(), pathInZip);
-                    log.debug("Added blob to ZIP: {}", pathInZip);
+            // Add folder files
+            for (FolderBackupItem folderItem : folderItems) {
+                if (folderItem.getSourceFile() != null && folderItem.getSourceFile().exists()) {
+                    // Remove leading slash from folder path to avoid double slashes
+                    String folderPath = folderItem.getFolderPath().startsWith("/")
+                        ? folderItem.getFolderPath().substring(1)
+                        : folderItem.getFolderPath();
+                    String pathInZip = FOLDERS_DIR + folderPath + "/" + folderItem.getRelativePath();
+                    addFileToZip(zipOut, folderItem.getSourceFile(), pathInZip);
+                    log.debug("Added file to ZIP: {}", pathInZip);
                 }
             }
 
         }
 
-        log.info("Successfully created backup ZIP: {} ({} blobs included)",
-            zipFile.getPath(), blobItems.size());
+        log.info("Successfully created backup ZIP: {} ({} files included)",
+            zipFile.getPath(), folderItems.size());
         return ZipCreationResult.builder()
             .zipFile(zipFile)
             .fileName(fileName)
@@ -103,7 +107,7 @@ public class ZipService {
 
         File databaseDumpFile = null;
         File plainDumpFile = null;
-        List<BlobRestorationItem> blobs = new ArrayList<>();
+        List<FolderFileRestorationItem> folderFiles = new ArrayList<>();
 
         // Extract all files
         try (ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFile))) {
@@ -120,23 +124,24 @@ public class ZipService {
                 // Ensure parent directory exists
                 extractedFile.getParentFile().mkdirs();
 
-                if (entryName.startsWith(BLOBS_DIR)) {
-                    // Extract blob and derive container/blob name from path
+                if (entryName.startsWith(FOLDERS_DIR)) {
+                    // Extract file and derive folder path from ZIP structure
                     extractFileFromZip(zipIn, extractedFile);
 
-                    // Parse container and blob name from path: blobs/containerName/blobName
-                    String relativePath = entryName.substring(BLOBS_DIR.length());
-                    int firstSlash = relativePath.indexOf('/');
-                    if (firstSlash > 0) {
-                        String containerName = relativePath.substring(0, firstSlash);
-                        String blobName = relativePath.substring(firstSlash + 1);
+                    // Parse folder path and relative path from: folders/folderPath/relativePath
+                    // The folderPath might have multiple levels (e.g., tmp/test-uploads)
+                    String pathAfterFolders = entryName.substring(FOLDERS_DIR.length());
+                    int lastSlash = pathAfterFolders.lastIndexOf('/');
+                    if (lastSlash > 0) {
+                        String folderPath = "/" + pathAfterFolders.substring(0, lastSlash);
+                        String relativePath = pathAfterFolders.substring(lastSlash + 1);
 
-                        blobs.add(BlobRestorationItem.builder()
-                            .containerName(containerName)
-                            .blobName(blobName)
+                        folderFiles.add(FolderFileRestorationItem.builder()
+                            .folderPath(folderPath)
+                            .relativePath(relativePath)
                             .extractedFile(extractedFile)
                             .build());
-                        log.debug("Extracted blob: {} -> {}/{}", entryName, containerName, blobName);
+                        log.debug("Extracted file: {} -> {}/{}", entryName, folderPath, relativePath);
                     }
                 } else if (entryName.endsWith(".sql")) {
                     // Plain dump
@@ -154,13 +159,13 @@ public class ZipService {
             }
         }
 
-        log.info("Successfully extracted backup ZIP: {} files, {} blobs",
-            databaseDumpFile != null ? 1 : 0, blobs.size());
+        log.info("Successfully extracted backup ZIP: {} files, {} folder files",
+            databaseDumpFile != null ? 1 : 0, folderFiles.size());
 
         return ZipExtractionResult.builder()
             .databaseDumpFile(databaseDumpFile)
             .plainDumpFile(plainDumpFile)
-            .blobs(blobs)
+            .folderFiles(folderFiles)
             .build();
     }
 
@@ -205,8 +210,8 @@ public class ZipService {
             while ((entry = zipIn.getNextEntry()) != null) {
                 String entryName = entry.getName();
 
-                // Find the pgdump file (not .sql, not in blobs/ directory)
-                if (!entry.isDirectory() && !entryName.startsWith(BLOBS_DIR) && !entryName.endsWith(".sql")) {
+                // Find the pgdump file (not .sql, not in folders/ directory)
+                if (!entry.isDirectory() && !entryName.startsWith(FOLDERS_DIR) && !entryName.endsWith(".sql")) {
                     File tempFile = Files.createTempFile("pgdump-", ".pgdump").toFile();
                     extractFileFromZip(zipIn, tempFile);
                     log.info("Extracted pgdump file to: {}", tempFile.getPath());
@@ -236,8 +241,8 @@ public class ZipService {
             while ((entry = zipIn.getNextEntry()) != null) {
                 String entryName = entry.getName();
 
-                // Find the .sql file (not in blobs/ directory)
-                if (!entry.isDirectory() && !entryName.startsWith(BLOBS_DIR) && entryName.endsWith(".sql")) {
+                // Find the .sql file (not in folders/ directory)
+                if (!entry.isDirectory() && !entryName.startsWith(FOLDERS_DIR) && entryName.endsWith(".sql")) {
                     File tempFile = Files.createTempFile("sql-", ".sql").toFile();
                     extractFileFromZip(zipIn, tempFile);
                     log.info("Extracted SQL file to: {}", tempFile.getPath());

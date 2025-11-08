@@ -61,8 +61,8 @@ public class BackupService {
                 .lastModified(parseBackupTimestamp(name))
                 .size(blob.getProperties().getContentLength())
                 .totalRowCount(getTotalCountFromName(prefix, blob))
-                .blobCount(getBlobCountFromName(prefix, blob))
-                .blobsTotalSize(getBlobsTotalSizeFromName(prefix, blob))
+                .fileCount(getFileCountFromName(prefix, blob))
+                .filesTotalSize(getFilesTotalSizeFromName(prefix, blob))
                 .retentionPeriod(getRetentionPeriodFromName(prefix, blob))
                 .hasPlainDump(true)
                 .build();
@@ -110,11 +110,11 @@ public class BackupService {
         return Integer.parseInt(getBackupName(prefix, backup).split("\\.")[1]);
     }
 
-    private int getBlobCountFromName(String prefix, BlobItem backup) {
+    private int getFileCountFromName(String prefix, BlobItem backup) {
         return Integer.parseInt(getBackupName(prefix, backup).split("\\.")[2]);
     }
 
-    private long getBlobsTotalSizeFromName(String prefix, BlobItem backup) {
+    private long getFilesTotalSizeFromName(String prefix, BlobItem backup) {
         return Long.parseLong(getBackupName(prefix, backup).split("\\.")[3]);
     }
 

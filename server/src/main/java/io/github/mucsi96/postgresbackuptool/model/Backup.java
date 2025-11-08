@@ -15,7 +15,7 @@ public class Backup {
   int retentionPeriod;
   private boolean hasPlainDump;
   @Builder.Default
-  private int blobCount = 0;
+  private int fileCount = 0;
   @Builder.Default
-  private long blobsTotalSize = 0;
+  private long filesTotalSize = 0;
 }

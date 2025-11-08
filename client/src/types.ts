@@ -2,7 +2,7 @@ export type Database = {
   name: string;
   tablesCount: number;
   totalRowCount: number;
-  blobCount: number;
+  fileCount: number;
   backupsCount: number;
   lastBackupTime: Date | null;
 };
@@ -19,6 +19,6 @@ export type Backup = {
   size: number;
   retentionPeriod: number;
   hasPlainDump?: boolean;
-  blobCount: number;
-  blobsTotalSize: number;
+  fileCount: number;
+  filesTotalSize: number;
 };

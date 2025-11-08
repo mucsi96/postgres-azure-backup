@@ -3,7 +3,7 @@ import {
   extractTableData,
   listWithoutKeys,
   triggerBackup,
-  uploadBlob,
+  writeFileToFolder,
   populateDb,
   createBackup,
 } from '../utils';
@@ -11,6 +11,9 @@ import AdmZip from 'adm-zip';
 import { readFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
+
+const TEST_FOLDER_1 = '/tmp/test-uploads';
+const TEST_FOLDER_2 = '/tmp/test-documents';
 
 test.describe('Backups Tests', () => {
   test('shows number of backups', async ({ page }) => {
@@ -20,8 +23,8 @@ test.describe('Backups Tests', () => {
       timeDelta: { hours: 10 },
       retention: 1,
       size: 100,
-      blobCount: 5,
-      blobsTotalSize: 2048,
+      fileCount: 5,
+      filesTotalSize: 2048,
     });
 
     await createBackup({
@@ -30,8 +33,8 @@ test.describe('Backups Tests', () => {
       timeDelta: { days: 3, hours: 10 },
       retention: 7,
       size: 150,
-      blobCount: 12,
-      blobsTotalSize: 524288,
+      fileCount: 12,
+      filesTotalSize: 524288,
     });
 
     await page.goto('http://localhost:8080');
@@ -63,8 +66,8 @@ test.describe('Backups Tests', () => {
       timeDelta: { hours: 10 },
       retention: 1,
       size: 100,
-      blobCount: 5,
-      blobsTotalSize: 2048,
+      fileCount: 5,
+      filesTotalSize: 2048,
     });
 
     await createBackup({
@@ -73,8 +76,8 @@ test.describe('Backups Tests', () => {
       timeDelta: { days: 3, hours: 10 },
       retention: 7,
       size: 150,
-      blobCount: 12,
-      blobsTotalSize: 524288,
+      fileCount: 12,
+      filesTotalSize: 524288,
     });
 
     await page.goto('http://localhost:8080');
@@ -93,16 +96,16 @@ test.describe('Backups Tests', () => {
         '': 'Restore',
         Records: '8',
         Size: '100.0 B',
-        Blobs: '5',
-        'Blob size': '2.0 kB',
+        Files: '5',
+        'Files size': '2.0 kB',
         Retention: '1 day',
       },
       {
         '': 'Restore',
         Records: '7',
         Size: '150.0 B',
-        Blobs: '12',
-        'Blob size': '512.0 kB',
+        Files: '12',
+        'Files size': '512.0 kB',
         Retention: '7 days',
       },
     ]);
@@ -126,33 +129,13 @@ test.describe('Backups Tests', () => {
   }) => {
     await populateDb();
 
-    // Setup test blob containers and files
-    await uploadBlob(
-      'user-uploads',
-      'production/avatar-1.jpg',
-      'fake-jpg-content-1'
-    );
-    await uploadBlob(
-      'user-uploads',
-      'production/avatar-2.png',
-      'fake-png-content-2'
-    );
-    await uploadBlob(
-      'user-uploads',
-      'production/document-1.pdf',
-      'fake-pdf-content-1'
-    );
-    await uploadBlob(
-      'user-uploads',
-      'production/video.mp4',
-      'fake-video-content'
-    );
-    await uploadBlob(
-      'user-uploads',
-      'production/image-5.jpg',
-      'fake-jpg-content-5'
-    );
-    await uploadBlob('documents', 'active/report.docx', 'fake-docx-content');
+    // Setup test folder files
+    await writeFileToFolder(TEST_FOLDER_1, 'avatar-1.jpg', 'fake-jpg-content-1');
+    await writeFileToFolder(TEST_FOLDER_1, 'avatar-2.png', 'fake-png-content-2');
+    await writeFileToFolder(TEST_FOLDER_1, 'document-1.pdf', 'fake-pdf-content-1');
+    await writeFileToFolder(TEST_FOLDER_1, 'video.mp4', 'fake-video-content');
+    await writeFileToFolder(TEST_FOLDER_1, 'image-5.jpg', 'fake-jpg-content-5');
+    await writeFileToFolder(TEST_FOLDER_2, 'report.docx', 'fake-docx-content');
 
     // Create a backup via API
     await triggerBackup();
@@ -187,30 +170,28 @@ test.describe('Backups Tests', () => {
     );
     expect(pgdumpFile).toBeTruthy();
 
-    // Verify blob files exist
-    const blobFiles = zipEntries.filter((entry) =>
-      entry.entryName.startsWith('blobs/')
+    // Verify folder files exist
+    const folderFiles = zipEntries.filter((entry) =>
+      entry.entryName.startsWith('folders/')
     );
-    expect(blobFiles.length).toBe(6); // 5 from user-uploads + 1 from documents
+    expect(folderFiles.length).toBe(6); // 5 from test-uploads + 1 from test-documents
 
-    // Verify specific blobs are included
-    expect(entryNames).toContain('blobs/user-uploads/production/avatar-1.jpg');
-    expect(entryNames).toContain('blobs/user-uploads/production/avatar-2.png');
-    expect(entryNames).toContain(
-      'blobs/user-uploads/production/document-1.pdf'
-    );
-    expect(entryNames).toContain('blobs/user-uploads/production/video.mp4');
-    expect(entryNames).toContain('blobs/user-uploads/production/image-5.jpg');
-    expect(entryNames).toContain('blobs/documents/active/report.docx');
+    // Verify specific files are included
+    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/avatar-1.jpg`);
+    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/avatar-2.png`);
+    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/document-1.pdf`);
+    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/video.mp4`);
+    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/image-5.jpg`);
+    expect(entryNames).toContain(`folders${TEST_FOLDER_2}/report.docx`);
 
-    // Verify blob content
-    const avatarBlob = zipEntries.find(
+    // Verify file content
+    const avatarFile = zipEntries.find(
       (entry) =>
-        entry.entryName === 'blobs/user-uploads/production/avatar-1.jpg'
+        entry.entryName === `folders${TEST_FOLDER_1}/avatar-1.jpg`
     );
-    expect(avatarBlob).toBeTruthy();
-    const blobContent = avatarBlob!.getData().toString('utf-8');
-    expect(blobContent).toBe('fake-jpg-content-1');
+    expect(avatarFile).toBeTruthy();
+    const fileContent = avatarFile!.getData().toString('utf-8');
+    expect(fileContent).toBe('fake-jpg-content-1');
   });
 
   test('downloads pgdump backup', async ({ page }) => {

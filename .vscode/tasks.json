@@ -1,14 +1,16 @@
 {
   "version": "2.0.0",
-  "osx": {
-    "options": {
-      "shell": {
-        "executable": "${env:SHELL}",
-        "args": ["--login", "--interactive", "-c"]
-      }
-    }
-  },
   "tasks": [
+     {
+      "label": "Start DB Connection Proxy",
+      "type": "shell",
+      "command": "scripts/start_db_proxy.sh",
+      "problemMatcher": [],
+      "isBackground": true,
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
     {
       "type": "shell",
       "command": "bash",
@@ -100,7 +102,7 @@
     {
       "type": "shell",
       "label": "Compose up",
-      "command": "docker compose up --build --force-recreate --wait --remove-orphans --pull always",
+      "command": "scripts/compose_up.sh",
       "problemMatcher": []
     },
     {

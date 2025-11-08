@@ -71,8 +71,8 @@ This document provides a comprehensive overview of the postgres-azure-backup app
 **Backup workflow:**
 1. Create pg_dump (custom format) for database
 2. Create plain SQL dump (if configured)
-3. Collect blobs from configured containers
-4. Download blobs to temporary directory
+3. Collect files from configured folder paths
+4. Download files to temporary directory
 5. Create ZIP archive with all files
 6. Upload ZIP to blob storage
 7. Clean up temporary files
@@ -81,7 +81,7 @@ This document provides a comprehensive overview of the postgres-azure-backup app
 1. Download ZIP from blob storage
 2. Extract ZIP to temporary directory
 3. Restore database using pg_restore
-4. Restore blobs to blob storage containers
+4. Restore folder files to blob storage
 5. Clean up temporary files
 
 ### DatabaseService
@@ -143,19 +143,20 @@ This document provides a comprehensive overview of the postgres-azure-backup app
 backup.zip
 ├── 20241101-143022.100.7.pgdump  # PostgreSQL custom format
 ├── 20241101-143022.100.7.sql     # Plain SQL (optional)
-└── blobs/
+└── folders/
     └── user-uploads/
         └── production/
             └── file.pdf
 ```
 
-### BlobBackupService
-**Location**: `server/src/main/java/.../service/BlobBackupService.java`
+### FolderBackupService
+**Location**: `server/src/main/java/.../service/FolderBackupService.java`
 
 **Responsibilities:**
-- Collect blobs from configured containers with prefix filtering
-- Download blobs to local filesystem
-- Upload blobs to blob storage containers
+- Collect files from configured Azure Storage folder paths
+- Download files to local filesystem
+- Upload files back to blob storage containers
+- Calculate total file count and size for metadata
 
 ## API Endpoints
 
@@ -191,19 +192,19 @@ Database connection and backup settings:
   schema: String,                      // Schema to backup
   username: String,                    // Credentials
   password: String,
-  excludeTables: List<String>,         // Tables to skip
-  dumpFormat: DumpFormat,              // CUSTOM, DIRECTORY, TAR
-  createPlainDump: boolean,            // Create SQL dump
-  blobBackups: List<BlobBackupConfig>  // Blob containers to include
+  excludeTables: List<String>,           // Tables to skip
+  dumpFormat: DumpFormat,                // CUSTOM, DIRECTORY, TAR
+  createPlainDump: boolean,              // Create SQL dump
+  folderBackups: List<FolderBackupConfig>  // Folders to include
 }
 ```
 
-### BlobBackupConfig
-Blob storage backup configuration:
+### FolderBackupConfig
+Folder backup configuration:
 ```java
 {
   containerName: String,  // Azure container name (required)
-  prefix: String          // Path prefix filter (default: "")
+  folderPath: String      // Path to folder to backup (required)
 }
 ```
 
@@ -217,8 +218,8 @@ Backup file representation:
   totalRowCount: int,        // Total records backed up
   retentionPeriod: int,      // Days to retain (7, 30, 356)
   hasPlainDump: boolean,     // Whether SQL dump included
-  blobCount: int,            // Number of blobs in backup
-  blobsTotalSize: long       // Total size of blobs
+  fileCount: int,            // Number of files in backup
+  filesTotalSize: long       // Total size of files
 }
 ```
 
@@ -291,10 +292,10 @@ JSON file with database configurations:
     "excludeTables": ["audit_log"],
     "dumpFormat": "custom",
     "createPlainDump": true,
-    "blobBackups": [
+    "folderBackups": [
       {
         "containerName": "user-uploads",
-        "prefix": "production/"
+        "folderPath": "production/"
       }
     ]
   }
@@ -347,8 +348,8 @@ For each database:
   BackupOrchestrationService.performBackupForDatabase()
     ├─ DatabaseService.createDump() [custom]
     ├─ DatabaseService.createDump() [plain SQL]
-    ├─ BlobBackupService.collectBlobs()
-    ├─ BlobBackupService.downloadBlob() [each]
+    ├─ FolderBackupService.collectFolders()
+    ├─ FolderBackupService.downloadFile() [each]
     ├─ ZipService.createBackupZip()
     └─ BackupService.createBackup() [upload]
   ↓
@@ -386,7 +387,7 @@ BackupOrchestrationService.restoreBackup()
   │  ├─ pg_restore from dump
   │  ├─ Rename to active
   │  └─ Drop old database
-  └─ BlobBackupService.uploadBlob() [each blob]
+  └─ FolderBackupService.uploadFile() [each file]
 ```
 
 ### Cleanup
@@ -460,7 +461,7 @@ helm install mucsi96/spring-app \
 ### E2E Test Suites (Playwright)
 - Backup operations
 - Database management
-- Blob backup functionality
+- Folder backup functionality
 - Smart backup logic
 - Profile management
 - Database switching

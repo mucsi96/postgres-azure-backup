@@ -42,7 +42,8 @@ jobs:
       - name: Install Playwright browsers
         working-directory: test
         run: npx playwright install chromium --with-deps
-      - run: docker compose up --build --wait
+      - name: Setup test environment and start Docker Compose
+        run: scripts/compose_up.sh
       - name: Run Playwright tests
         working-directory: test
         run: npm test

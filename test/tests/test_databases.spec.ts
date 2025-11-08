@@ -1,5 +1,8 @@
 import { test, expect } from '../fixtures';
-import { extractTableData, populateDb, createBackup, uploadBlob } from '../utils';
+import { extractTableData, populateDb, createBackup, writeFileToFolder } from '../utils';
+
+const TEST_FOLDER_1 = '/tmp/test-uploads';
+const TEST_FOLDER_2 = '/tmp/test-documents';
 
 test.describe('Databases Tests', () => {
   test('shows number of databases', async ({ page }) => {
@@ -12,10 +15,10 @@ test.describe('Databases Tests', () => {
   test('shows number of tables', async ({ page }) => {
     await populateDb();
 
-    // Upload blobs for db1
-    await uploadBlob('user-uploads', 'production/file1.jpg', 'content1');
-    await uploadBlob('user-uploads', 'production/file2.jpg', 'content2');
-    await uploadBlob('documents', 'active/doc1.pdf', 'doc1');
+    // Write files for db1
+    await writeFileToFolder(TEST_FOLDER_1, 'file1.jpg', 'content1');
+    await writeFileToFolder(TEST_FOLDER_1, 'file2.jpg', 'content2');
+    await writeFileToFolder(TEST_FOLDER_2, 'doc1.pdf', 'doc1');
 
     await createBackup({
       prefix: 'db1',
@@ -23,8 +26,8 @@ test.describe('Databases Tests', () => {
       timeDelta: { hours: 10 },
       retention: 1,
       size: 100,
-      blobCount: 5,
-      blobsTotalSize: 2048,
+      fileCount: 5,
+      filesTotalSize: 2048,
     });
 
     await createBackup({
@@ -33,8 +36,8 @@ test.describe('Databases Tests', () => {
       timeDelta: { days: 3, hours: 10 },
       retention: 7,
       size: 150,
-      blobCount: 12,
-      blobsTotalSize: 524288,
+      fileCount: 12,
+      filesTotalSize: 524288,
     });
 
     await page.goto('http://localhost:8080');
@@ -48,7 +51,7 @@ test.describe('Databases Tests', () => {
         'Name': 'db1',
         'Tables': '2',
         'Records': '9',
-        'Blobs': '3',
+        'Files': '3',
         'Backups': '2',
         'Last backup': '10 hours ago',
       },
@@ -57,7 +60,7 @@ test.describe('Databases Tests', () => {
         'Name': 'db2',
         'Tables': '3',
         'Records': '17',
-        'Blobs': '0',
+        'Files': '0',
         'Backups': '0',
         'Last backup': '—',
       },

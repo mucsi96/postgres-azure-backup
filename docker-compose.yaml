@@ -14,6 +14,8 @@ services:
       - "8080:8080"
     volumes:
       - "./test/databases_config.json:/app/databases_config.json"
+      - "/tmp/test-uploads:/tmp/test-uploads"
+      - "/tmp/test-documents:/tmp/test-documents"
     healthcheck:
       test: "curl --fail --silent localhost:8082/actuator/health/readiness | grep UP || exit 1"
       interval: 2s

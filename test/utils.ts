@@ -1,6 +1,8 @@
 import { Locator, Page } from '@playwright/test';
 import { BlobServiceClient } from '@azure/storage-blob';
 import { Client } from 'pg';
+import fs from 'fs/promises';
+import path from 'path';
 
 const connectionString =
   'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;' +
@@ -48,8 +50,8 @@ interface CreateBackupOptions {
   retention: number;
   size: number;
   timeDelta: TimeDelta;
-  blobCount?: number;
-  blobsTotalSize?: number;
+  fileCount?: number;
+  filesTotalSize?: number;
 }
 
 export async function createBackup(
@@ -61,8 +63,8 @@ export async function createBackup(
     retention,
     size,
     timeDelta,
-    blobCount = 0,
-    blobsTotalSize = 0,
+    fileCount = 0,
+    filesTotalSize = 0,
   } = options;
 
   const containerClient = blobServiceClient.getContainerClient('backups');
@@ -87,8 +89,8 @@ export async function createBackup(
   const minutes = String(backupTime.getUTCMinutes()).padStart(2, '0');
   const seconds = String(backupTime.getUTCSeconds()).padStart(2, '0');
 
-  // Filename format: YYYYMMDD-HHMMSS.rowCount.blobCount.blobsTotalSize.retention.zip
-  const filename = `${prefix}/${year}${month}${day}-${hours}${minutes}${seconds}.${rowsCount}.${blobCount}.${blobsTotalSize}.${retention}.zip`;
+  // Filename format: YYYYMMDD-HHMMSS.rowCount.fileCount.filesTotalSize.retention.zip
+  const filename = `${prefix}/${year}${month}${day}-${hours}${minutes}${seconds}.${rowsCount}.${fileCount}.${filesTotalSize}.${retention}.zip`;
 
   const blockBlobClient = containerClient.getBlockBlobClient(filename);
   const content = 'a'.repeat(size);
@@ -393,6 +395,67 @@ export async function restoreBackup(
     }
   );
   return response;
+}
+
+// Folder backup helper functions
+export async function writeFileToFolder(
+  folderPath: string,
+  fileName: string,
+  content: string
+): Promise<void> {
+  const fullPath = path.join(folderPath, fileName);
+  const dirPath = path.dirname(fullPath);
+
+  await fs.mkdir(dirPath, { recursive: true });
+  await fs.writeFile(fullPath, content, 'utf-8');
+}
+
+export async function readFileFromFolder(
+  folderPath: string,
+  fileName: string
+): Promise<string> {
+  const fullPath = path.join(folderPath, fileName);
+  return await fs.readFile(fullPath, 'utf-8');
+}
+
+export async function fileExistsInFolder(
+  folderPath: string,
+  fileName: string
+): Promise<boolean> {
+  const fullPath = path.join(folderPath, fileName);
+  try {
+    await fs.access(fullPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteFileFromFolder(
+  folderPath: string,
+  fileName: string
+): Promise<void> {
+  const fullPath = path.join(folderPath, fileName);
+  try {
+    await fs.unlink(fullPath);
+  } catch (error) {
+    // Ignore if file doesn't exist
+  }
+}
+
+export async function cleanupFolder(folderPath: string): Promise<void> {
+  try {
+    // Read all files and directories in the folder
+    const entries = await fs.readdir(folderPath);
+
+    // Delete each entry
+    for (const entry of entries) {
+      const fullPath = path.join(folderPath, entry);
+      await fs.rm(fullPath, { recursive: true, force: true });
+    }
+  } catch (error) {
+    // Ignore if folder doesn't exist or is already empty
+  }
 }
 
 export { streamToBuffer };

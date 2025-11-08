@@ -18,7 +18,7 @@ Simple PostgreSQL backup tool to Azure with UI
 - Exclude tables from backup
 - Built-in scheduled backups (daily, weekly, monthly) using Spring @Scheduled
 - Smart backup with automatic retention management (daily/7-day, weekly/30-day, monthly/356-day)
-- Blob storage backup support - package database dumps with blob storage files in unified ZIP archives
+- Folder backup support - package database dumps with files from local file system folders in unified ZIP archives
 - Can be used without UI as REST API for manual/external triggers
 - Fully covered with E2E Selenium tests
 - Compatible with PostgreSQL 16
@@ -67,10 +67,9 @@ Simple PostgreSQL backup tool to Azure with UI
     "excludeTables": ["passwords", "secrets"],
     "dumpFormat": "custom",
     "createPlainDump": true,
-    "blobBackups": [
+    "folderBackups": [
       {
-        "containerName": "user-uploads",
-        "prefix": "production/"
+        "path": "/var/lib/app/uploads"
       }
     ]
   },
@@ -88,24 +87,21 @@ Simple PostgreSQL backup tool to Azure with UI
 ]
 ```
 
-### Blob Backup Configuration (Optional)
+### Folder Backup Configuration (Optional)
 
-Add a `blobBackups` array to include Azure Blob Storage files in backups. When configured, backups are created as ZIP archives containing both the database dump and specified blob files.
+Add a `folderBackups` array to include files from local file system folders in backups. When configured, backups are created as ZIP archives containing both the database dump and all files from specified local directories.
 
 **Configuration:**
-- `containerName` (required): Azure Blob Storage container name
-- `prefix` (optional): Only backup blobs with this path prefix (default: empty string = all blobs)
+- `path` (required): Absolute path to the local folder to backup (all files within this folder will be included recursively)
 
-**Example - backup multiple containers:**
+**Example - backup multiple folders:**
 ```json
-"blobBackups": [
+"folderBackups": [
   {
-    "containerName": "user-uploads",
-    "prefix": "production/"
+    "path": "/var/lib/app/uploads"
   },
   {
-    "containerName": "documents",
-    "prefix": ""
+    "path": "/var/lib/app/documents"
   }
 ]
 ```
@@ -115,10 +111,10 @@ Add a `blobBackups` array to include Azure Blob Storage files in backups. When c
 backup.zip
 ├── database.pgdump
 ├── database.sql (optional)
-└── blobs/
-    └── user-uploads/
-        └── production/
-            └── file.pdf
+└── folders/
+    └── /var/lib/app/uploads/
+        └── user123/
+            └── avatar.jpg
 ```
 
 ## Dump formats

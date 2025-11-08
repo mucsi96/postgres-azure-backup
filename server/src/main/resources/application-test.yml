@@ -1,6 +1,10 @@
 blobstorage:
   connectionString: ${BLOBSTORAGE_CONNECTION_STRING:}
 spring:
+  cloud:
+    azure:
+      active-directory:
+        enabled: false
   autoconfigure:
     exclude:
       - "org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration"

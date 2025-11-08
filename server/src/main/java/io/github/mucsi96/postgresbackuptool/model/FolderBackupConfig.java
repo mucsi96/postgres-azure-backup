@@ -8,10 +8,7 @@ import lombok.Data;
 
 @Data
 @JsonAutoDetect(fieldVisibility = Visibility.ANY)
-public class BlobBackupConfig {
+public class FolderBackupConfig {
     @JsonProperty(required = true)
-    private String containerName;
-
-    @JsonProperty
-    private String prefix = "";
+    private String path;
 }

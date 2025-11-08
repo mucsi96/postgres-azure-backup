@@ -1,5 +1,8 @@
 import { test, expect } from '../fixtures';
-import { extractTableData, cleanupDb, getDb1Tables, triggerBackup, populateDb, uploadBlob } from '../utils';
+import { extractTableData, cleanupDb, getDb1Tables, triggerBackup, populateDb, writeFileToFolder } from '../utils';
+
+const TEST_FOLDER_1 = '/tmp/test-uploads';
+const TEST_FOLDER_2 = '/tmp/test-documents';
 
 test.describe('Database Tests', () => {
   test('switches to other db', async ({ page }) => {
@@ -10,7 +13,7 @@ test.describe('Database Tests', () => {
     await page.getByRole('button', { name: 'db1' }).click();
     await page.getByRole('link', { name: 'db2' }).click();
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 17');
-    await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 0');
+    await expect(page.getByRole('heading', { name: 'Files' })).toHaveText('Files 0');
     await expect(page.getByRole('heading', { name: 'Tables' })).toHaveText('Tables 3');
 
     const tableData = await extractTableData(page.locator(':text("Tables") + table'));
@@ -29,18 +32,18 @@ test.describe('Database Tests', () => {
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 9');
   });
 
-  test('shows total blob count in db', async ({ page }) => {
+  test('shows total file count in db', async ({ page }) => {
     await populateDb();
 
-    // Upload blobs to the containers configured for db1
-    // db1 has: user-uploads/production/ and documents/active/
-    await uploadBlob('user-uploads', 'production/file1.jpg', 'content1');
-    await uploadBlob('user-uploads', 'production/file2.jpg', 'content2');
-    await uploadBlob('documents', 'active/doc1.pdf', 'doc1');
+    // Write files to the folders configured for db1
+    // db1 has: /tmp/test-uploads and /tmp/test-documents
+    await writeFileToFolder(TEST_FOLDER_1, 'file1.jpg', 'content1');
+    await writeFileToFolder(TEST_FOLDER_1, 'file2.jpg', 'content2');
+    await writeFileToFolder(TEST_FOLDER_2, 'doc1.pdf', 'doc1');
 
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
-    await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 3');
+    await expect(page.getByRole('heading', { name: 'Files' })).toHaveText('Files 3');
   });
 
   test('shows total table count in db', async ({ page }) => {
@@ -54,15 +57,15 @@ test.describe('Database Tests', () => {
   test('shows tables and record count in db', async ({ page }) => {
     await populateDb();
 
-    // Upload some blobs for db1
-    await uploadBlob('user-uploads', 'production/file1.jpg', 'content1');
-    await uploadBlob('documents', 'active/doc1.pdf', 'doc1');
+    // Write some files for db1
+    await writeFileToFolder(TEST_FOLDER_1, 'file1.jpg', 'content1');
+    await writeFileToFolder(TEST_FOLDER_2, 'doc1.pdf', 'doc1');
 
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Tables' })).toHaveText('Tables 2');
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 9');
-    await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 2');
+    await expect(page.getByRole('heading', { name: 'Files' })).toHaveText('Files 2');
 
     const tableData = await extractTableData(page.locator(':text("Tables") + table'));
     expect(tableData).toEqual([
@@ -83,14 +86,14 @@ test.describe('Database Tests', () => {
     await page.goto('http://localhost:8080');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 0');
-    await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 0');
+    await expect(page.getByRole('heading', { name: 'Files' })).toHaveText('Files 0');
     await expect(page.getByRole('heading', { name: 'Tables' })).toHaveText('Tables 0');
 
     await page.locator(':text("Backups") + table').getByText('356 days').click();
     await page.getByRole('button', { name: 'Restore' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Backup restored' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 9');
-    await expect(page.getByRole('heading', { name: 'Blobs' })).toHaveText('Blobs 0');
+    await expect(page.getByRole('heading', { name: 'Files' })).toHaveText('Files 0');
     await expect(page.getByRole('heading', { name: 'Tables' })).toHaveText('Tables 2');
   });
 
