@@ -15,6 +15,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write # Requires also "Allow GitHub Actions to create and approve pull requests" to be enabled in the repository settings
+      issues: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
