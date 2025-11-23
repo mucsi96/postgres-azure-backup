@@ -5,7 +5,6 @@ import {
   LogLevel,
   PublicClientApplication,
 } from '@azure/msal-browser';
-import { environment } from '../environments/environment';
 import {
   MSAL_GUARD_CONFIG,
   MSAL_INSTANCE,
@@ -18,16 +17,17 @@ import {
   MsalService,
 } from '@azure/msal-angular';
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
+import { EnvironmentConfig, ENVIRONMENT_CONFIG } from './environment/environment.config';
 
 function loggerCallback(_logLevel: LogLevel, message: string) {
   console.log(message);
 }
 
-export function MSALInstanceFactory(): IPublicClientApplication {
+export function MSALInstanceFactory(config: EnvironmentConfig): IPublicClientApplication {
   return new PublicClientApplication({
     auth: {
-      clientId: environment.clientId,
-      authority: `https://login.microsoftonline.com/${environment.tenantId}`,
+      clientId: config.clientId,
+      authority: `https://login.microsoftonline.com/${config.tenantId}`,
     },
     cache: {
       cacheLocation: BrowserCacheLocation.SessionStorage,
@@ -43,21 +43,21 @@ export function MSALInstanceFactory(): IPublicClientApplication {
   });
 }
 
-const apiScopes = [
-  'readBackups',
-  'createBackup',
-  'cleanupBackups',
-  'restoreBackup',
-  'downloadBackup',
-].map((scope) => `${environment.apiClientId}/${scope}`);
+export function MSALInterceptorConfigFactory(config: EnvironmentConfig): MsalInterceptorConfiguration {
+  const apiScopes = [
+    'readBackups',
+    'createBackup',
+    'cleanupBackups',
+    'restoreBackup',
+    'downloadBackup',
+  ].map((scope) => `${config.apiClientId}/${scope}`);
 
-export function MSALInterceptorConfigFactory(): MsalInterceptorConfiguration {
   const protectedResourceMap = new Map<string, Array<string>>();
   protectedResourceMap.set('https://graph.microsoft.com/v1.0/me', [
     'user.read',
   ]);
   protectedResourceMap.set(
-    `${new URL(environment.apiContextPath, window.location.origin).href}/*`,
+    `${window.location.origin}/*`,
     apiScopes
   );
 
@@ -67,7 +67,15 @@ export function MSALInterceptorConfigFactory(): MsalInterceptorConfiguration {
   };
 }
 
-export function MSALGuardConfigFactory(): MsalGuardConfiguration {
+export function MSALGuardConfigFactory(config: EnvironmentConfig): MsalGuardConfiguration {
+  const apiScopes = [
+    'readBackups',
+    'createBackup',
+    'cleanupBackups',
+    'restoreBackup',
+    'downloadBackup',
+  ].map((scope) => `${config.apiClientId}/${scope}`);
+
   return {
     interactionType: InteractionType.Popup,
     authRequest: {
@@ -86,14 +94,17 @@ export function provideMsalConfig() {
     {
       provide: MSAL_INSTANCE,
       useFactory: MSALInstanceFactory,
+      deps: [ENVIRONMENT_CONFIG],
     },
     {
       provide: MSAL_GUARD_CONFIG,
       useFactory: MSALGuardConfigFactory,
+      deps: [ENVIRONMENT_CONFIG],
     },
     {
       provide: MSAL_INTERCEPTOR_CONFIG,
       useFactory: MSALInterceptorConfigFactory,
+      deps: [ENVIRONMENT_CONFIG],
     },
     MsalService,
     MsalGuard,

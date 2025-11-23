@@ -25,6 +25,7 @@ spaClientId=$(az keyvault secret show --vault-name p06 --name backup-spa-client-
 db_username=$(az keyvault secret show --vault-name p06 --name db-username --query value -o tsv)
 db_password=$(az keyvault secret show --vault-name p06 --name db-password --query value -o tsv)
 latestTag=$(curl -s "https://registry.hub.docker.com/v2/repositories/mucsi96/postgres-azure-backup/tags/" | jq -r '.results |  map(select(.name != "latest")) | sort_by(.last_updated) | reverse | .[0].name')
+latestClientTag=$(curl -s "https://registry.hub.docker.com/v2/repositories/mucsi96/postgres-azure-backup-client/tags/" | jq -r '.results |  map(select(.name != "latest")) | sort_by(.last_updated) | reverse | .[0].name')
 chartVersion=21.0.0 #https://github.com/mucsi96/k8s-helm-charts/releases
 
 # Get volume name from the PVC in learn-language namespace
@@ -56,7 +57,7 @@ echo "Updating Helm repositories..."
 
 helm repo update
 
-echo "Deploying mucsi96/postgres-azure-backup:$latestTag to https://backup.$dnsZone using spring-app chart $chartVersion"
+echo "Deploying mucsi96/postgres-azure-backup:$latestTag and mucsi96/postgres-azure-backup-client:$latestClientTag to https://backup.$dnsZone using spring-app chart $chartVersion"
 
 helm upgrade postgres-azure-backup mucsi96/spring-app \
     --install \
@@ -64,6 +65,7 @@ helm upgrade postgres-azure-backup mucsi96/spring-app \
     --kubeconfig .kube/config \
     --namespace backup \
     --set image=mucsi96/postgres-azure-backup:$latestTag \
+    --set clientImage=mucsi96/postgres-azure-backup-client:$latestClientTag \
     --set entryPoint=web \
     --set host=backup.$dnsZone \
     --set clientId=$apiClientId \

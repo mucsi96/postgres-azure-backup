@@ -53,10 +53,6 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-thymeleaf</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
@@ -94,39 +90,9 @@
             <artifactId>commons-io</artifactId>
             <version>2.21.0</version>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-            </resource>
-            <resource>
-                <directory>../client/dist</directory>
-                <targetPath>templates</targetPath>
-                <includes>
-                    <include>**/*.html</include>
-                </includes>
-            </resource>
-            <resource>
-                <directory>../client/dist</directory>
-                <targetPath>static</targetPath>
-                <includes>
-                    <include>**/*.js</include>
-                    <include>**/*.css</include>
-                </includes>
-            </resource>
-        </resources>
-        <testResources>
-            <testResource>
-                <directory>src/main/resources</directory>
-            </testResource>
-        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

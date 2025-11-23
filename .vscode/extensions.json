@@ -6,6 +6,7 @@
     "vscjava.vscode-java-pack",
     "ms-azuretools.vscode-containers",
     "ms-kubernetes-tools.vscode-kubernetes-tools",
-    "esbenp.prettier-vscode"
+    "esbenp.prettier-vscode",
+    "ms-playwright.playwright"
   ]
 }

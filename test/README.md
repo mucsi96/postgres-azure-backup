@@ -61,7 +61,7 @@ npm run test:report
 ## Environment Setup
 
 The tests expect the following services to be running:
-- Application server on http://localhost:8080
+- Application server on http://localhost:8280
 - PostgreSQL databases on ports 8082 and 8083
 - Azure Blob Storage emulator (Azurite) on port 8081
 

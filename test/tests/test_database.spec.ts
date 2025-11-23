@@ -8,7 +8,7 @@ test.describe('Database Tests', () => {
   test('switches to other db', async ({ page }) => {
     await populateDb();
 
-    await page.goto('http://localhost:8080');
+    await page.goto('http://localhost:8280');
     await page.getByText('db1').click();
     await page.getByRole('button', { name: 'db1' }).click();
     await page.getByRole('link', { name: 'db2' }).click();
@@ -27,7 +27,7 @@ test.describe('Database Tests', () => {
   test('shows total record count in db', async ({ page }) => {
     await populateDb();
 
-    await page.goto('http://localhost:8080');
+    await page.goto('http://localhost:8280');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 9');
   });
@@ -41,7 +41,7 @@ test.describe('Database Tests', () => {
     await writeFileToFolder(TEST_FOLDER_1, 'file2.jpg', 'content2');
     await writeFileToFolder(TEST_FOLDER_2, 'doc1.pdf', 'doc1');
 
-    await page.goto('http://localhost:8080');
+    await page.goto('http://localhost:8280');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Files' })).toHaveText('Files 3');
   });
@@ -49,7 +49,7 @@ test.describe('Database Tests', () => {
   test('shows total table count in db', async ({ page }) => {
     await populateDb();
 
-    await page.goto('http://localhost:8080');
+    await page.goto('http://localhost:8280');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Tables' })).toHaveText('Tables 2');
   });
@@ -61,7 +61,7 @@ test.describe('Database Tests', () => {
     await writeFileToFolder(TEST_FOLDER_1, 'file1.jpg', 'content1');
     await writeFileToFolder(TEST_FOLDER_2, 'doc1.pdf', 'doc1');
 
-    await page.goto('http://localhost:8080');
+    await page.goto('http://localhost:8280');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Tables' })).toHaveText('Tables 2');
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 9');
@@ -83,7 +83,7 @@ test.describe('Database Tests', () => {
 
     await cleanupDb();
 
-    await page.goto('http://localhost:8080');
+    await page.goto('http://localhost:8280');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 0');
     await expect(page.getByRole('heading', { name: 'Files' })).toHaveText('Files 0');
@@ -106,7 +106,7 @@ test.describe('Database Tests', () => {
 
     await cleanupDb();
 
-    await page.goto('http://localhost:8080');
+    await page.goto('http://localhost:8280');
     await page.getByText('db1').click();
     await page.locator(':text("Backups") + table').getByText('356 days').click();
     await page.getByRole('button', { name: 'Restore' }).click();

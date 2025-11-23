@@ -1,9 +1,0 @@
-{
-  "builders": {
-    "default": {
-      "implementation": "./builder",
-      "schema": "./builder-schema.json",
-      "description": "Primitive custom builder"
-    }
-  }
-}

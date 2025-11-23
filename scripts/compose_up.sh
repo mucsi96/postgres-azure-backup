@@ -1,17 +1,21 @@
 #!/bin/bash
 set -e
 
-# Clean up test directories
-echo "Cleaning up test directories..."
-rm -rf /tmp/test-uploads
-rm -rf /tmp/test-documents
-
 # Create test directories with proper permissions
 echo "Creating test directories with proper permissions..."
-mkdir -p /tmp/test-uploads
-mkdir -p /tmp/test-documents
-chmod 777 /tmp/test-uploads
-chmod 777 /tmp/test-documents
+
+ensure_dir() {
+  local dir=$1
+  local perms=$2
+  mkdir -p "$dir"
+  if [ "$(stat -c "%a" "$dir")" != "$perms" ]; then
+    echo "Setting permissions $perms for $dir"
+    chmod "$perms" "$dir"
+  fi
+}
+
+ensure_dir "/tmp/test-uploads" "777"
+ensure_dir "/tmp/test-documents" "777"
 
 # Start Docker Compose with different flags based on environment
 echo "Starting Docker Compose services..."

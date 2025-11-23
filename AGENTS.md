@@ -438,7 +438,7 @@ postgres-azure-backup/
 ```bash
 docker-compose up
 # App + 2x PostgreSQL + Azurite
-# http://localhost:8080
+# http://localhost:8280
 ```
 
 ### Docker Build

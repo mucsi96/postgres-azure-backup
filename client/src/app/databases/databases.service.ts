@@ -1,6 +1,5 @@
 import { inject, Injectable, resource } from '@angular/core';
 import { ErrorNotificationEvent } from '@mucsi96/ui-elements';
-import { environment } from '../../environments/environment';
 import { Database } from '../../types';
 import { fetchJson } from '../utils/fetchJson';
 import { HttpClient } from '@angular/common/http';
@@ -15,7 +14,7 @@ export class DatabasesService {
       try {
         const response = await fetchJson<Database[]>(
           this.http,
-          environment.apiContextPath + '/databases'
+          'databases'
         );
         return response.map((db) => ({
           ...db,

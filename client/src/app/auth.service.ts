@@ -7,17 +7,18 @@ import {
   InteractionStatus,
 } from '@azure/msal-browser';
 import { filter } from 'rxjs';
-import { environment } from '../environments/environment';
+import { ENVIRONMENT_CONFIG } from './environment/environment.config';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  readonly isAuthenticated = signal(environment.mockAuth);
-  readonly msalService = !environment.mockAuth
+  private readonly config = inject(ENVIRONMENT_CONFIG);
+  readonly isAuthenticated = signal(this.config.mockAuth);
+  readonly msalService = !this.config.mockAuth
     ? inject(MsalService)
     : undefined;
-  readonly msalBroadcastService = !environment.mockAuth
+  readonly msalBroadcastService = !this.config.mockAuth
     ? inject(MsalBroadcastService)
     : undefined;
 

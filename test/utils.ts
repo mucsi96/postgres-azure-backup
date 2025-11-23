@@ -371,7 +371,7 @@ export function getBlobServiceClient(): BlobServiceClient {
 }
 
 export async function triggerBackup(): Promise<Response> {
-  const response = await fetch(`http://localhost:8080/api/smart-backup`, {
+  const response = await fetch(`http://localhost:8280/api/smart-backup`, {
     method: 'POST',
   });
   return response;
@@ -379,7 +379,7 @@ export async function triggerBackup(): Promise<Response> {
 
 export async function getBackupsList(databaseName: string): Promise<any[]> {
   const response = await fetch(
-    `http://localhost:8080/api/database/${databaseName}/backups`
+    `http://localhost:8280/api/database/${databaseName}/backups`
   );
   return await response.json();
 }
@@ -389,7 +389,7 @@ export async function restoreBackup(
   backupKey: string
 ): Promise<Response> {
   const response = await fetch(
-    `http://localhost:8080/api/database/${databaseName}/restore/${backupKey}`,
+    `http://localhost:8280/api/database/${databaseName}/restore/${backupKey}`,
     {
       method: 'POST',
     }

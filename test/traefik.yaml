@@ -1,0 +1,17 @@
+api:
+  dashboard: true
+  insecure: true
+
+entryPoints:
+  web:
+    address: ":80"
+
+providers:
+  docker:
+    exposedByDefault: false
+    network: learn-language-test-stack_default
+
+ping: {}
+
+log:
+  level: INFO

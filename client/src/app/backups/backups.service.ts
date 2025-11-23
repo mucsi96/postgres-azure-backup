@@ -1,7 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, resource } from '@angular/core';
 import { ErrorNotificationEvent } from '@mucsi96/ui-elements';
-import { environment } from '../../environments/environment';
 import { Backup } from '../../types';
 import { SelectedDatabaseService } from '../database/selected-database.service';
 import { fetchJson } from '../utils/fetchJson';
@@ -12,6 +11,7 @@ import { fetchJson } from '../utils/fetchJson';
 export class BackupsService {
   private readonly http = inject(HttpClient);
   private readonly selectedDatabaseService = inject(SelectedDatabaseService);
+
   readonly backups = resource<Backup[], { databaseName?: string }>({
     params: () => ({
       databaseName: this.selectedDatabaseService.databaseName(),
@@ -23,7 +23,7 @@ export class BackupsService {
       try {
         const backups = await fetchJson<Backup[]>(
           this.http,
-          environment.apiContextPath + `/database/${databaseName}/backups`
+          `database/${databaseName}/backups`
         );
 
         return backups.map((backup) => ({
@@ -50,8 +50,7 @@ export class BackupsService {
       try {
         const lastBackupTime = await fetchJson<Date | undefined>(
           this.http,
-          environment.apiContextPath +
-            `/database/${databaseName}/last-backup-time`
+          `database/${databaseName}/last-backup-time`
         );
 
         return lastBackupTime && new Date(lastBackupTime);

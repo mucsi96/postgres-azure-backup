@@ -59,7 +59,7 @@ test.describe('Folder Backup Tests', () => {
     expect(response.ok).toBe(true);
 
     // Download the ZIP backup via UI
-    await page.goto('http://localhost:8080');
+    await page.goto('http://localhost:8280');
     await page.getByText('db1').click();
 
     const firstBackupRow = page.locator('#backups tbody tr').first();
@@ -122,7 +122,7 @@ test.describe('Folder Backup Tests', () => {
     expect(backup.fileCount).toBe(6); // 4 from test-uploads + 2 from test-documents
 
     // Verify UI shows file count on home screen
-    await page.goto('http://localhost:8080');
+    await page.goto('http://localhost:8280');
     const db1Row = page.getByRole('row').filter({ hasText: 'db1' });
     await expect(db1Row.getByRole('cell').nth(4)).toHaveText('6'); // Files column
 
@@ -142,7 +142,7 @@ test.describe('Folder Backup Tests', () => {
     expect(response.ok).toBe(true);
 
     // Verify UI shows file count before deletion
-    await page.goto('http://localhost:8080');
+    await page.goto('http://localhost:8280');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Files' })).toHaveText('Files 2');
 
@@ -212,7 +212,7 @@ test.describe('Folder Backup Tests', () => {
     expect(zipBackup).toBeDefined();
 
     // Verify UI shows 0 files on home screen
-    await page.goto('http://localhost:8080');
+    await page.goto('http://localhost:8280');
     const db1Row = page.getByRole('row').filter({ hasText: 'db1' });
     await expect(db1Row.getByRole('cell').nth(4)).toHaveText('0'); // Files column
 
@@ -257,7 +257,7 @@ test.describe('Folder Backup Tests', () => {
     expect(response.ok).toBe(true);
 
     // Download ZIP via UI
-    await page.goto('http://localhost:8080');
+    await page.goto('http://localhost:8280');
     await page.getByText('db1').click();
 
     const firstBackupRow = page.locator('#backups tbody tr').first();

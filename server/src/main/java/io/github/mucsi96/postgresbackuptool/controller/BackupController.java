@@ -33,7 +33,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @Validated
-@RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE, path = "/api")
+@RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE, path = "/")
 @RequiredArgsConstructor
 public class BackupController {
     private final BackupService backupService;

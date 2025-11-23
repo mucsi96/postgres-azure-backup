@@ -4,7 +4,6 @@ import {
   ErrorNotificationEvent,
   SuccessNotificationEvent,
 } from '@mucsi96/ui-elements';
-import { environment } from '../../environments/environment';
 import { Table } from '../../types';
 import { SelectedDatabaseService } from '../database/selected-database.service';
 import { downloadBlob } from '../utils/downloadBlob';
@@ -37,10 +36,7 @@ export class TablesService {
           tables: Table[];
           totalRowCount: number;
           fileCount: number;
-        }>(
-          this.http,
-          environment.apiContextPath + `/database/${databaseName}/tables`
-        );
+        }>(this.http, `database/${databaseName}/tables`);
         return response;
       } catch (error) {
         dispatchEvent(new ErrorNotificationEvent('Could not get tables.'));
@@ -58,8 +54,7 @@ export class TablesService {
       this.processing.set(true);
       await fetchJson<void>(
         this.http,
-        environment.apiContextPath +
-          `/database/${databaseName}/restore/${selectedBackup}`,
+        `database/${databaseName}/restore/${selectedBackup}`,
         { method: 'post' }
       );
       document.dispatchEvent(new SuccessNotificationEvent('Backup restored'));
@@ -71,7 +66,10 @@ export class TablesService {
     this.tables.reload();
   }
 
-  async downloadBackup(selectedBackup: string, type: 'plain' | 'archive' | 'pgdump') {
+  async downloadBackup(
+    selectedBackup: string,
+    type: 'plain' | 'archive' | 'pgdump'
+  ) {
     const databaseName = this.selectedDatabaseService.databaseName();
     if (!databaseName) {
       return;
@@ -82,16 +80,16 @@ export class TablesService {
 
       // Use new streaming endpoints for all download types
       if (type === 'pgdump') {
-        downloadUrl = environment.apiContextPath +
-          `/database/${databaseName}/backup/${selectedBackup}/pgdump`;
+        downloadUrl =
+          `database/${databaseName}/backup/${selectedBackup}/pgdump`;
         filename = selectedBackup.replace('.zip', '.pgdump');
       } else if (type === 'plain') {
-        downloadUrl = environment.apiContextPath +
-          `/database/${databaseName}/backup/${selectedBackup}/sql`;
+        downloadUrl =
+          `database/${databaseName}/backup/${selectedBackup}/sql`;
         filename = selectedBackup.replace('.zip', '.sql');
       } else {
-        downloadUrl = environment.apiContextPath +
-          `/database/${databaseName}/backup/${selectedBackup}/archive`;
+        downloadUrl =
+          `database/${databaseName}/backup/${selectedBackup}/archive`;
         filename = selectedBackup;
       }
 
@@ -101,5 +99,4 @@ export class TablesService {
       dispatchEvent(new ErrorNotificationEvent('Could not download backup.'));
     }
   }
-
 }
