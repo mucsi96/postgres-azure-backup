@@ -1,1 +1,1 @@
-org.springframework.boot.env.EnvironmentPostProcessor=io.github.mucsi96.postgresbackuptool.configuration.LocalEnvironmentPostProcessor
+org.springframework.boot.env.EnvironmentPostProcessor=io.github.mucsi96.postgresbackuptool.configuration.AzureSecretEnvironmentPostProcessor
