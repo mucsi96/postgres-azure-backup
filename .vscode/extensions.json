@@ -2,6 +2,10 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=827846
   "recommendations": [
     "angular.ng-template",
-    "editorconfig.editorconfig"
+    "editorconfig.editorconfig",
+    "vscjava.vscode-java-pack",
+    "ms-azuretools.vscode-containers",
+    "ms-kubernetes-tools.vscode-kubernetes-tools",
+    "esbenp.prettier-vscode"
   ]
 }
