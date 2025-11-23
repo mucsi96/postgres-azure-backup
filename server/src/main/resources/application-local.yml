@@ -1,0 +1,5 @@
+databasesConfigPath: ../scripts/databases_config.json
+
+management:
+  server:
+    port: 8082
