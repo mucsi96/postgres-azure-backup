@@ -53,8 +53,12 @@ helm upgrade postgres-azure-backup-server mucsi96/spring-app \
     --set clientId=$apiClientId \
     --set serviceAccountName=postgres-azure-backup-api-workload-identity \
     --set env.DATABASES_CONFIG_PATH=/app/databases_config.json \
-    --set persistentVolumes[0].name=learn-language-backup \
-    --set persistentVolumes[0].mountPath=/app/storage/learn-language \
+    --set persistentVolumeClaims[0].name=learn-language-backup-pvc \
+    --set persistentVolumeClaims[0].accessMode=ReadWriteOnce \
+    --set persistentVolumeClaims[0].volumeName=learn-language-backup \
+    --set persistentVolumeClaims[0].mountPath=/app/storage/learn-language \
+    --set persistentVolumeClaims[0].storageClassName="" \
+    --set persistentVolumeClaims[0].storage=5Gi \
     --wait
 
 echo "Deploying client: mucsi96/postgres-azure-backup-client:$clientLatestTag to $hostname using client-app chart $clientAppChartVersion"
