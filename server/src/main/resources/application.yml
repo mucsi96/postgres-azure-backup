@@ -1,3 +1,6 @@
+server:
+  servlet:
+    context-path: /api
 spring:
   cloud:
     azure:
@@ -12,8 +15,6 @@ blobstorage:
   clientSecret: ${AZURE_CLIENT_SECRET:}
   accountUrl: ${STORAGE_ACCOUNT_BLOB_URL:}
   containerName: ${STORAGE_ACCOUNT_CONTAINER_NAME:}
-
-databasesConfigPath: ${DATABASES_CONFIG_PATH}
 
 management:
   server:

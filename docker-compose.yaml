@@ -24,7 +24,7 @@ services:
       - "traefik.http.routers.client.priority=1"
       - "traefik.http.services.client.loadbalancer.server.port=80"
     healthcheck:
-      test: "wget --quiet --tries=1 --spider http://localhost/health || exit 1"
+      test: "wget --quiet --tries=1 --spider http://localhost/ || exit 1"
       interval: 2s
       retries: 10
       start_period: 5s

@@ -36,7 +36,7 @@ export class TablesService {
           tables: Table[];
           totalRowCount: number;
           fileCount: number;
-        }>(this.http, `database/${databaseName}/tables`);
+        }>(this.http, `/api/database/${databaseName}/tables`);
         return response;
       } catch (error) {
         dispatchEvent(new ErrorNotificationEvent('Could not get tables.'));
@@ -54,7 +54,7 @@ export class TablesService {
       this.processing.set(true);
       await fetchJson<void>(
         this.http,
-        `database/${databaseName}/restore/${selectedBackup}`,
+        `/api/database/${databaseName}/restore/${selectedBackup}`,
         { method: 'post' }
       );
       document.dispatchEvent(new SuccessNotificationEvent('Backup restored'));

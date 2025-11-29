@@ -1,5 +1,6 @@
 blobstorage:
   connectionString: ${BLOBSTORAGE_CONNECTION_STRING:}
+databasesConfigPath: ${DATABASES_CONFIG_PATH}
 spring:
   cloud:
     azure:

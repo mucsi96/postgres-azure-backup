@@ -2,25 +2,18 @@ package io.github.mucsi96.postgresbackuptool.service;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
 import javax.sql.DataSource;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.core.exc.StreamReadException;
-import com.fasterxml.jackson.databind.DatabindException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-
 import io.github.mucsi96.postgresbackuptool.configuration.DatabaseConfiguration;
+import io.github.mucsi96.postgresbackuptool.configuration.DatabaseConfigurationProvider;
 import io.github.mucsi96.postgresbackuptool.model.DatabaseInfo;
 import io.github.mucsi96.postgresbackuptool.model.Table;
 
@@ -28,13 +21,8 @@ import io.github.mucsi96.postgresbackuptool.model.Table;
 public class DatabaseService {
     private final List<DatabaseConfiguration> databases;
 
-    public DatabaseService(
-            @Value("${databasesConfigPath}") String databasesConfigPath)
-            throws StreamReadException, DatabindException, IOException {
-        this.databases = Arrays
-                .asList(new ObjectMapper().registerModule(new Jdk8Module())
-                        .readValue(Paths.get(databasesConfigPath).toFile(),
-                                DatabaseConfiguration[].class));
+    public DatabaseService(DatabaseConfigurationProvider configurationProvider) {
+        this.databases = configurationProvider.getDatabaseConfigurations();
     }
 
     public List<DatabaseConfiguration> getDatabases() {
@@ -79,18 +67,17 @@ public class DatabaseService {
     }
 
     public File createDump(String databaseName, int retentionPeriod,
-            String format, String timeString) throws IOException, InterruptedException {
+            String format, String timeString)
+            throws IOException, InterruptedException {
         DatabaseConfiguration databaseConfiguration = getDatabaseConfiguration(
                 databaseName);
         String filename = String.format("%s.%s.%s.%s", timeString,
                 getDatabaseInfo(databaseName).getTotalRowCount(),
                 retentionPeriod, "plain".equals(format) ? "sql" : "pgdump");
-        List<String> commands = Stream.of(
-                List.of("pg_dump", "--dbname",
-                        databaseConfiguration.getConnectionString(), "--schema",
-                        databaseConfiguration.getSchema(), "--format", format,
-                        "--file", filename,
-                        "plain".equals(format) ? "--column-inserts" : ""),
+        List<String> commands = Stream.of(List.of("pg_dump", "--dbname",
+                databaseConfiguration.getConnectionString(), "--schema",
+                databaseConfiguration.getSchema(), "--format", format, "--file",
+                filename, "plain".equals(format) ? "--column-inserts" : ""),
                 databaseConfiguration.getExcludeTables().stream()
                         .flatMap(table -> {
                             String fullTableName = databaseConfiguration
@@ -98,7 +85,8 @@ public class DatabaseService {
                             return List.of("--exclude-table", fullTableName)
                                     .stream();
                         }).toList())
-                .flatMap(x -> x.stream()).filter(arg -> !arg.isEmpty()).toList();
+                .flatMap(x -> x.stream()).filter(arg -> !arg.isEmpty())
+                .toList();
 
         System.out.println("Creating dump: " + String.join(", ", commands));
 
@@ -144,7 +132,8 @@ public class DatabaseService {
         System.out.println("Restore db prepared");
 
         new ProcessBuilder("pg_restore", "--dbname", restoreConnectionString,
-                "--verbose", dumpFile.getAbsolutePath()).inheritIO().start().waitFor();
+                "--verbose", dumpFile.getAbsolutePath()).inheritIO().start()
+                        .waitFor();
 
         System.out.println("Restore complete");
 

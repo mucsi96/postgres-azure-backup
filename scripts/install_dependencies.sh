@@ -65,6 +65,16 @@ if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ]; then
         else
             echo "Angular CLI is already installed."
         fi
+
+        # Check and install PostgreSQL client
+        if ! command -v psql >/dev/null 2>&1; then
+            echo "Installing PostgreSQL client..."
+            sudo apt-get install -y postgresql-common
+            yes | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+            sudo apt-get install -y postgresql-client-18
+        else
+            echo "PostgreSQL client is already installed."
+        fi
     fi
 fi
 

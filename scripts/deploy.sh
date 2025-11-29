@@ -18,72 +18,54 @@ if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ]; then
     fi
 fi
 
-dnsZone=$(az keyvault secret show --vault-name p06 --name dns-zone --query value --output tsv)
-apiClientId=$(az keyvault secret show --vault-name p06 --name backup-api-client-id --query value --output tsv)
-db_username=$(az keyvault secret show --vault-name p06 --name db-username --query value -o tsv)
-db_password=$(az keyvault secret show --vault-name p06 --name db-password --query value -o tsv)
+KUBE_CONTENT=$(az keyvault secret show --vault-name p06-backup --name k8s-config --query value -o tsv)
+
+# Create a temporary file in /dev/shm (RAM) to avoid writing to disk
+KUBECONFIG_FILE=$(mktemp /dev/shm/kubeconfig.XXXXXX)
+chmod 600 "$KUBECONFIG_FILE"
+echo "$KUBE_CONTENT" > "$KUBECONFIG_FILE"
+export KUBECONFIG="$KUBECONFIG_FILE"
+
+# Ensure the temporary file is deleted when the script exits
+trap 'rm -f "$KUBECONFIG_FILE"' EXIT
+
+hostname=$(az keyvault secret show --vault-name p06-backup --name hostname --query value --output tsv)
+apiClientId=$(az keyvault secret show --vault-name p06-backup --name api-client-id --query value --output tsv)
+# Get latest tags for both server and client
 serverLatestTag=$(curl -s "https://registry.hub.docker.com/v2/repositories/mucsi96/postgres-azure-backup-server/tags/" | jq -r '.results |  map(select(.name != "latest")) | sort_by(.last_updated) | reverse | .[0].name')
 clientLatestTag=$(curl -s "https://registry.hub.docker.com/v2/repositories/mucsi96/postgres-azure-backup-client/tags/" | jq -r '.results |  map(select(.name != "latest")) | sort_by(.last_updated) | reverse | .[0].name')
 
 springAppChartVersion=24.0.0 #https://github.com/mucsi96/k8s-helm-charts/releases
-clientAppChartVersion=12.0.0 #https://github.com/mucsi96/k8s-helm-charts/releases
+clientAppChartVersion=13.0.0 #https://github.com/mucsi96/k8s-helm-charts/releases
 
-# Get volume name from the PVC in learn-language namespace
-learnLanguageVolumeName=$(kubectl --kubeconfig .kube/config get pvc learn-language-pvc -n learn-language -o jsonpath='{.spec.volumeName}')
-
-# Construct databases configuration in memory
-databases_config=$(cat <<EOF
-[
-  {
-    "name": "Learn language",
-    "host": "postgres1.db",
-    "port": 5432,
-    "database": "postgres1",
-    "schema": "learn_language",
-    "username": "$db_username",
-    "password": "$db_password",
-    "createPlainDump": true,
-    "folderBackups": [
-      {
-        "path": "/app/storage/learn-language"
-      }
-    ]
-  }
-]
-EOF
-)
 
 echo "Updating Helm repositories..."
 
 helm repo update
 
-echo "Deploying server: mucsi96/postgres-azure-backup-server:$serverLatestTag to https://backup.$dnsZone using spring-app chart $springAppChartVersion"
+echo "Deploying server: mucsi96/postgres-azure-backup-server:$serverLatestTag to $hostname using spring-app chart $springAppChartVersion"
 helm upgrade postgres-azure-backup-server mucsi96/spring-app \
     --install \
     --version $springAppChartVersion \
-    --kubeconfig .kube/config \
     --namespace backup \
     --set image=mucsi96/postgres-azure-backup-server:$serverLatestTag \
     --set entryPoint=web \
-    --set host=backup.$dnsZone \
+    --set host=$hostname \
+    --set basePath=/api \
     --set clientId=$apiClientId \
     --set serviceAccountName=postgres-azure-backup-api-workload-identity \
     --set env.DATABASES_CONFIG_PATH=/app/databases_config.json \
-    --set persistentVolumes[0].name=$learnLanguageVolumeName \
+    --set persistentVolumes[0].name=learn-language-backup \
     --set persistentVolumes[0].mountPath=/app/storage/learn-language \
-    --set configFile[0].name=databases_config.json \
-    --set configFile[0].mountPath=/app/databases_config.json \
-    --set "configFile[0].data=$(echo "$databases_config" | base64)" \
     --wait
 
-echo "Deploying client: mucsi96/postgres-azure-backup-client:$clientLatestTag to language.$dnsZone using client-app chart $clientAppChartVersion"
+echo "Deploying client: mucsi96/postgres-azure-backup-client:$clientLatestTag to $hostname using client-app chart $clientAppChartVersion"
 
 helm upgrade postgres-azure-backup-client mucsi96/client-app \
     --install \
     --version $clientAppChartVersion \
-    --kubeconfig .kube/config \
-    --namespace postgres-azure-backup \
+    --namespace backup \
     --set image=mucsi96/postgres-azure-backup-client:$clientLatestTag \
-    --set host=language.$dnsZone \
+    --set host=$hostname \
     --set entryPoint=web \
     --wait

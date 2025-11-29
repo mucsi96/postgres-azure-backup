@@ -8,11 +8,9 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
-import com.azure.identity.DefaultAzureCredential;
-import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.security.keyvault.secrets.SecretClient;
-import com.azure.security.keyvault.secrets.SecretClientBuilder;
-import com.azure.security.keyvault.secrets.models.KeyVaultSecret;
+
+import io.github.mucsi96.postgresbackuptool.utils.KeyVaultUtils;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class AzureSecretEnvironmentPostProcessor
@@ -27,36 +25,28 @@ public class AzureSecretEnvironmentPostProcessor
             return;
         }
 
-        DefaultAzureCredential credential = new DefaultAzureCredentialBuilder()
-                .build();
-        SecretClient secretClient = new SecretClientBuilder()
-                .vaultUrl("https://p06.vault.azure.net/").credential(credential)
-                .buildClient();
+        SecretClient secretClient = KeyVaultUtils.getSecretClient();
 
         Map<String, Object> properties = new LinkedHashMap<>();
 
         if ("local".equals(activeProfile)) {
             properties.put("AZURE_TENANT_ID",
-                    getSecretValue(secretClient, "tenant-id"));
-            properties.put("AZURE_CLIENT_ID",
-                    getSecretValue(secretClient, "backup-api-client-id"));
-            properties.put("AZURE_CLIENT_SECRET",
-                    getSecretValue(secretClient, "backup-api-client-secret"));
+                    KeyVaultUtils.getSecretValue(secretClient, "tenant-id"));
+            properties.put("AZURE_CLIENT_ID", KeyVaultUtils
+                    .getSecretValue(secretClient, "api-client-id"));
+            properties.put("AZURE_CLIENT_SECRET", KeyVaultUtils
+                    .getSecretValue(secretClient, "api-client-secret"));
         }
 
-        properties.put("STORAGE_ACCOUNT_BLOB_URL",
-                "https://ibari.blob.core.windows.net/");
-        properties.put("STORAGE_ACCOUNT_CONTAINER_NAME", "backups");
+        properties.put("STORAGE_ACCOUNT_BLOB_URL", KeyVaultUtils
+                .getSecretValue(secretClient, "storage-account-blob-url"));
+        properties.put("STORAGE_ACCOUNT_CONTAINER_NAME",
+                KeyVaultUtils.getSecretValue(secretClient,
+                        "storage-account-container-name"));
         properties.put("UI_CLIENT_ID",
-                getSecretValue(secretClient, "backup-spa-client-id"));
+                KeyVaultUtils.getSecretValue(secretClient, "spa-client-id"));
 
         environment.getPropertySources()
                 .addFirst(new MapPropertySource("myProps", properties));
-    }
-
-    private String getSecretValue(SecretClient secretClient,
-            String secretName) {
-        KeyVaultSecret secret = secretClient.getSecret(secretName);
-        return secret.getValue();
     }
 }

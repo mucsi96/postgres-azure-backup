@@ -23,7 +23,7 @@ export class BackupsService {
       try {
         const backups = await fetchJson<Backup[]>(
           this.http,
-          `database/${databaseName}/backups`
+          `/api/database/${databaseName}/backups`
         );
 
         return backups.map((backup) => ({
@@ -50,7 +50,7 @@ export class BackupsService {
       try {
         const lastBackupTime = await fetchJson<Date | undefined>(
           this.http,
-          `database/${databaseName}/last-backup-time`
+          `/api/database/${databaseName}/last-backup-time`
         );
 
         return lastBackupTime && new Date(lastBackupTime);

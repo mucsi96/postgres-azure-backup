@@ -3,13 +3,11 @@ package io.github.mucsi96.postgresbackuptool.controller;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api")
 @RequiredArgsConstructor
 public class EnvironmentController {
     private final Environment environment;

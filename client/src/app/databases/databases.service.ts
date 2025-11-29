@@ -14,7 +14,7 @@ export class DatabasesService {
       try {
         const response = await fetchJson<Database[]>(
           this.http,
-          'databases'
+          '/api/databases'
         );
         return response.map((db) => ({
           ...db,

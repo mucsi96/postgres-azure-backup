@@ -15,6 +15,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import io.github.mucsi96.postgresbackuptool.model.FolderBackupConfig;
 import io.github.mucsi96.postgresbackuptool.model.DumpFormat;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @JsonAutoDetect(fieldVisibility = Visibility.ANY)
@@ -22,9 +23,11 @@ public class DatabaseConfiguration {
     @JsonProperty(required = true)
     private String name;
 
+    @Setter
     @JsonProperty(required = true)
     private String host;
 
+    @Setter
     @JsonProperty(required = true)
     private int port;
 
