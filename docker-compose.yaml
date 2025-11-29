@@ -34,7 +34,7 @@ services:
 
   server:
     build:
-      context: .
+      context: server
     user: "${USER_ID}:${GROUP_ID}"
     labels:
       - "traefik.enable=true"
