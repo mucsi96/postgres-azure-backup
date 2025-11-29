@@ -81,15 +81,15 @@ export class TablesService {
       // Use new streaming endpoints for all download types
       if (type === 'pgdump') {
         downloadUrl =
-          `database/${databaseName}/backup/${selectedBackup}/pgdump`;
+          `/api/database/${databaseName}/backup/${selectedBackup}/pgdump`;
         filename = selectedBackup.replace('.zip', '.pgdump');
       } else if (type === 'plain') {
         downloadUrl =
-          `database/${databaseName}/backup/${selectedBackup}/sql`;
+          `/api/database/${databaseName}/backup/${selectedBackup}/sql`;
         filename = selectedBackup.replace('.zip', '.sql');
       } else {
         downloadUrl =
-          `database/${databaseName}/backup/${selectedBackup}/archive`;
+          `/api/database/${databaseName}/backup/${selectedBackup}/archive`;
         filename = selectedBackup;
       }
 

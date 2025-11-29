@@ -35,6 +35,7 @@ services:
   server:
     build:
       context: .
+    user: "${USER_ID}:${GROUP_ID}"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.server.rule=PathPrefix(`/api`)"
