@@ -71,13 +71,12 @@ public class DatabaseService {
             throws IOException, InterruptedException {
         DatabaseConfiguration databaseConfiguration = getDatabaseConfiguration(
                 databaseName);
-        String filename = String.format("%s.%s.%s.%s", timeString,
-                getDatabaseInfo(databaseName).getTotalRowCount(),
-                retentionPeriod, "plain".equals(format) ? "sql" : "pgdump");
+        String suffix = "plain".equals(format) ? ".sql" : ".pgdump";
+        File outputFile = File.createTempFile("pgdump-", suffix);
         List<String> commands = Stream.of(List.of("pg_dump", "--dbname",
                 databaseConfiguration.getConnectionString(), "--schema",
                 databaseConfiguration.getSchema(), "--format", format, "--file",
-                filename, "plain".equals(format) ? "--column-inserts" : ""),
+                outputFile.getAbsolutePath(), "plain".equals(format) ? "--column-inserts" : ""),
                 databaseConfiguration.getExcludeTables().stream()
                         .flatMap(table -> {
                             String fullTableName = databaseConfiguration
@@ -96,16 +95,14 @@ public class DatabaseService {
             throw new RuntimeException("Unable to create dump. pg_dump failed");
         }
 
-        File file = new File(filename);
-
-        if (!file.exists()) {
+        if (!outputFile.exists()) {
             throw new RuntimeException(
-                    "Unable to create dump. " + file + " was not created.");
+                    "Unable to create dump. " + outputFile + " was not created.");
         }
 
         System.out.println("Dump created");
 
-        return file;
+        return outputFile;
     }
 
     public void restoreDump(String databaseName, File dumpFile)

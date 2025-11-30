@@ -50,7 +50,7 @@ public class BackupService {
                     .getResources(String.format("azure-blob://%s/%s/*.zip",
                             containerName, prefix));
             return Arrays.stream(resources)
-                    .map(resource -> createBackupFromResource(resource))
+                    .map(resource -> createBackupFromResource(resource, prefix))
                     .sorted((a, b) -> b.getLastModified()
                             .compareTo(a.getLastModified()))
                     .toList();
@@ -60,8 +60,9 @@ public class BackupService {
         }
     }
 
-    private Backup createBackupFromResource(Resource resource) {
-        String name = resource.getFilename();
+    private Backup createBackupFromResource(Resource resource, String prefix) {
+        String name = resource.getFilename().replace(prefix + "/", "");
+
         try {
             return Backup.builder().name(name)
                     .lastModified(parseBackupTimestamp(name))
@@ -96,7 +97,7 @@ public class BackupService {
         String location = String.format("azure-blob://%s/%s/%s", containerName,
                 prefix, key);
         Resource resource = resourceLoader.getResource(location);
-        File file = new File(key);
+        File file = File.createTempFile("backup-", ".zip");
         Files.copy(resource.getInputStream(), file.toPath(),
                 StandardCopyOption.REPLACE_EXISTING);
         return file;

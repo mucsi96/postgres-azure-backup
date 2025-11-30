@@ -3,19 +3,14 @@ set -e
 
 # Create test directories with proper permissions
 echo "Creating test directories with proper permissions..."
+mkdir -m 777 -p "/tmp/test-uploads"
+mkdir -m 777 -p "/tmp/test-documents"
 
-ensure_dir() {
-  local dir=$1
-  local perms=$2
-  mkdir -p "$dir"
-  if [ "$(stat -c "%a" "$dir")" != "$perms" ]; then
-    echo "Setting permissions $perms for $dir"
-    chmod "$perms" "$dir"
-  fi
-}
+# Export UID and GID for docker-compose
+export USER_ID=$(id -u)
+export GROUP_ID=$(id -g)
 
-ensure_dir "/tmp/test-uploads" "777"
-ensure_dir "/tmp/test-documents" "777"
+echo "Running Docker Compose as UID=$USER_ID GID=$GROUP_ID"
 
 # Start Docker Compose with different flags based on environment
 echo "Starting Docker Compose services..."

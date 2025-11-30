@@ -2,7 +2,9 @@ package io.github.mucsi96.postgresbackuptool.controller;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -94,19 +96,16 @@ public class BackupController {
         File backupZipFile = backupService
                 .downloadBackup(databaseConfiguration.getPrefix(), key);
 
-        try {
-            // Stream the ZIP file to the browser
-            InputStreamResource resource = new InputStreamResource(new FileInputStream(backupZipFile));
+        // Stream the ZIP file to the browser with auto-cleanup on close
+        InputStream cleanupStream = new DeleteOnCloseInputStream(
+                new FileInputStream(backupZipFile), backupZipFile);
+        InputStreamResource resource = new InputStreamResource(cleanupStream);
 
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + key + "\"")
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .contentLength(backupZipFile.length())
-                    .body(resource);
-        } finally {
-            // Note: backupZipFile cleanup will happen after streaming completes
-            // We create a temp file that will be cleaned up by the OS
-        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + key + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(backupZipFile.length())
+                .body(resource);
     }
 
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupDownloader') and hasAuthority('SCOPE_downloadBackup')")
@@ -121,30 +120,25 @@ public class BackupController {
         File backupZipFile = backupService
                 .downloadBackup(databaseConfiguration.getPrefix(), key);
 
-        File pgdumpFile = null;
-        try {
-            // Extract the pgdump file from ZIP
-            pgdumpFile = zipService.extractPgdumpFile(backupZipFile);
+        // Extract the pgdump file from ZIP
+        File pgdumpFile = zipService.extractPgdumpFile(backupZipFile);
 
-            // Stream the file to the browser
-            InputStreamResource resource = new InputStreamResource(new FileInputStream(pgdumpFile));
+        // Clean up the backup ZIP file immediately after extraction
+        backupZipFile.delete();
 
-            // Generate a clean filename for download
-            String filename = key.replace(".zip", ".pgdump");
+        // Stream the file to the browser with auto-cleanup on close
+        InputStream cleanupStream = new DeleteOnCloseInputStream(
+                new FileInputStream(pgdumpFile), pgdumpFile);
+        InputStreamResource resource = new InputStreamResource(cleanupStream);
 
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .contentLength(pgdumpFile.length())
-                    .body(resource);
-        } finally {
-            // Clean up the backup ZIP file
-            if (backupZipFile.exists()) {
-                backupZipFile.delete();
-            }
-            // Note: pgdumpFile cleanup will happen after streaming completes
-            // We create a temp file that will be cleaned up by the OS
-        }
+        // Generate a clean filename for download
+        String filename = key.replace(".zip", ".pgdump");
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(pgdumpFile.length())
+                .body(resource);
     }
 
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupDownloader') and hasAuthority('SCOPE_downloadBackup')")
@@ -159,29 +153,42 @@ public class BackupController {
         File backupZipFile = backupService
                 .downloadBackup(databaseConfiguration.getPrefix(), key);
 
-        File sqlFile = null;
-        try {
-            // Extract the SQL file from ZIP
-            sqlFile = zipService.extractPlainSqlFile(backupZipFile);
+        // Extract the SQL file from ZIP
+        File sqlFile = zipService.extractPlainSqlFile(backupZipFile);
 
-            // Stream the file to the browser
-            InputStreamResource resource = new InputStreamResource(new FileInputStream(sqlFile));
+        // Clean up the backup ZIP file immediately after extraction
+        backupZipFile.delete();
 
-            // Generate a clean filename for download
-            String filename = key.replace(".zip", ".sql");
+        // Stream the file to the browser with auto-cleanup on close
+        InputStream cleanupStream = new DeleteOnCloseInputStream(
+                new FileInputStream(sqlFile), sqlFile);
+        InputStreamResource resource = new InputStreamResource(cleanupStream);
 
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                    .contentType(MediaType.TEXT_PLAIN)
-                    .contentLength(sqlFile.length())
-                    .body(resource);
-        } finally {
-            // Clean up the backup ZIP file
-            if (backupZipFile.exists()) {
-                backupZipFile.delete();
+        // Generate a clean filename for download
+        String filename = key.replace(".zip", ".sql");
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.TEXT_PLAIN)
+                .contentLength(sqlFile.length())
+                .body(resource);
+    }
+
+    private static class DeleteOnCloseInputStream extends FilterInputStream {
+        private final File file;
+
+        DeleteOnCloseInputStream(InputStream in, File file) {
+            super(in);
+            this.file = file;
+        }
+
+        @Override
+        public void close() throws IOException {
+            try {
+                super.close();
+            } finally {
+                file.delete();
             }
-            // Note: sqlFile cleanup will happen after streaming completes
-            // We create a temp file that will be cleaned up by the OS
         }
     }
 }

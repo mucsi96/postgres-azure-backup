@@ -1,4 +1,4 @@
-name: learn-language-test-stack
+name: postgres-azure-backup-test-stack
 services:
 
   traefik:
