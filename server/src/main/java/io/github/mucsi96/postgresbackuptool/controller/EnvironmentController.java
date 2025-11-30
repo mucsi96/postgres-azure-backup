@@ -12,13 +12,13 @@ import lombok.RequiredArgsConstructor;
 public class EnvironmentController {
     private final Environment environment;
 
-    @Value("${AZURE_TENANT_ID:}")
+    @Value("${tenant-id:}")
     private String tenantId;
 
-    @Value("${AZURE_CLIENT_ID:}")
+    @Value("${api-client-id:}")
     private String clientId;
 
-    @Value("${UI_CLIENT_ID:}")
+    @Value("${spa-client-id:}")
     private String uiClientId;
 
     @GetMapping("/environment")

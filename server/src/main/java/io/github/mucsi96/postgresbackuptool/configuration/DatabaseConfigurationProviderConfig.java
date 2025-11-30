@@ -12,19 +12,18 @@ import org.springframework.context.annotation.Profile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.github.mucsi96.postgresbackuptool.utils.KeyVaultUtils;
-
 @Configuration
 public class DatabaseConfigurationProviderConfig {
+
+    @Value("${dbs-config:}")
+    String databasesConfig;
 
     @Bean
     @Profile("prod")
     DatabaseConfigurationProvider prodDatabaseConfigurationProvider(
             ObjectMapper objectMapper) throws IOException {
-        String databasesConfigJson = KeyVaultUtils
-                .getSecretValue(KeyVaultUtils.getSecretClient(), "dbs-config");
         List<DatabaseConfiguration> databases = Arrays.asList(objectMapper
-                .readValue(databasesConfigJson, DatabaseConfiguration[].class));
+                .readValue(databasesConfig, DatabaseConfiguration[].class));
         return () -> databases;
     }
 
@@ -32,10 +31,8 @@ public class DatabaseConfigurationProviderConfig {
     @Profile("local")
     DatabaseConfigurationProvider localDatabaseConfigurationProvider(
             ObjectMapper objectMapper) throws IOException {
-        String databasesConfigJson = KeyVaultUtils
-                .getSecretValue(KeyVaultUtils.getSecretClient(), "dbs-config");
         List<DatabaseConfiguration> databases = Arrays.asList(objectMapper
-                .readValue(databasesConfigJson, DatabaseConfiguration[].class));
+                .readValue(databasesConfig, DatabaseConfiguration[].class));
         // Adjust host to localhost for local development
         databases.forEach(db -> {
             db.setHost("localhost");

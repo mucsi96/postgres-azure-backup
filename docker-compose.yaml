@@ -5,7 +5,7 @@ services:
     image: traefik:v3.6
     ports:
       - "8280:80"
-      - "8080:8080"  # Traefik dashboard http://localhost:8080
+      - "8281:8080"  # Traefik dashboard http://localhost:8181
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./test/traefik.yaml:/etc/traefik/traefik.yaml:ro
@@ -42,7 +42,7 @@ services:
       - "traefik.http.routers.server.priority=2"
       - "traefik.http.services.server.loadbalancer.server.port=8080"
     environment:
-      SPRING_ACTUATOR_PORT: "8082"
+      SPRING_ACTUATOR_PORT: "8282"
       SPRING_PROFILES_ACTIVE: "test"
       BLOBSTORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://blobstorage:10000/devstoreaccount1;"
       STORAGE_ACCOUNT_CONTAINER_NAME: "backups"
@@ -52,7 +52,7 @@ services:
       - "/tmp/test-uploads:/tmp/test-uploads"
       - "/tmp/test-documents:/tmp/test-documents"
     healthcheck:
-      test: "curl --fail --silent localhost:8082/actuator/health/readiness | grep UP || exit 1"
+      test: "curl --fail --silent localhost:8282/actuator/health/readiness | grep UP || exit 1"
       interval: 2s
       timeout: 3s
       retries: 5

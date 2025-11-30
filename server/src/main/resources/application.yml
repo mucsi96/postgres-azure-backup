@@ -4,17 +4,23 @@ server:
 spring:
   cloud:
     azure:
+      keyvault:
+        secret:
+          property-sources:
+            - endpoint: https://p06-backup.vault.azure.net/
+              enabled: true
+
       active-directory:
         enabled: true
         credential:
-          client-id: ${AZURE_CLIENT_ID}
+          client-id: ${api-client-id}
 
 blobstorage:
-  clientId: ${AZURE_CLIENT_ID}
-  tenantId: ${AZURE_TENANT_ID}
-  clientSecret: ${AZURE_CLIENT_SECRET:}
-  accountUrl: ${STORAGE_ACCOUNT_BLOB_URL:}
-  containerName: ${STORAGE_ACCOUNT_CONTAINER_NAME:}
+  clientId: ${api-client-id}
+  tenantId: ${tenant-id}
+  clientSecret: ${api-client-secret:}
+  accountUrl: ${storage-account-blob-url:}
+  containerName: ${storage-account-container-name:}
 
 management:
   server:

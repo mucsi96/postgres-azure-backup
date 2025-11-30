@@ -4,6 +4,9 @@ databasesConfigPath: ${DATABASES_CONFIG_PATH}
 spring:
   cloud:
     azure:
+      keyvault:
+        secret:
+          property-sources: []
       active-directory:
         enabled: false
   autoconfigure:
