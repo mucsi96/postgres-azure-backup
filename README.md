@@ -187,3 +187,5 @@ helm install mucsi96/spring-app \
 - https://flowbite.com/docs/components/tables/
 - https://hslpicker.com/
 - https://learn.microsoft.com/en-us/azure/developer/java/spring-framework/spring-security-support?tabs=SpringCloudAzure5x#accessing-a-resource-server
+
+- https://github.com/Azure/azure-sdk-for-java/tree/main/sdk/spring/spring-cloud-azure-core/src/main/java/com/azure/spring/cloud/core/resource

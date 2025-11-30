@@ -4,41 +4,6 @@
       "name": "databasesConfigPath",
       "type": "java.lang.String",
       "description": "Path to the databases configuration file"
-    },
-    {
-      "name": "blobstorage.clientId",
-      "type": "java.lang.String",
-      "description": "Azure Blob Storage client ID for authentication"
-    },
-    {
-      "name": "blobstorage.tenantId",
-      "type": "java.lang.String",
-      "description": "Azure Blob Storage tenant ID for authentication"
-    },
-    {
-      "name": "blobstorage.clientSecret",
-      "type": "java.lang.String",
-      "description": "Azure Blob Storage client secret for authentication"
-    },
-    {
-      "name": "blobstorage.accountUrl",
-      "type": "java.lang.String",
-      "description": "Azure Blob Storage account URL"
-    },
-    {
-      "name": "blobstorage.containerName",
-      "type": "java.lang.String",
-      "description": "Azure Blob Storage container name"
-    },
-    {
-      "name": "blobstorage.publicUrl",
-      "type": "java.lang.String",
-      "description": "Publicly accessible URL for Azure Blob Storage"
-    },
-    {
-      "name": "blobstorage.connectionString",
-      "type": "java.lang.String",
-      "description": "Azure Blob Storage connection string"
     }
   ]
 }

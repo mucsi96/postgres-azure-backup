@@ -15,8 +15,9 @@ spring:
         credential:
           client-id: ${api-client-id}
 
-blobstorage:
-  containerName: ${storage-account-container-name:}
+      storage:
+        blob:
+          container-name: ${storage-account-container-name}
 
 management:
   server:

@@ -2,20 +2,23 @@ package io.github.mucsi96.postgresbackuptool.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.core.io.WritableResource;
 import org.springframework.stereotype.Service;
 
+import com.azure.spring.cloud.core.resource.AzureStorageBlobProtocolResolver;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobServiceClient;
-import com.azure.storage.blob.models.BlobItem;
-import com.azure.storage.blob.models.ListBlobsOptions;
 
 import io.github.mucsi96.postgresbackuptool.model.Backup;
 import lombok.extern.slf4j.Slf4j;
@@ -23,119 +26,114 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 public class BackupService {
-    private final BlobServiceClient blobServiceClient;
     private final DateTimeFormatter dateTimeFormatter;
     private final String containerName;
+    private final ResourceLoader resourceLoader;
+    private final AzureStorageBlobProtocolResolver azureStorageBlobProtocolResolver;
+    private final BlobContainerClient blobContainerClient;
 
-    public BackupService(BlobServiceClient blobServiceClient,
-            DateTimeFormatter dateTimeFormatter,
-            @Value("${blobstorage.containerName}") String containerName) {
-        this.blobServiceClient = blobServiceClient;
+    public BackupService(DateTimeFormatter dateTimeFormatter,
+            @Value("${spring.cloud.azure.storage.blob.container-name}") String containerName,
+            ResourceLoader resourceLoader,
+            AzureStorageBlobProtocolResolver azureStorageBlobProtocolResolver,
+            BlobContainerClient blobContainerClient) {
         this.dateTimeFormatter = dateTimeFormatter;
         this.containerName = containerName;
+        this.resourceLoader = resourceLoader;
+        this.azureStorageBlobProtocolResolver = azureStorageBlobProtocolResolver;
+        this.blobContainerClient = blobContainerClient;
     }
 
     public List<Backup> getBackups(String prefix) {
-        return Optional.of(blobServiceClient.getBlobContainerClient(containerName))
-                .filter(BlobContainerClient::exists)
-                .map(container -> listAndTransformBlobs(container, prefix))
-                .orElse(Collections.emptyList());
+        try {
+            Resource[] resources = azureStorageBlobProtocolResolver
+                    .getResources(String.format("azure-blob://%s/%s/*.zip",
+                            containerName, prefix));
+            return Arrays.stream(resources)
+                    .map(resource -> createBackupFromResource(resource))
+                    .sorted((a, b) -> b.getLastModified()
+                            .compareTo(a.getLastModified()))
+                    .toList();
+        } catch (IOException e) {
+            log.error("Failed to list backups", e);
+            return List.of();
+        }
     }
 
-    private List<Backup> listAndTransformBlobs(BlobContainerClient container, String prefix) {
-        return container
-                .listBlobs(new ListBlobsOptions().setPrefix(prefix + "/"), null)
-                .stream()
-                .filter(blob -> blob.getName().endsWith(".zip"))  // Only ZIP files
-                .map(blob -> createBackupFromBlob(blob, prefix))
-                .sorted((a, b) -> b.getLastModified().compareTo(a.getLastModified()))
-                .toList();
-    }
-
-    private Backup createBackupFromBlob(BlobItem blob, String prefix) {
-        String name = getBackupName(prefix, blob);
-
-        // Parse metadata from filename
-        return Backup.builder()
-                .name(name)
-                .lastModified(parseBackupTimestamp(name))
-                .size(blob.getProperties().getContentLength())
-                .totalRowCount(getTotalCountFromName(prefix, blob))
-                .fileCount(getFileCountFromName(prefix, blob))
-                .filesTotalSize(getFilesTotalSizeFromName(prefix, blob))
-                .retentionPeriod(getRetentionPeriodFromName(prefix, blob))
-                .hasPlainDump(true)
-                .build();
+    private Backup createBackupFromResource(Resource resource) {
+        String name = resource.getFilename();
+        try {
+            return Backup.builder().name(name)
+                    .lastModified(parseBackupTimestamp(name))
+                    .size(resource.contentLength())
+                    .totalRowCount(getTotalCountFromName(name))
+                    .fileCount(getFileCountFromName(name))
+                    .filesTotalSize(getFilesTotalSizeFromName(name))
+                    .retentionPeriod(getRetentionPeriodFromName(name))
+                    .hasPlainDump(true).build();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to get resource content length",
+                    e);
+        }
     }
 
     private Instant parseBackupTimestamp(String name) {
         return dateTimeFormatter.parse(name.substring(0, 15), Instant::from);
     }
 
-    public void createBackup(String prefix, File dumpFile, String fileName) {
-        BlobContainerClient blobContainerClient = blobServiceClient
-                .getBlobContainerClient(containerName);
-
-        blobContainerClient.getBlobClient(prefix + "/" + fileName)
-                .uploadFromFile(dumpFile.getAbsolutePath());
+    public void createBackup(String prefix, File dumpFile, String fileName)
+            throws IOException {
+        String location = String.format("azure-blob://%s/%s/%s", containerName,
+                prefix, fileName);
+        WritableResource resource = (WritableResource) resourceLoader
+                .getResource(location);
+        try (OutputStream os = resource.getOutputStream()) {
+            Files.copy(dumpFile.toPath(), os);
+        }
     }
 
     public File downloadBackup(String prefix, String key) throws IOException {
-        BlobContainerClient blobContainerClient = blobServiceClient
-                .getBlobContainerClient(containerName);
-
-        blobContainerClient.getBlobClient(prefix + "/" + key)
-                .downloadToFile(key);
-
-        return new File(key);
+        String location = String.format("azure-blob://%s/%s/%s", containerName,
+                prefix, key);
+        Resource resource = resourceLoader.getResource(location);
+        File file = new File(key);
+        Files.copy(resource.getInputStream(), file.toPath(),
+                StandardCopyOption.REPLACE_EXISTING);
+        return file;
     }
 
     public void cleanup(String prefix) {
-        BlobContainerClient blobContainerClient = blobServiceClient
-                .getBlobContainerClient(containerName);
-
-        blobContainerClient
-                .listBlobs(new ListBlobsOptions().setPrefix(prefix + "/"), null)
-                .stream().filter(blobItem -> shouldCleanup(prefix, blobItem))
-                .forEach(blobItem -> blobContainerClient
-                        .getBlobClient(blobItem.getName()).delete());
+        getBackups(prefix).stream().filter(this::shouldCleanup)
+                .forEach(backup -> blobContainerClient
+                        .getBlobClient(prefix + "/" + backup.getName())
+                        .delete());
     }
 
-    public Optional<Instant> getLastBackupTime(String prefix) {
+    public java.util.Optional<Instant> getLastBackupTime(String prefix) {
         return getBackups(prefix).stream().findFirst()
                 .map(Backup::getLastModified);
     }
 
-    private int getTotalCountFromName(String prefix, BlobItem backup) {
-        return Integer.parseInt(getBackupName(prefix, backup).split("\\.")[1]);
+    private int getTotalCountFromName(String name) {
+        return Integer.parseInt(name.split("\\.")[1]);
     }
 
-    private int getFileCountFromName(String prefix, BlobItem backup) {
-        return Integer.parseInt(getBackupName(prefix, backup).split("\\.")[2]);
+    private int getFileCountFromName(String name) {
+        return Integer.parseInt(name.split("\\.")[2]);
     }
 
-    private long getFilesTotalSizeFromName(String prefix, BlobItem backup) {
-        return Long.parseLong(getBackupName(prefix, backup).split("\\.")[3]);
+    private long getFilesTotalSizeFromName(String name) {
+        return Long.parseLong(name.split("\\.")[3]);
     }
 
-    private int getRetentionPeriodFromName(String prefix, BlobItem backup) {
-        return Integer.parseInt(getBackupName(prefix, backup).split("\\.")[4]);
+    private int getRetentionPeriodFromName(String name) {
+        return Integer.parseInt(name.split("\\.")[4]);
     }
 
-    private boolean shouldCleanup(String prefix, BlobItem backup) {
-        Backup b = Backup.builder().name(backup.getName())
-                .lastModified(dateTimeFormatter.parse(
-                        getBackupName(prefix, backup).substring(0, 15),
-                        Instant::from))
-                .retentionPeriod(getRetentionPeriodFromName(prefix, backup))
-                .build();
-        Instant cleanupDate = b.getLastModified()
-                .plus(Duration.ofDays(b.getRetentionPeriod()));
+    private boolean shouldCleanup(Backup backup) {
+        Instant cleanupDate = backup.getLastModified()
+                .plus(Duration.ofDays(backup.getRetentionPeriod()));
 
         return cleanupDate.isBefore(Instant.now());
-    }
-
-    private static String getBackupName(String prefix, BlobItem backup) {
-        return backup.getName().substring(prefix.length() + 1);
     }
 }
