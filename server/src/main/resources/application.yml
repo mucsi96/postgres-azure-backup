@@ -15,11 +15,13 @@ spring:
         credential:
           client-id: ${api-client-id}
 
+      storage:
+        blob:
+          endpoint: ${storage-account-blob-url:}
+          credential:
+            client-id: ${api-client-id:}
+
 blobstorage:
-  clientId: ${api-client-id}
-  tenantId: ${tenant-id}
-  clientSecret: ${api-client-secret:}
-  accountUrl: ${storage-account-blob-url:}
   containerName: ${storage-account-container-name:}
 
 management:

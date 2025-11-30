@@ -1,5 +1,3 @@
-blobstorage:
-  connectionString: ${BLOBSTORAGE_CONNECTION_STRING:}
 databasesConfigPath: ${DATABASES_CONFIG_PATH}
 spring:
   cloud:
@@ -9,6 +7,9 @@ spring:
           property-sources: []
       active-directory:
         enabled: false
+      storage:
+        blob:
+          connection-string: ${BLOBSTORAGE_CONNECTION_STRING}
   autoconfigure:
     exclude:
       - "org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration"
