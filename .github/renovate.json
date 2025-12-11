@@ -12,6 +12,6 @@
   ],
   "labels": ["dependencies"],
   "github-actions": {
-    "enabled": false  // Disable GitHub Actions updates as it requires workflow permissions which are not available for pipeline tokens
+    "enabled": false
   }
 }
