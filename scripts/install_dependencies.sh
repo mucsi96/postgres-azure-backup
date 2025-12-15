@@ -32,28 +32,30 @@ if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ]; then
             echo "kubectl is already installed."
         fi
 
-        # Check and install JDK
-        if ! command -v java >/dev/null 2>&1; then
-            echo "Installing JDK..."
-            if ! apt-cache show temurin-21-jdk >/dev/null 2>&1; then
-                echo "Adding Eclipse Adoptium repository for Temurin..."
-                if [ ! -f /usr/share/keyrings/adoptium-archive-keyring.gpg ]; then
-                    curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public \
-                        | sudo gpg --dearmor -o /usr/share/keyrings/adoptium-archive-keyring.gpg
-                fi
-                echo "deb [signed-by=/usr/share/keyrings/adoptium-archive-keyring.gpg] https://packages.adoptium.net/artifactory/deb ${VERSION_CODENAME:-$(lsb_release -cs)} main" \
-                    | sudo tee /etc/apt/sources.list.d/adoptium.list >/dev/null
-            fi
-            sudo apt-get update
-            sudo apt-get install -y temurin-21-jdk
+        # Check and install SDKMAN
+        if [ ! -d "$HOME/.sdkman" ]; then
+            echo "Installing SDKMAN..."
+            curl -s "https://get.sdkman.io" | bash
         else
-            echo "JDK is already installed."
+            echo "SDKMAN is already installed."
         fi
 
-        # Check and install Maven
+        # Source SDKMAN
+        export SDKMAN_DIR="$HOME/.sdkman"
+        [ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ] && . "$SDKMAN_DIR/bin/sdkman-init.sh"
+
+        # Check and install JDK via SDKMAN
+        if ! sdk list java | grep -q "21.*tem.*installed"; then
+            echo "Installing JDK 21 via SDKMAN..."
+            sdk install java 21-tem
+        else
+            echo "JDK 21 is already installed."
+        fi
+
+        # Check and install Maven via SDKMAN
         if ! command -v mvn >/dev/null 2>&1; then
-            echo "Installing Maven..."
-            sudo apt-get install -y maven
+            echo "Installing Maven via SDKMAN..."
+            sdk install maven
         else
             echo "Maven is already installed."
         fi
