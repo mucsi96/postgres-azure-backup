@@ -17,10 +17,24 @@ jobs:
       pull-requests: write # Requires also "Allow GitHub Actions to create and approve pull requests" to be enabled in the repository settings
       issues: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.13
+          cache: "pip"
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+          cache-dependency-path: 'server/pom.xml'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "npm"
+          cache-dependency-path: |
+            client/package-lock.json
+            test/package-lock.json
       - env:
           LOG_LEVEL: debug
         run: npx renovate --token ${{ secrets.GITHUB_TOKEN }} --platform github --autodiscover
