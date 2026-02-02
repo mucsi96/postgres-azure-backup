@@ -24,7 +24,7 @@ jobs:
           cache: "pip"
       - uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
           cache-dependency-path: 'server/pom.xml'
