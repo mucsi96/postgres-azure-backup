@@ -67,7 +67,7 @@ services:
 
   blobstorage:
     image: "mcr.microsoft.com/azure-storage/azurite:latest"
-    command: "azurite-blob --blobHost 0.0.0.0"
+    command: "azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck"
     ports:
       - "8081:10000"
     healthcheck:
