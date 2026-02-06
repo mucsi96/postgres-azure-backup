@@ -41,7 +41,6 @@ Simple PostgreSQL backup tool to Azure with UI
 - `SPRING_ACTUATOR_PORT`
 - `STORAGE_ACCOUNT_BLOB_URL`
 - `STORAGE_ACCOUNT_CONTAINER_NAME`
-- `DATABASES_CONFIG_PATH`
 - `UI_CLIENT_ID`
 
 ## Optional environment variables for backup scheduling
@@ -52,7 +51,9 @@ Simple PostgreSQL backup tool to Azure with UI
 - `BACKUP_MONTHLY_CRON` - Cron expression for monthly backups (default: `0 30 6 1 * *`)
 - `BACKUP_CLEANUP_CRON` - Cron expression for cleanup (default: `0 0 7 * * *`)
 
-## Database config file
+## Database configuration
+
+In production, the database configuration is stored as the `dbs-config` secret in Azure Key Vault and loaded automatically via Spring Cloud Azure. The secret value is a JSON array:
 
 ```json
 [
@@ -152,25 +153,19 @@ Scheduling can be disabled by setting `BACKUP_SCHEDULE_ENABLED=false` or customi
 ## Deployment with Helm
 
 ```bash
-host=$(...)
-storageAccountBlobUrl=$(...)
-apiClientId=$(...)
-spaClientId=$(...)
+hostname=$(az keyvault secret show --vault-name p06-backup --name hostname --query value --output tsv)
+apiClientId=$(az keyvault secret show --vault-name p06-backup --name api-client-id --query value --output tsv)
 
 helm repo add mucsi96 https://mucsi96.github.io/k8s-helm-charts
-helm install mucsi96/spring-app \
+helm upgrade postgres-azure-backup-server mucsi96/spring-app \
+    --install \
     --namespace backup \
-    --set image=mucsi96/postgres-azure-backup:latest \
-    --set host=backup.$host \
+    --set image=mucsi96/postgres-azure-backup-server:latest \
+    --set entryPoint=web \
+    --set host=$hostname \
+    --set basePath=/api \
     --set clientId=$apiClientId \
-    --set serviceAccountName=postgres-azure-backup \
-    --set env.STORAGE_ACCOUNT_BLOB_URL=$storageAccountBlobUrl \
-    --set env.STORAGE_ACCOUNT_CONTAINER_NAME=backups \
-    --set env.DATABASES_CONFIG_PATH=/app/databases_config.json \
-    --set env.UI_CLIENT_ID=$spaClientId \
-    --set configFile[0].name=databases_config.json \
-    --set configFile[0].mountPath=/app/databases_config.json \
-    --set "configFile[0].data=$(cat scripts/databases_config.json | base64)" \
+    --set serviceAccountName=postgres-azure-backup-api-workload-identity \
     --wait
 ```
 

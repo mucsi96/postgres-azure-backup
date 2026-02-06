@@ -52,7 +52,6 @@ helm upgrade postgres-azure-backup-server mucsi96/spring-app \
     --set basePath=/api \
     --set clientId=$apiClientId \
     --set serviceAccountName=postgres-azure-backup-api-workload-identity \
-    --set env.DATABASES_CONFIG_PATH=/app/databases_config.json \
     --set persistentVolumeClaims[0].name=learn-language-backup-pvc \
     --set persistentVolumeClaims[0].accessMode=ReadWriteOnce \
     --set persistentVolumeClaims[0].volumeName=learn-language-backup \
