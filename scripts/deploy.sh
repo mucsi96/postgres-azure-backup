@@ -58,6 +58,10 @@ helm upgrade postgres-azure-backup-server mucsi96/spring-app \
     --set persistentVolumeClaims[0].mountPath=/app/storage/learn-language \
     --set persistentVolumeClaims[0].storageClassName="" \
     --set persistentVolumeClaims[0].storage=5Gi \
+    --set resources.requests.memory=512Mi \
+    --set resources.requests.cpu=500m \
+    --set resources.limits.memory=1Gi \
+    --set resources.limits.cpu=1 \
     --wait
 
 echo "Deploying client: mucsi96/postgres-azure-backup-client:$clientLatestTag to $hostname using client-app chart $clientAppChartVersion"
