@@ -25,6 +25,7 @@ public class SecurityConfiguration {
         http.authorizeHttpRequests(requests -> requests
                 .requestMatchers("/environment").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers("/download/**").permitAll()
                 .anyRequest().authenticated());
 
         return http.build();

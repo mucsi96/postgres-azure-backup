@@ -1,19 +1,13 @@
 package io.github.mucsi96.postgresbackuptool.controller;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FilterInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,9 +22,9 @@ import io.github.mucsi96.postgresbackuptool.model.Backup;
 import io.github.mucsi96.postgresbackuptool.service.BackupOrchestrationService;
 import io.github.mucsi96.postgresbackuptool.service.BackupService;
 import io.github.mucsi96.postgresbackuptool.service.DatabaseService;
+import io.github.mucsi96.postgresbackuptool.service.DownloadTokenService;
 import io.github.mucsi96.postgresbackuptool.service.SmartBackupService;
 import io.github.mucsi96.postgresbackuptool.service.SmartBackupService.SmartBackupResult;
-import io.github.mucsi96.postgresbackuptool.service.ZipService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -42,7 +36,7 @@ public class BackupController {
     private final DatabaseService databaseService;
     private final BackupOrchestrationService backupOrchestrationService;
     private final SmartBackupService smartBackupService;
-    private final ZipService zipService;
+    private final DownloadTokenService downloadTokenService;
 
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupCreator')")
     @PostMapping("/smart-backup")
@@ -85,110 +79,16 @@ public class BackupController {
     }
 
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupDownloader') and hasAuthority('SCOPE_downloadBackup')")
-    @GetMapping("/database/{database_name}/backup/{key}/archive")
-    ResponseEntity<Resource> downloadArchive(@PathVariable("database_name") String databaseName,
-            @PathVariable String key)
-            throws IOException, InterruptedException {
-        DatabaseConfiguration databaseConfiguration = databaseService
-                .getDatabaseConfiguration(databaseName);
+    @PostMapping("/database/{database_name}/backup/{key}/{type}/download-token")
+    @ResponseBody
+    Map<String, String> createDownloadToken(
+            @PathVariable("database_name") String databaseName,
+            @PathVariable String key,
+            @PathVariable String type) {
+        // Validate database exists
+        databaseService.getDatabaseConfiguration(databaseName);
 
-        // Download the backup ZIP from blob storage
-        File backupZipFile = backupService
-                .downloadBackup(databaseConfiguration.getPrefix(), key);
-
-        // Stream the ZIP file to the browser with auto-cleanup on close
-        InputStream cleanupStream = new DeleteOnCloseInputStream(
-                new FileInputStream(backupZipFile), backupZipFile);
-        InputStreamResource resource = new InputStreamResource(cleanupStream);
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + key + "\"")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .contentLength(backupZipFile.length())
-                .body(resource);
-    }
-
-    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupDownloader') and hasAuthority('SCOPE_downloadBackup')")
-    @GetMapping("/database/{database_name}/backup/{key}/pgdump")
-    ResponseEntity<Resource> downloadPgdump(@PathVariable("database_name") String databaseName,
-            @PathVariable String key)
-            throws IOException, InterruptedException {
-        DatabaseConfiguration databaseConfiguration = databaseService
-                .getDatabaseConfiguration(databaseName);
-
-        // Download the backup ZIP from blob storage
-        File backupZipFile = backupService
-                .downloadBackup(databaseConfiguration.getPrefix(), key);
-
-        // Extract the pgdump file from ZIP
-        File pgdumpFile = zipService.extractPgdumpFile(backupZipFile);
-
-        // Clean up the backup ZIP file immediately after extraction
-        backupZipFile.delete();
-
-        // Stream the file to the browser with auto-cleanup on close
-        InputStream cleanupStream = new DeleteOnCloseInputStream(
-                new FileInputStream(pgdumpFile), pgdumpFile);
-        InputStreamResource resource = new InputStreamResource(cleanupStream);
-
-        // Generate a clean filename for download
-        String filename = key.replace(".zip", ".pgdump");
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .contentLength(pgdumpFile.length())
-                .body(resource);
-    }
-
-    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupDownloader') and hasAuthority('SCOPE_downloadBackup')")
-    @GetMapping("/database/{database_name}/backup/{key}/sql")
-    ResponseEntity<Resource> downloadSql(@PathVariable("database_name") String databaseName,
-            @PathVariable String key)
-            throws IOException, InterruptedException {
-        DatabaseConfiguration databaseConfiguration = databaseService
-                .getDatabaseConfiguration(databaseName);
-
-        // Download the backup ZIP from blob storage
-        File backupZipFile = backupService
-                .downloadBackup(databaseConfiguration.getPrefix(), key);
-
-        // Extract the SQL file from ZIP
-        File sqlFile = zipService.extractPlainSqlFile(backupZipFile);
-
-        // Clean up the backup ZIP file immediately after extraction
-        backupZipFile.delete();
-
-        // Stream the file to the browser with auto-cleanup on close
-        InputStream cleanupStream = new DeleteOnCloseInputStream(
-                new FileInputStream(sqlFile), sqlFile);
-        InputStreamResource resource = new InputStreamResource(cleanupStream);
-
-        // Generate a clean filename for download
-        String filename = key.replace(".zip", ".sql");
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.TEXT_PLAIN)
-                .contentLength(sqlFile.length())
-                .body(resource);
-    }
-
-    private static class DeleteOnCloseInputStream extends FilterInputStream {
-        private final File file;
-
-        DeleteOnCloseInputStream(InputStream in, File file) {
-            super(in);
-            this.file = file;
-        }
-
-        @Override
-        public void close() throws IOException {
-            try {
-                super.close();
-            } finally {
-                file.delete();
-            }
-        }
+        String token = downloadTokenService.createToken(databaseName, key, type);
+        return Map.of("token", token);
     }
 }

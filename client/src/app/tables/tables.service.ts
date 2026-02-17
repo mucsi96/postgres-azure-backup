@@ -6,7 +6,6 @@ import {
 } from '@mucsi96/ui-elements';
 import { Table } from '../../types';
 import { SelectedDatabaseService } from '../database/selected-database.service';
-import { downloadBlob } from '../utils/downloadBlob';
 import { fetchJson } from '../utils/fetchJson';
 
 @Injectable({
@@ -75,26 +74,16 @@ export class TablesService {
       return;
     }
     try {
-      let downloadUrl: string;
-      let filename: string;
+      const downloadType =
+        type === 'plain' ? 'sql' : type === 'pgdump' ? 'pgdump' : 'archive';
 
-      // Use new streaming endpoints for all download types
-      if (type === 'pgdump') {
-        downloadUrl =
-          `/api/database/${databaseName}/backup/${selectedBackup}/pgdump`;
-        filename = selectedBackup.replace('.zip', '.pgdump');
-      } else if (type === 'plain') {
-        downloadUrl =
-          `/api/database/${databaseName}/backup/${selectedBackup}/sql`;
-        filename = selectedBackup.replace('.zip', '.sql');
-      } else {
-        downloadUrl =
-          `/api/database/${databaseName}/backup/${selectedBackup}/archive`;
-        filename = selectedBackup;
-      }
+      const { token } = await fetchJson<{ token: string }>(
+        this.http,
+        `/api/database/${databaseName}/backup/${selectedBackup}/${downloadType}/download-token`,
+        { method: 'post' }
+      );
 
-      // Use HttpClient to make authenticated request and download blob
-      await downloadBlob(this.http, downloadUrl, filename);
+      window.open(`/api/download/${token}`, '_self');
     } catch (error) {
       dispatchEvent(new ErrorNotificationEvent('Could not download backup.'));
     }
