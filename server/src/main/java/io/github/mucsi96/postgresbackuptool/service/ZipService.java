@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -78,11 +79,9 @@ public class ZipService {
             // Add folder files
             for (FolderBackupItem folderItem : folderItems) {
                 if (folderItem.getSourceFile() != null && folderItem.getSourceFile().exists()) {
-                    // Remove leading slash from folder path to avoid double slashes
-                    String folderPath = folderItem.getFolderPath().startsWith("/")
-                        ? folderItem.getFolderPath().substring(1)
-                        : folderItem.getFolderPath();
-                    String pathInZip = FOLDERS_DIR + folderPath + "/" + folderItem.getRelativePath();
+                    // Use only the folder name (last path component) instead of the full server path
+                    String folderName = Paths.get(folderItem.getFolderPath()).getFileName().toString();
+                    String pathInZip = FOLDERS_DIR + folderName + "/" + folderItem.getRelativePath();
                     addFileToZip(zipOut, folderItem.getSourceFile(), pathInZip);
                     log.debug("Added file to ZIP: {}", pathInZip);
                 }
@@ -125,23 +124,23 @@ public class ZipService {
                 extractedFile.getParentFile().mkdirs();
 
                 if (entryName.startsWith(FOLDERS_DIR)) {
-                    // Extract file and derive folder path from ZIP structure
+                    // Extract file and derive folder name from ZIP structure
                     extractFileFromZip(zipIn, extractedFile);
 
-                    // Parse folder path and relative path from: folders/folderPath/relativePath
-                    // The folderPath might have multiple levels (e.g., tmp/test-uploads)
+                    // Parse folder name and relative path from: folders/{folderName}/{relativePath}
+                    // The folderName is the first path component after "folders/"
                     String pathAfterFolders = entryName.substring(FOLDERS_DIR.length());
-                    int lastSlash = pathAfterFolders.lastIndexOf('/');
-                    if (lastSlash > 0) {
-                        String folderPath = "/" + pathAfterFolders.substring(0, lastSlash);
-                        String relativePath = pathAfterFolders.substring(lastSlash + 1);
+                    int firstSlash = pathAfterFolders.indexOf('/');
+                    if (firstSlash > 0) {
+                        String folderName = pathAfterFolders.substring(0, firstSlash);
+                        String relativePath = pathAfterFolders.substring(firstSlash + 1);
 
                         folderFiles.add(FolderFileRestorationItem.builder()
-                            .folderPath(folderPath)
+                            .folderPath(folderName)
                             .relativePath(relativePath)
                             .extractedFile(extractedFile)
                             .build());
-                        log.debug("Extracted file: {} -> {}/{}", entryName, folderPath, relativePath);
+                        log.debug("Extracted file: {} -> {}/{}", entryName, folderName, relativePath);
                     }
                 } else if (entryName.endsWith(".sql")) {
                     // Plain dump

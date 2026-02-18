@@ -3,15 +3,19 @@ package io.github.mucsi96.postgresbackuptool.service;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import io.github.mucsi96.postgresbackuptool.configuration.DatabaseConfiguration;
+import io.github.mucsi96.postgresbackuptool.model.FolderBackupConfig;
 import io.github.mucsi96.postgresbackuptool.service.FolderBackupService.FolderBackupItem;
 import lombok.RequiredArgsConstructor;
 
@@ -206,8 +210,20 @@ public class BackupOrchestrationService {
             if (!result.getFolderFiles().isEmpty()) {
                 logger.info("Restoring {} files to local folders", result.getFolderFiles().size());
 
+                // Build map from folder name to full configured path
+                Map<String, String> folderNameToPath = new HashMap<>();
+                for (FolderBackupConfig config : databaseConfiguration.getFolderBackups()) {
+                    String folderName = Paths.get(config.getPath()).getFileName().toString();
+                    folderNameToPath.put(folderName, config.getPath());
+                }
+
                 for (ZipService.FolderFileRestorationItem fileItem : result.getFolderFiles()) {
-                    File targetFile = new File(fileItem.getFolderPath(), fileItem.getRelativePath());
+                    String fullFolderPath = folderNameToPath.get(fileItem.getFolderPath());
+                    if (fullFolderPath == null) {
+                        logger.warn("Unknown folder name in backup: {}, skipping", fileItem.getFolderPath());
+                        continue;
+                    }
+                    File targetFile = new File(fullFolderPath, fileItem.getRelativePath());
                     targetFile.getParentFile().mkdirs();
 
                     java.nio.file.Files.copy(
