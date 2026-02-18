@@ -10,7 +10,7 @@ import {
 import AdmZip from 'adm-zip';
 import { readFile } from 'fs/promises';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { join, basename } from 'path';
 
 const TEST_FOLDER_1 = '/tmp/test-uploads';
 const TEST_FOLDER_2 = '/tmp/test-documents';
@@ -176,18 +176,18 @@ test.describe('Backups Tests', () => {
     );
     expect(folderFiles.length).toBe(6); // 5 from test-uploads + 1 from test-documents
 
-    // Verify specific files are included
-    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/avatar-1.jpg`);
-    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/avatar-2.png`);
-    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/document-1.pdf`);
-    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/video.mp4`);
-    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/image-5.jpg`);
-    expect(entryNames).toContain(`folders${TEST_FOLDER_2}/report.docx`);
+    // Verify specific files are included (using folder name only, not full server path)
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_1)}/avatar-1.jpg`);
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_1)}/avatar-2.png`);
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_1)}/document-1.pdf`);
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_1)}/video.mp4`);
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_1)}/image-5.jpg`);
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_2)}/report.docx`);
 
     // Verify file content
     const avatarFile = zipEntries.find(
       (entry) =>
-        entry.entryName === `folders${TEST_FOLDER_1}/avatar-1.jpg`
+        entry.entryName === `folders/${basename(TEST_FOLDER_1)}/avatar-1.jpg`
     );
     expect(avatarFile).toBeTruthy();
     const fileContent = avatarFile!.getData().toString('utf-8');

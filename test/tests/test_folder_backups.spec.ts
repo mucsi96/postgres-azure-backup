@@ -10,6 +10,7 @@ import {
   populateDb,
 } from '../utils';
 import AdmZip from 'adm-zip';
+import { basename } from 'path';
 
 const TEST_FOLDER_1 = '/tmp/test-uploads';
 const TEST_FOLDER_2 = '/tmp/test-documents';
@@ -88,13 +89,13 @@ test.describe('Folder Backup Tests', () => {
     const folderEntries = entryNames.filter(name => name.startsWith('folders/'));
     expect(folderEntries.length).toBeGreaterThan(0);
 
-    // Verify all files are included
-    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/avatar-1.jpg`);
-    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/avatar-2.png`);
-    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/document-1.pdf`);
-    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/video.mp4`);
-    expect(entryNames).toContain(`folders${TEST_FOLDER_2}/report.docx`);
-    expect(entryNames).toContain(`folders${TEST_FOLDER_2}/data.xlsx`);
+    // Verify all files are included (using folder name only, not full server path)
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_1)}/avatar-1.jpg`);
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_1)}/avatar-2.png`);
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_1)}/document-1.pdf`);
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_1)}/video.mp4`);
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_2)}/report.docx`);
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_2)}/data.xlsx`);
   });
 
   test('shows file count and size in backup listing', async ({ page }) => {
@@ -277,9 +278,9 @@ test.describe('Folder Backup Tests', () => {
     const zip = new AdmZip(path);
     const entryNames = zip.getEntries().map(entry => entry.entryName);
 
-    // Verify nested folder structure is preserved
-    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/user1/avatar.jpg`);
-    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/user2/profile/avatar.png`);
-    expect(entryNames).toContain(`folders${TEST_FOLDER_1}/shared/docs/report.pdf`);
+    // Verify nested folder structure is preserved (using folder name only, not full server path)
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_1)}/user1/avatar.jpg`);
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_1)}/user2/profile/avatar.png`);
+    expect(entryNames).toContain(`folders/${basename(TEST_FOLDER_1)}/shared/docs/report.pdf`);
   });
 });
