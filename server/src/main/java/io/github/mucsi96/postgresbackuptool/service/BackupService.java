@@ -2,6 +2,7 @@ package io.github.mucsi96.postgresbackuptool.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -18,7 +19,9 @@ import org.springframework.core.io.WritableResource;
 import org.springframework.stereotype.Service;
 
 import com.azure.spring.cloud.core.resource.AzureStorageBlobProtocolResolver;
+import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobProperties;
 
 import io.github.mucsi96.postgresbackuptool.model.Backup;
 import lombok.extern.slf4j.Slf4j;
@@ -91,6 +94,16 @@ public class BackupService {
         try (OutputStream os = resource.getOutputStream()) {
             Files.copy(dumpFile.toPath(), os);
         }
+    }
+
+    public record BackupStreamInfo(InputStream inputStream, long contentLength) {}
+
+    public BackupStreamInfo streamBackup(String prefix, String key) {
+        BlobClient blobClient = blobContainerClient
+                .getBlobClient(prefix + "/" + key);
+        BlobProperties properties = blobClient.getProperties();
+        InputStream inputStream = blobClient.openInputStream();
+        return new BackupStreamInfo(inputStream, properties.getBlobSize());
     }
 
     public File downloadBackup(String prefix, String key) throws IOException {
