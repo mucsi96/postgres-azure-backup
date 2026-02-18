@@ -47,12 +47,24 @@ public class DownloadController {
         String key = tokenInfo.getKey();
         String type = tokenInfo.getType();
 
+        if ("archive".equals(type)) {
+            BackupService.BackupStreamInfo streamInfo = backupService
+                    .streamBackup(databaseConfiguration.getPrefix(), key);
+            InputStreamResource resource = new InputStreamResource(
+                    streamInfo.inputStream());
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + key + "\"")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .contentLength(streamInfo.contentLength())
+                    .body(resource);
+        }
+
         File backupZipFile = backupService
                 .downloadBackup(databaseConfiguration.getPrefix(), key);
 
         return switch (type) {
-            case "archive" -> streamFile(backupZipFile, key,
-                    MediaType.APPLICATION_OCTET_STREAM);
             case "pgdump" -> {
                 File pgdumpFile = zipService.extractPgdumpFile(backupZipFile);
                 backupZipFile.delete();
