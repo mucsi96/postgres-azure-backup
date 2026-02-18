@@ -2,22 +2,6 @@
 
 set -e  # Exit immediately if a command exits with a non-zero status
 
-# Detect if running on Ubuntu
-if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ]; then
-    . /etc/os-release
-    if [ "$ID" = "ubuntu" ]; then
-        echo "Running on Ubuntu. Checking dependencies..."
-
-        # Check and install jq
-        if ! command -v jq &> /dev/null; then
-            echo "Installing jq..."
-            sudo apt-get install -y jq
-        else
-            echo "jq is already installed."
-        fi
-    fi
-fi
-
 KUBE_CONTENT=$(az keyvault secret show --vault-name p06-backup --name k8s-config --query value -o tsv)
 
 # Create a temporary file in /dev/shm (RAM) to avoid writing to disk

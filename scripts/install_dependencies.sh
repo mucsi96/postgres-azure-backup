@@ -32,6 +32,14 @@ if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ]; then
             echo "kubectl is already installed."
         fi
 
+        # Check and install jq
+        if ! command -v jq >/dev/null 2>&1; then
+            echo "Installing jq..."
+            sudo apt-get install -y jq
+        else
+            echo "jq is already installed."
+        fi
+
         # Check and install SDKMAN
         if [ ! -d "$HOME/.sdkman" ]; then
             echo "Installing SDKMAN..."
