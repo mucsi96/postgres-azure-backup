@@ -23,6 +23,8 @@ management:
   server:
     port: ${SPRING_ACTUATOR_PORT}
   endpoints:
+    access:
+      default: unrestricted
     web:
       exposure:
         include: "*"
