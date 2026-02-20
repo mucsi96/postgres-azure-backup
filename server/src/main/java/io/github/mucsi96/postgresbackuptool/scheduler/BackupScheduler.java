@@ -4,6 +4,7 @@ import io.github.mucsi96.postgresbackuptool.service.SmartBackupService;
 import io.github.mucsi96.postgresbackuptool.service.SmartBackupService.SmartBackupResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
  * Runs every 24 hours to ensure regular backup coverage.
  */
 @Component
+@Profile("!test")
 @RequiredArgsConstructor
 @Slf4j
 public class BackupScheduler {
