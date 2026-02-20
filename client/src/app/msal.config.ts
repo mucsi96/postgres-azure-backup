@@ -28,6 +28,7 @@ export function MSALInstanceFactory(config: EnvironmentConfig): IPublicClientApp
     auth: {
       clientId: config.clientId,
       authority: `https://login.microsoftonline.com/${config.tenantId}`,
+      redirectUri: '/',
     },
     cache: {
       cacheLocation: BrowserCacheLocation.SessionStorage,
@@ -62,7 +63,7 @@ export function MSALInterceptorConfigFactory(config: EnvironmentConfig): MsalInt
   );
 
   return {
-    interactionType: InteractionType.Popup,
+    interactionType: InteractionType.Redirect,
     protectedResourceMap,
   };
 }
@@ -77,7 +78,7 @@ export function MSALGuardConfigFactory(config: EnvironmentConfig): MsalGuardConf
   ].map((scope) => `${config.apiClientId}/${scope}`);
 
   return {
-    interactionType: InteractionType.Popup,
+    interactionType: InteractionType.Redirect,
     authRequest: {
       scopes: ['user.read', ...apiScopes],
     },
