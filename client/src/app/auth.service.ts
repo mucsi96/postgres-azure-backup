@@ -2,8 +2,6 @@ import { inject, Injectable, signal } from '@angular/core';
 import { MsalBroadcastService, MsalService } from '@azure/msal-angular';
 import {
   AuthenticationResult,
-  EventMessage,
-  EventType,
   InteractionStatus,
 } from '@azure/msal-browser';
 import { filter } from 'rxjs';
@@ -23,15 +21,13 @@ export class AuthService {
     : undefined;
 
   constructor() {
-    this.msalBroadcastService?.msalSubject$
-      .pipe(
-        filter((msg: EventMessage) => msg.eventType === EventType.LOGIN_SUCCESS)
-      )
-      .subscribe((result: EventMessage) => {
-        console.log(result);
-        const payload = result.payload as AuthenticationResult;
-        this.msalService?.instance.setActiveAccount(payload.account);
-      });
+    this.msalService?.handleRedirectObservable().subscribe({
+      next: (result: AuthenticationResult | null) => {
+        if (result) {
+          this.msalService?.instance.setActiveAccount(result.account);
+        }
+      },
+    });
 
     this.msalBroadcastService?.inProgress$
       .pipe(
