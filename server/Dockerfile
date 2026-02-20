@@ -32,4 +32,4 @@ COPY --from=build ${DEPENDENCY}/BOOT-INF/classes /app
 ENV SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
 
 # Run the application
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-cp", "app:app/lib/*", "io.github.mucsi96.postgresbackuptool.App"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-Djdk.httpclient.allowRestrictedHeaders=content-length", "-cp", "app:app/lib/*", "io.github.mucsi96.postgresbackuptool.App"]
