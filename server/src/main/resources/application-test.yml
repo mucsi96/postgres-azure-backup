@@ -13,4 +13,3 @@ spring:
   autoconfigure:
     exclude:
       - "org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration"
-      - "org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration"
