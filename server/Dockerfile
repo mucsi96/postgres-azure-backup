@@ -14,7 +14,7 @@ RUN mvn package -DskipTests -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli
 RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
 
 # Stage 2: Runtime image
-FROM bellsoft/liberica-openjre-alpine-musl:21
+FROM bellsoft/liberica-openjre-alpine-musl:25
 
 VOLUME /tmp
 
