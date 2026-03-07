@@ -61,7 +61,7 @@ jobs:
           path: test/playwright-report
       - run: docker compose logs
         if: always()
-  publish-server-image:
+  publish-server:
     runs-on: ubuntu-latest
     needs: test-e2e
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -72,10 +72,67 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v6
+      - name: Get next version
+        id: get_next_version
+        uses: mucsi96/get-next-version@main
         with:
-          python-version: 3.13
-          cache: "pip"
-      - run: pip install -r requirements.txt
+          prefix: 'server'
+          src: server
 
-      - run: python scripts/publish_images.py "${{ secrets.GITHUB_TOKEN }}" "${{ secrets.ANSIBLE_VAULT_KEY }}"
+      - name: Login to Docker Hub
+        if: steps.get_next_version.outputs.hasNextVersion == 'true'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push server image
+        if: steps.get_next_version.outputs.hasNextVersion == 'true'
+        run: |
+          docker build -t ${{ github.repository_owner }}/postgres-azure-backup-server:${{ steps.get_next_version.outputs.version }} server
+          docker push ${{ github.repository_owner }}/postgres-azure-backup-server:${{ steps.get_next_version.outputs.version }}
+
+      - name: Create release
+        if: steps.get_next_version.outputs.hasNextVersion == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: server-${{ steps.get_next_version.outputs.version }}
+          generate_release_notes: true
+
+  publish-client:
+    runs-on: ubuntu-latest
+    needs: test-e2e
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Get next version
+        id: get_next_version
+        uses: mucsi96/get-next-version@main
+        with:
+          prefix: 'client'
+          src: client
+
+      - name: Login to Docker Hub
+        if: steps.get_next_version.outputs.hasNextVersion == 'true'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push client image
+        if: steps.get_next_version.outputs.hasNextVersion == 'true'
+        run: |
+          docker build -t ${{ github.repository_owner }}/postgres-azure-backup-client:${{ steps.get_next_version.outputs.version }} client
+          docker push ${{ github.repository_owner }}/postgres-azure-backup-client:${{ steps.get_next_version.outputs.version }}
+
+      - name: Create release
+        if: steps.get_next_version.outputs.hasNextVersion == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: client-${{ steps.get_next_version.outputs.version }}
+          generate_release_notes: true
