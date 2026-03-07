@@ -45,6 +45,16 @@ public class BackupController {
         return smartBackupService.performSmartBackup();
     }
 
+    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupCreator')")
+    @PostMapping("/database/{database_name}/backup")
+    @ResponseBody
+    void performBackup(@PathVariable("database_name") String databaseName)
+            throws IOException, InterruptedException {
+        DatabaseConfiguration databaseConfiguration = databaseService
+                .getDatabaseConfiguration(databaseName);
+        backupOrchestrationService.performBackupForDatabase(databaseConfiguration, 7);
+    }
+
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupsReader') and hasAuthority('SCOPE_readBackups')")
     @GetMapping("/database/{database_name}/backups")
     @ResponseBody
