@@ -44,6 +44,26 @@ export class TablesService {
     },
   });
 
+  async createBackup() {
+    const databaseName = this.selectedDatabaseService.databaseName();
+    if (!databaseName) {
+      return;
+    }
+    try {
+      this.processing.set(true);
+      await fetchJson<void>(
+        this.http,
+        `/api/database/${databaseName}/backup`,
+        { method: 'post' }
+      );
+      document.dispatchEvent(new SuccessNotificationEvent('Backup created'));
+    } catch (error) {
+      dispatchEvent(new ErrorNotificationEvent('Could not create backup.'));
+    }
+    this.processing.set(false);
+    this.tables.reload();
+  }
+
   async restoreBackup(selectedBackup: string) {
     const databaseName = this.selectedDatabaseService.databaseName();
     if (!databaseName) {

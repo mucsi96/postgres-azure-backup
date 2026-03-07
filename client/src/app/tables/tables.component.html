@@ -1,6 +1,7 @@
 @if (tableData.isLoading()) {
 <div role="progressbar" bt></div>
 } @else {
+<button bt [disabled]="processing()" (click)="createBackup()">Backup</button>
 <h2 bt>
   Records <span bt-badge>{{ totalRowCount() }}</span>
 </h2>
