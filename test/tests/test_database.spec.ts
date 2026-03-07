@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures';
-import { extractTableData, cleanupDb, getDb1Tables, triggerBackup, populateDb, writeFileToFolder } from '../utils';
+import { extractTableData, cleanupDb, getDb1Tables, triggerBackup, populateDb, writeFileToFolder, getBackupsFromStorage } from '../utils';
 
 const TEST_FOLDER_1 = '/tmp/test-uploads';
 const TEST_FOLDER_2 = '/tmp/test-documents';
@@ -95,6 +95,21 @@ test.describe('Database Tests', () => {
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 9');
     await expect(page.getByRole('heading', { name: 'Files' })).toHaveText('Files 0');
     await expect(page.getByRole('heading', { name: 'Tables' })).toHaveText('Tables 2');
+  });
+
+  test('creates backup using backup button', async ({ page }) => {
+    await populateDb();
+
+    await page.goto('http://localhost:8280');
+    await page.getByText('db1').click();
+    await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 9');
+
+    await page.getByRole('button', { name: 'Backup' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Backup created' })).toBeVisible();
+
+    const backups = await getBackupsFromStorage('db1');
+    expect(backups.length).toBe(1);
+    expect(backups[0].rowsCount).toBe(9);
   });
 
   test('doesnt restore excluded tables', async ({ page }) => {
