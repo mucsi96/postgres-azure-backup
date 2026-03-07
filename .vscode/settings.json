@@ -28,5 +28,8 @@
     "java.configuration.updateBuildConfiguration": "interactive",
     "vs-kubernetes": {
         "vs-kubernetes.kubeconfig": "${workspaceFolder}/.kube/config"
+    },
+    "terminal.integrated.env.linux": {
+        "KUBECONFIG": "${workspaceFolder}/.kube/config"
     }
 }
