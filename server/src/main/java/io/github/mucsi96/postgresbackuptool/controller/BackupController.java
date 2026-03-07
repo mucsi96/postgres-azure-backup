@@ -52,7 +52,7 @@ public class BackupController {
             throws IOException, InterruptedException {
         DatabaseConfiguration databaseConfiguration = databaseService
                 .getDatabaseConfiguration(databaseName);
-        backupOrchestrationService.performBackupForDatabase(databaseConfiguration, 356);
+        backupOrchestrationService.performBackupForDatabase(databaseConfiguration, 7);
     }
 
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupsReader') and hasAuthority('SCOPE_readBackups')")
