@@ -15,7 +15,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.3</version> <!-- Spring version mapping https://github.com/Azure/azure-sdk-for-java/wiki/Spring-Versions-Mapping -->
+        <version>4.0.4</version> <!-- Spring version mapping https://github.com/Azure/azure-sdk-for-java/wiki/Spring-Versions-Mapping -->
         <relativePath /> <!-- lookup parent from repository -->
     </parent>
 
@@ -24,7 +24,7 @@
             <dependency>
                 <groupId>com.azure.spring</groupId>
                 <artifactId>spring-cloud-azure-dependencies</artifactId>
-                <version>7.0.0</version>
+                <version>7.1.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
