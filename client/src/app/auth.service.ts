@@ -1,5 +1,6 @@
 import { effect, inject, Injectable, Signal, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MsalBroadcastService, MsalService } from '@azure/msal-angular';
 import {
   AuthenticationResult,
@@ -15,6 +16,7 @@ import { ENVIRONMENT_CONFIG } from './environment/environment.config';
 })
 export class AuthService {
   private readonly config = inject(ENVIRONMENT_CONFIG);
+  private readonly snackBar = inject(MatSnackBar);
   readonly mockAuth = this.config.mockAuth;
   readonly msalService = !this.mockAuth
     ? inject(MsalService)
@@ -31,6 +33,14 @@ export class AuthService {
     ? toSignal(
         this.msalBroadcastService.msalSubject$.pipe(
           filter((msg: EventMessage) => msg.eventType === EventType.LOGIN_SUCCESS)
+        )
+      )
+    : signal(undefined);
+
+  private readonly acquireTokenFailure: Signal<EventMessage | undefined> = this.msalBroadcastService
+    ? toSignal(
+        this.msalBroadcastService.msalSubject$.pipe(
+          filter((msg: EventMessage) => msg.eventType === EventType.ACQUIRE_TOKEN_FAILURE)
         )
       )
     : signal(undefined);
@@ -54,6 +64,13 @@ export class AuthService {
     });
 
     effect(() => {
+      const event = this.acquireTokenFailure();
+      if (event) {
+        this.showError(event.error);
+      }
+    });
+
+    effect(() => {
       const status = this.interactionIdle();
       if (
         status === InteractionStatus.None &&
@@ -62,6 +79,15 @@ export class AuthService {
       ) {
         this.isAuthenticated.set(true);
       }
+    });
+  }
+
+  private showError(error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    this.snackBar.open('An error occurred. ' + message, 'Close', {
+      duration: 3000,
+      verticalPosition: 'top',
+      panelClass: ['error'],
     });
   }
 }
