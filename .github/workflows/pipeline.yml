@@ -86,8 +86,8 @@ jobs:
       - name: Build and push server image
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/skeleton-app-server:${{ steps.get_next_version.outputs.version }} server
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/skeleton-app-server:${{ steps.get_next_version.outputs.version }}
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/postgres-azure-backup-server:${{ steps.get_next_version.outputs.version }} server
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/postgres-azure-backup-server:${{ steps.get_next_version.outputs.version }}
 
       - name: Create release
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
@@ -124,8 +124,8 @@ jobs:
       - name: Build and push client image
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/skeleton-app-client:${{ steps.get_next_version.outputs.version }} client
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/skeleton-app-client:${{ steps.get_next_version.outputs.version }}
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/postgres-azure-backup-client:${{ steps.get_next_version.outputs.version }} client
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/postgres-azure-backup-client:${{ steps.get_next_version.outputs.version }}
 
       - name: Create release
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
