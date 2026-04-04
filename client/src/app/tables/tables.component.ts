@@ -28,4 +28,11 @@ export class TablesComponent {
     await this.tabeService.createBackup();
     this.backupsService.backups.reload();
   }
+
+  async exportSql() {
+    if (this.processing()) {
+      return;
+    }
+    await this.tabeService.exportSql();
+  }
 }

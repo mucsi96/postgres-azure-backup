@@ -101,4 +101,16 @@ public class BackupController {
         String token = downloadTokenService.createToken(databaseName, key, type);
         return Map.of("token", token);
     }
+
+    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupDownloader') and hasAuthority('SCOPE_downloadBackup')")
+    @PostMapping("/database/{database_name}/export-sql/download-token")
+    @ResponseBody
+    Map<String, String> createExportSqlDownloadToken(
+            @PathVariable("database_name") String databaseName) {
+        // Validate database exists
+        databaseService.getDatabaseConfiguration(databaseName);
+
+        String token = downloadTokenService.createToken(databaseName, "", "data-export");
+        return Map.of("token", token);
+    }
 }

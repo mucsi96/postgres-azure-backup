@@ -41,11 +41,18 @@ public class DownloadController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.GONE,
                         "Download link has expired or is invalid"));
 
-        DatabaseConfiguration databaseConfiguration = databaseService
-                .getDatabaseConfiguration(tokenInfo.getDatabaseName());
-
         String key = tokenInfo.getKey();
         String type = tokenInfo.getType();
+
+        if ("data-export".equals(type)) {
+            File sqlFile = databaseService
+                    .createDataOnlyDump(tokenInfo.getDatabaseName());
+            String filename = tokenInfo.getDatabaseName() + "-data-export.sql";
+            return streamFile(sqlFile, filename, MediaType.TEXT_PLAIN);
+        }
+
+        DatabaseConfiguration databaseConfiguration = databaseService
+                .getDatabaseConfiguration(tokenInfo.getDatabaseName());
 
         if ("archive".equals(type)) {
             BackupService.BackupStreamInfo streamInfo = backupService
