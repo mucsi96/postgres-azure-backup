@@ -91,6 +91,7 @@ export class TablesService {
       return;
     }
     try {
+      this.processing.set(true);
       const { token } = await fetchJson<{ token: string }>(
         this.http,
         `/api/database/${databaseName}/export-sql/download-token`,
@@ -103,6 +104,7 @@ export class TablesService {
         new ErrorNotificationEvent('Could not export SQL data.')
       );
     }
+    this.processing.set(false);
   }
 
   async downloadBackup(

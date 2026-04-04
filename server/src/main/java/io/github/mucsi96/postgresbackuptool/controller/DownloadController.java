@@ -47,8 +47,14 @@ public class DownloadController {
         if ("data-export".equals(type)) {
             File sqlFile = databaseService
                     .createDataOnlyDump(tokenInfo.getDatabaseName());
-            String filename = tokenInfo.getDatabaseName() + "-data-export.sql";
-            return streamFile(sqlFile, filename, MediaType.TEXT_PLAIN);
+            try {
+                return streamFile(sqlFile,
+                        tokenInfo.getDatabaseName() + "-data-export.sql",
+                        MediaType.TEXT_PLAIN);
+            } catch (IOException e) {
+                sqlFile.delete();
+                throw e;
+            }
         }
 
         DatabaseConfiguration databaseConfiguration = databaseService

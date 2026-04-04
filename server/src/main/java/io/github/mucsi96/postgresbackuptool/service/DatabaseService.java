@@ -69,14 +69,34 @@ public class DatabaseService {
     public File createDump(String databaseName, int retentionPeriod,
             String format, String timeString)
             throws IOException, InterruptedException {
+        return executePgDump(databaseName, format, false);
+    }
+
+    public File createDataOnlyDump(String databaseName)
+            throws IOException, InterruptedException {
+        return executePgDump(databaseName, "plain", true);
+    }
+
+    private File executePgDump(String databaseName, String format,
+            boolean dataOnly) throws IOException, InterruptedException {
         DatabaseConfiguration databaseConfiguration = getDatabaseConfiguration(
                 databaseName);
         String suffix = "plain".equals(format) ? ".sql" : ".pgdump";
         File outputFile = File.createTempFile("pgdump-", suffix);
-        List<String> commands = Stream.of(List.of("pg_dump", "--dbname",
-                databaseConfiguration.getConnectionString(), "--schema",
-                databaseConfiguration.getSchema(), "--format", format, "--file",
-                outputFile.getAbsolutePath(), "plain".equals(format) ? "--column-inserts" : ""),
+
+        List<String> baseArgs = new java.util.ArrayList<>(List.of("pg_dump",
+                "--dbname", databaseConfiguration.getConnectionString(),
+                "--schema", databaseConfiguration.getSchema(), "--format",
+                format, "--file", outputFile.getAbsolutePath()));
+
+        if ("plain".equals(format)) {
+            baseArgs.add("--column-inserts");
+        }
+        if (dataOnly) {
+            baseArgs.add("--data-only");
+        }
+
+        List<String> commands = Stream.of(baseArgs,
                 databaseConfiguration.getExcludeTables().stream()
                         .flatMap(table -> {
                             String fullTableName = databaseConfiguration
@@ -101,44 +121,6 @@ public class DatabaseService {
         }
 
         System.out.println("Dump created");
-
-        return outputFile;
-    }
-
-    public File createDataOnlyDump(String databaseName)
-            throws IOException, InterruptedException {
-        DatabaseConfiguration databaseConfiguration = getDatabaseConfiguration(
-                databaseName);
-        File outputFile = File.createTempFile("pgdump-data-", ".sql");
-        List<String> commands = Stream.of(List.of("pg_dump", "--dbname",
-                databaseConfiguration.getConnectionString(), "--schema",
-                databaseConfiguration.getSchema(), "--format", "plain",
-                "--data-only", "--column-inserts", "--file",
-                outputFile.getAbsolutePath()),
-                databaseConfiguration.getExcludeTables().stream()
-                        .flatMap(table -> {
-                            String fullTableName = databaseConfiguration
-                                    .getSchema() + "." + table;
-                            return List.of("--exclude-table", fullTableName)
-                                    .stream();
-                        }).toList())
-                .flatMap(x -> x.stream()).filter(arg -> !arg.isEmpty())
-                .toList();
-
-        System.out.println("Creating data-only dump: " + String.join(", ", commands));
-
-        int status = new ProcessBuilder(commands).inheritIO().start().waitFor();
-
-        if (status != 0) {
-            throw new RuntimeException("Unable to create data-only dump. pg_dump failed");
-        }
-
-        if (!outputFile.exists()) {
-            throw new RuntimeException(
-                    "Unable to create data-only dump. " + outputFile + " was not created.");
-        }
-
-        System.out.println("Data-only dump created");
         return outputFile;
     }
 
