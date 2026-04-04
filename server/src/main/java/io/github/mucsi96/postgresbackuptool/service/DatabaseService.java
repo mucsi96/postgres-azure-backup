@@ -2,6 +2,7 @@ package io.github.mucsi96.postgresbackuptool.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -66,8 +67,7 @@ public class DatabaseService {
 
     }
 
-    public File createDump(String databaseName, int retentionPeriod,
-            String format, String timeString)
+    public File createDump(String databaseName, String format)
             throws IOException, InterruptedException {
         return executePgDump(databaseName, format, false);
     }
@@ -84,7 +84,7 @@ public class DatabaseService {
         String suffix = "plain".equals(format) ? ".sql" : ".pgdump";
         File outputFile = File.createTempFile("pgdump-", suffix);
 
-        List<String> baseArgs = new java.util.ArrayList<>(List.of("pg_dump",
+        List<String> baseArgs = new ArrayList<>(List.of("pg_dump",
                 "--dbname", databaseConfiguration.getConnectionString(),
                 "--schema", databaseConfiguration.getSchema(), "--format",
                 format, "--file", outputFile.getAbsolutePath()));
@@ -109,19 +109,29 @@ public class DatabaseService {
 
         System.out.println("Creating dump: " + String.join(", ", commands));
 
-        int status = new ProcessBuilder(commands).inheritIO().start().waitFor();
+        boolean success = false;
+        try {
+            int status = new ProcessBuilder(commands).inheritIO().start()
+                    .waitFor();
 
-        if (status != 0) {
-            throw new RuntimeException("Unable to create dump. pg_dump failed");
+            if (status != 0) {
+                throw new RuntimeException(
+                        "Unable to create dump. pg_dump failed");
+            }
+
+            if (!outputFile.exists()) {
+                throw new RuntimeException("Unable to create dump. "
+                        + outputFile + " was not created.");
+            }
+
+            System.out.println("Dump created");
+            success = true;
+            return outputFile;
+        } finally {
+            if (!success) {
+                outputFile.delete();
+            }
         }
-
-        if (!outputFile.exists()) {
-            throw new RuntimeException(
-                    "Unable to create dump. " + outputFile + " was not created.");
-        }
-
-        System.out.println("Dump created");
-        return outputFile;
     }
 
     public void restoreDump(String databaseName, File dumpFile)
