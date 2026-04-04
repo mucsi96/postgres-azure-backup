@@ -85,6 +85,28 @@ export class TablesService {
     this.tables.reload();
   }
 
+  async exportSql() {
+    const databaseName = this.selectedDatabaseService.databaseName();
+    if (!databaseName) {
+      return;
+    }
+    try {
+      this.processing.set(true);
+      const { token } = await fetchJson<{ token: string }>(
+        this.http,
+        `/api/database/${databaseName}/export-sql/download-token`,
+        { method: 'post' }
+      );
+
+      window.open(`/api/download/${token}`, '_self');
+    } catch (error) {
+      dispatchEvent(
+        new ErrorNotificationEvent('Could not export SQL data.')
+      );
+    }
+    this.processing.set(false);
+  }
+
   async downloadBackup(
     selectedBackup: string,
     type: 'plain' | 'archive' | 'pgdump'

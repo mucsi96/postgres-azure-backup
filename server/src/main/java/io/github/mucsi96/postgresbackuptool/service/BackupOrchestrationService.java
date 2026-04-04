@@ -115,17 +115,13 @@ public class BackupOrchestrationService {
             logger.info("Creating pgdump (custom format) for: {}", databaseConfiguration.getName());
             dumpFile = databaseService.createDump(
                     databaseConfiguration.getName(),
-                    retentionPeriod,
-                    "custom",
-                    timeString);
+                    "custom");
 
             // Always create plain SQL dump
             logger.info("Creating SQL dump (plain format) for: {}", databaseConfiguration.getName());
             plainDumpFile = databaseService.createDump(
                     databaseConfiguration.getName(),
-                    retentionPeriod,
-                    "plain",
-                    timeString);
+                    "plain");
 
             // Collect folder files from local file system
             logger.info("Collecting files for backup from {} folders",

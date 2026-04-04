@@ -2,6 +2,7 @@ package io.github.mucsi96.postgresbackuptool.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -66,17 +67,36 @@ public class DatabaseService {
 
     }
 
-    public File createDump(String databaseName, int retentionPeriod,
-            String format, String timeString)
+    public File createDump(String databaseName, String format)
             throws IOException, InterruptedException {
+        return executePgDump(databaseName, format, false);
+    }
+
+    public File createDataOnlyDump(String databaseName)
+            throws IOException, InterruptedException {
+        return executePgDump(databaseName, "plain", true);
+    }
+
+    private File executePgDump(String databaseName, String format,
+            boolean dataOnly) throws IOException, InterruptedException {
         DatabaseConfiguration databaseConfiguration = getDatabaseConfiguration(
                 databaseName);
         String suffix = "plain".equals(format) ? ".sql" : ".pgdump";
         File outputFile = File.createTempFile("pgdump-", suffix);
-        List<String> commands = Stream.of(List.of("pg_dump", "--dbname",
-                databaseConfiguration.getConnectionString(), "--schema",
-                databaseConfiguration.getSchema(), "--format", format, "--file",
-                outputFile.getAbsolutePath(), "plain".equals(format) ? "--column-inserts" : ""),
+
+        List<String> baseArgs = new ArrayList<>(List.of("pg_dump",
+                "--dbname", databaseConfiguration.getConnectionString(),
+                "--schema", databaseConfiguration.getSchema(), "--format",
+                format, "--file", outputFile.getAbsolutePath()));
+
+        if ("plain".equals(format)) {
+            baseArgs.add("--column-inserts");
+        }
+        if (dataOnly) {
+            baseArgs.add("--data-only");
+        }
+
+        List<String> commands = Stream.of(baseArgs,
                 databaseConfiguration.getExcludeTables().stream()
                         .flatMap(table -> {
                             String fullTableName = databaseConfiguration
@@ -89,20 +109,29 @@ public class DatabaseService {
 
         System.out.println("Creating dump: " + String.join(", ", commands));
 
-        int status = new ProcessBuilder(commands).inheritIO().start().waitFor();
+        boolean success = false;
+        try {
+            int status = new ProcessBuilder(commands).inheritIO().start()
+                    .waitFor();
 
-        if (status != 0) {
-            throw new RuntimeException("Unable to create dump. pg_dump failed");
+            if (status != 0) {
+                throw new RuntimeException(
+                        "Unable to create dump. pg_dump failed");
+            }
+
+            if (!outputFile.exists()) {
+                throw new RuntimeException("Unable to create dump. "
+                        + outputFile + " was not created.");
+            }
+
+            System.out.println("Dump created");
+            success = true;
+            return outputFile;
+        } finally {
+            if (!success) {
+                outputFile.delete();
+            }
         }
-
-        if (!outputFile.exists()) {
-            throw new RuntimeException(
-                    "Unable to create dump. " + outputFile + " was not created.");
-        }
-
-        System.out.println("Dump created");
-
-        return outputFile;
     }
 
     public void restoreDump(String databaseName, File dumpFile)
