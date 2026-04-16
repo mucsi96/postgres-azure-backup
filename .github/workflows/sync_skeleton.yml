@@ -26,15 +26,18 @@ jobs:
       - name: Get skeleton app changes from last week
         id: skeleton-diff
         run: |
-          git clone --shallow-since="14 days ago" https://github.com/mucsi96/skeleton-app.git /tmp/skeleton-app
+          if ! git clone --shallow-since="14 days ago" https://github.com/mucsi96/skeleton-app.git /tmp/skeleton-app; then
+            echo "Failed to clone skeleton-app or no recent history available"
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           cd /tmp/skeleton-app
           SINCE=$(date -d '14 days ago' --iso-8601)
-          DIFF=$(git log --since="$SINCE" -p --no-merges)
-          if [ -z "$DIFF" ]; then
-            echo "No changes found in skeleton-app in the last week"
+          git log --since="$SINCE" -p --no-merges > /tmp/skeleton-diff.patch || true
+          if [ ! -s /tmp/skeleton-diff.patch ]; then
+            echo "No changes found in skeleton-app in the last 14 days"
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
           else
-            echo "$DIFF" > /tmp/skeleton-diff.patch
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
           fi
 
