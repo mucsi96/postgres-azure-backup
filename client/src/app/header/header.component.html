@@ -29,12 +29,12 @@
   </h3>
   }
   <button bt-avatar id="avatar" popovertarget="avatar-popover">
-    {{ profile.value()?.initials }}
+    {{ profile()?.initials }}
   </button>
   <div popover bt id="avatar-popover">
     <ul bt-dropdown-menu>
       <li>
-        {{ profile.value()?.name }}
+        {{ profile()?.name }}
       </li>
     </ul>
   </div>

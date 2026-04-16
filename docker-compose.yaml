@@ -32,6 +32,25 @@ services:
       server:
         condition: service_healthy
 
+  mock-oauth2:
+    image: "docker.io/mucsi96/mock-oidc-provider:latest"
+    ports:
+      - "8090:8090"
+    environment:
+      PORT: "8090"
+      ISSUER_ID: default
+      SUB: test-user
+      NAME: Test User
+      PREFERRED_USERNAME: test-user@example.com
+      ROLES: DatabaseBackupsReader,DatabaseBackupCreator,DatabaseBackupDownloader,DatabaseBackupRestorer
+      SCP: readBackups createBackup cleanupBackups restoreBackup downloadBackup
+      AUD: mock-api-client-id
+    healthcheck:
+      test: "wget --quiet --tries=1 --spider http://localhost:8090/health || exit 1"
+      interval: 2s
+      retries: 5
+      start_period: 2s
+
   server:
     build:
       context: server
@@ -47,6 +66,7 @@ services:
       BLOBSTORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://blobstorage:10000/devstoreaccount1;"
       STORAGE_ACCOUNT_CONTAINER_NAME: "backups"
       DATABASES_CONFIG_PATH: /app/databases_config.json
+      MOCK_OAUTH2_SERVER_URI: "http://localhost:8090"
     volumes:
       - "./test/databases_config.json:/app/databases_config.json"
       - "/tmp/test-uploads:/tmp/test-uploads"
@@ -63,6 +83,8 @@ services:
       db2:
         condition: service_healthy
       blobstorage:
+        condition: service_healthy
+      mock-oauth2:
         condition: service_healthy
 
   blobstorage:
