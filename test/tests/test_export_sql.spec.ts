@@ -10,7 +10,7 @@ test.describe('Export SQL Tests', () => {
   }) => {
     await populateDb();
 
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     await page.getByText('db1').click();
     await expect(
       page.getByRole('heading', { name: 'Records' })
@@ -57,7 +57,7 @@ test.describe('Export SQL Tests', () => {
   test('exports SQL for second database', async ({ page }) => {
     await populateDb();
 
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     await page.getByText('db2').click();
     await expect(
       page.getByRole('heading', { name: 'Records' })

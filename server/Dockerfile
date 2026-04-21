@@ -3,11 +3,12 @@ FROM maven:3-eclipse-temurin-21 AS build
 
 WORKDIR /workspace
 
-# Copy POM and source code
+# Copy POM and download dependencies (cached separately from source)
 COPY pom.xml ./
-COPY src ./src
+RUN mvn dependency:go-offline -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
-# Build the application
+# Copy source code and build
+COPY src ./src
 RUN mvn package -DskipTests -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 # Extract dependencies for layer caching
