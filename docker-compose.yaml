@@ -16,6 +16,7 @@ services:
       start_period: 2s
 
   client:
+    image: localhost/postgres-azure-backup-client:test
     build:
       context: client
     labels:
@@ -52,6 +53,7 @@ services:
       start_period: 2s
 
   server:
+    image: localhost/postgres-azure-backup-server:test
     build:
       context: server
     user: "${USER_ID}:${GROUP_ID}"
