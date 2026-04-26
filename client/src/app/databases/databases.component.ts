@@ -16,9 +16,17 @@ export class DatabasesComponent {
   private readonly databasesService = inject(DatabasesService);
   private readonly router = inject(Router);
   databases = this.databasesService.databases;
+  processing = this.databasesService.processing;
   olderThenOneDay = olderThenOneDay;
 
   selectDatabase(database: Database) {
     this.router.navigate(['/database', database.name]);
+  }
+
+  async smartBackup() {
+    if (this.processing()) {
+      return;
+    }
+    await this.databasesService.smartBackup();
   }
 }

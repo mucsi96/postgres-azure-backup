@@ -37,7 +37,7 @@ test.describe('Backups Tests', () => {
       filesTotalSize: 524288,
     });
 
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Backups' })).toHaveText(
       'Backups 2'
@@ -47,10 +47,9 @@ test.describe('Backups Tests', () => {
   test('shows last backup time', async ({ page }) => {
     await populateDb();
 
-    // Create a backup via API
-    await triggerBackup();
+    await triggerBackup(page);
 
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     await page.getByText('db1').click();
     const lastBackupText = await page
       .getByRole('heading', { name: 'Last backup' })
@@ -80,7 +79,7 @@ test.describe('Backups Tests', () => {
       filesTotalSize: 524288,
     });
 
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Backups' })).toHaveText(
       'Backups 2'
@@ -112,7 +111,7 @@ test.describe('Backups Tests', () => {
   });
 
   test('switches to other db', async ({ page }) => {
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     await page.getByText('db1').click();
     await page.getByRole('button', { name: 'db1' }).click();
     await page.getByRole('link', { name: 'db2' }).click();
@@ -137,10 +136,9 @@ test.describe('Backups Tests', () => {
     await writeFileToFolder(TEST_FOLDER_1, 'image-5.jpg', 'fake-jpg-content-5');
     await writeFileToFolder(TEST_FOLDER_2, 'report.docx', 'fake-docx-content');
 
-    // Create a backup via API
-    await triggerBackup();
+    await triggerBackup(page);
 
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     await page.getByText('db1').click();
 
     // Select the first backup
@@ -197,10 +195,9 @@ test.describe('Backups Tests', () => {
   test('downloads pgdump backup', async ({ page }) => {
     await populateDb();
 
-    // Create a backup via API
-    await triggerBackup();
+    await triggerBackup(page);
 
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     await page.getByText('db1').click();
 
     // Select the first backup
@@ -219,10 +216,9 @@ test.describe('Backups Tests', () => {
   test('downloads SQL backup and verifies content', async ({ page }) => {
     await populateDb();
 
-    // Create a backup via API
-    await triggerBackup();
+    await triggerBackup(page);
 
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     await page.getByText('db1').click();
 
     // Select the first backup

@@ -5,7 +5,7 @@ import {
   readFileFromFolder,
   deleteFileFromFolder,
   triggerBackup,
-  getBackupsList,
+  getBackupsFromStorage,
   getBlobServiceClient,
   populateDb,
 } from '../utils';
@@ -16,7 +16,7 @@ const TEST_FOLDER_1 = '/tmp/test-uploads';
 const TEST_FOLDER_2 = '/tmp/test-documents';
 
 test.describe('Folder Backup Tests', () => {
-  test('creates ZIP backup with database dump and folder files', async () => {
+  test('creates ZIP backup with database dump and folder files', async ({ page }) => {
     await populateDb();
 
     await writeFileToFolder(TEST_FOLDER_1, 'avatar-1.jpg', 'fake-jpg-content-1');
@@ -26,9 +26,7 @@ test.describe('Folder Backup Tests', () => {
     await writeFileToFolder(TEST_FOLDER_2, 'report.docx', 'fake-docx-content');
     await writeFileToFolder(TEST_FOLDER_2, 'data.xlsx', 'fake-xlsx-content');
 
-    // Trigger backup via API
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     // Verify backup was created in blob storage
     const blobServiceClient = getBlobServiceClient();
@@ -55,12 +53,10 @@ test.describe('Folder Backup Tests', () => {
     await writeFileToFolder(TEST_FOLDER_2, 'report.docx', 'fake-docx-content');
     await writeFileToFolder(TEST_FOLDER_2, 'data.xlsx', 'fake-xlsx-content');
 
-    // Trigger backup via API
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     // Download the ZIP backup via UI
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     await page.getByText('db1').click();
 
     const firstBackupRow = page.locator('#backups tbody tr').first();
@@ -108,22 +104,15 @@ test.describe('Folder Backup Tests', () => {
     await writeFileToFolder(TEST_FOLDER_2, 'report.docx', 'fake-docx-content');
     await writeFileToFolder(TEST_FOLDER_2, 'data.xlsx', 'fake-xlsx-content');
 
-    // Trigger backup via API
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
-    // Get backups list via API
-    const backups = await getBackupsList('db1');
+    const backups = await getBackupsFromStorage('db1');
     expect(backups.length).toBe(1);
 
-    // Verify the backup has file information
-    const backup = backups[0];
-    expect(backup).toHaveProperty('fileCount');
-    expect(backup).toHaveProperty('filesTotalSize');
-    expect(backup.fileCount).toBe(6); // 4 from test-uploads + 2 from test-documents
+    expect(backups[0].blobCount).toBe(6); // 4 from test-uploads + 2 from test-documents
 
     // Verify UI shows file count on home screen
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     const db1Row = page.getByRole('row').filter({ hasText: 'db1' });
     await expect(db1Row.getByRole('cell').nth(4)).toHaveText('6'); // Files column
 
@@ -138,12 +127,10 @@ test.describe('Folder Backup Tests', () => {
     await writeFileToFolder(TEST_FOLDER_1, 'avatar-1.jpg', 'original-jpg-content');
     await writeFileToFolder(TEST_FOLDER_1, 'document-1.pdf', 'original-pdf-content');
 
-    // Create backup via API
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     // Verify UI shows file count before deletion
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     await page.getByText('db1').click();
     await expect(page.getByRole('heading', { name: 'Files' })).toHaveText('Files 2');
 
@@ -171,12 +158,10 @@ test.describe('Folder Backup Tests', () => {
     expect(restoredContent).toBe('original-jpg-content');
   });
 
-  test('creates ZIP backup for all databases', async () => {
+  test('creates ZIP backup for all databases', async ({ page }) => {
     await populateDb();
 
-    // Trigger backup via API (backup happens for all databases)
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     // Verify backup was created in blob storage for db2
     const blobServiceClient = getBlobServiceClient();
@@ -196,9 +181,7 @@ test.describe('Folder Backup Tests', () => {
   test('handles empty folders gracefully', async ({ page }) => {
     await populateDb();
 
-    // Trigger backup via API (folders are empty)
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     // Verify backup still created (just without folder files)
     const blobServiceClient = getBlobServiceClient();
@@ -213,7 +196,7 @@ test.describe('Folder Backup Tests', () => {
     expect(zipBackup).toBeDefined();
 
     // Verify UI shows 0 files on home screen
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     const db1Row = page.getByRole('row').filter({ hasText: 'db1' });
     await expect(db1Row.getByRole('cell').nth(4)).toHaveText('0'); // Files column
 
@@ -253,12 +236,10 @@ test.describe('Folder Backup Tests', () => {
     await writeFileToFolder(TEST_FOLDER_1, 'user2/profile/avatar.png', 'user2-avatar');
     await writeFileToFolder(TEST_FOLDER_1, 'shared/docs/report.pdf', 'shared-report');
 
-    // Trigger backup via API
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     // Download ZIP via UI
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     await page.getByText('db1').click();
 
     const firstBackupRow = page.locator('#backups tbody tr').first();

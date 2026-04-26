@@ -8,7 +8,7 @@ test.describe('Databases Tests', () => {
   test('shows number of databases', async ({ page }) => {
     await populateDb();
 
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     await expect(page.getByText('Databases')).toHaveText('Databases 2');
   });
 
@@ -40,7 +40,7 @@ test.describe('Databases Tests', () => {
       filesTotalSize: 524288,
     });
 
-    await page.goto('http://localhost:8280');
+    await page.goto('/');
     await expect(page.getByRole('row')).toHaveCount(3);
 
     const tableData = await extractTableData(page.locator(':text("Databases") + table'));

@@ -1,4 +1,4 @@
-import { Locator, Page } from '@playwright/test';
+import { expect, Locator, Page } from '@playwright/test';
 import { BlobServiceClient } from '@azure/storage-blob';
 import { Client } from 'pg';
 import fs from 'fs/promises';
@@ -7,7 +7,7 @@ import path from 'path';
 const connectionString =
   'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;' +
   'AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;' +
-  'BlobEndpoint=http://localhost:8081/devstoreaccount1;';
+  'BlobEndpoint=http://localhost:8163/devstoreaccount1;';
 
 const blobServiceClient =
   BlobServiceClient.fromConnectionString(connectionString);
@@ -126,8 +126,8 @@ async function executeDbQuery(port: number, query: string): Promise<void> {
 }
 
 export async function cleanupDb(): Promise<void> {
-  await executeDbQuery(8082, 'DROP SCHEMA IF EXISTS test1 CASCADE');
-  await executeDbQuery(8083, 'DROP SCHEMA IF EXISTS test2 CASCADE');
+  await executeDbQuery(8164, 'DROP SCHEMA IF EXISTS test1 CASCADE');
+  await executeDbQuery(8165, 'DROP SCHEMA IF EXISTS test2 CASCADE');
 }
 
 export async function populateDb(): Promise<void> {
@@ -184,8 +184,8 @@ export async function populateDb(): Promise<void> {
     INSERT INTO test2.secrets (secret) VALUES ('delta');
   `;
 
-  await executeDbQuery(8082, db1Query);
-  await executeDbQuery(8083, db2Query);
+  await executeDbQuery(8164, db1Query);
+  await executeDbQuery(8165, db2Query);
 }
 
 export async function getDb1Tables(): Promise<string[]> {
@@ -194,7 +194,7 @@ export async function getDb1Tables(): Promise<string[]> {
     host: 'localhost',
     user: 'postgres',
     password: 'postgres',
-    port: 8082,
+    port: 8164,
   });
 
   await client.connect();
@@ -212,7 +212,7 @@ export async function mockWindowOpen(page: Page): Promise<void> {
       if (url && url.startsWith('https://blobstorage:10000')) {
         url = url.replace(
           'https://blobstorage:10000',
-          'https://localhost:8081'
+          'https://localhost:8163'
         );
         window.location.href = url;
       }
@@ -370,32 +370,14 @@ export function getBlobServiceClient(): BlobServiceClient {
   return blobServiceClient;
 }
 
-export async function triggerBackup(): Promise<Response> {
-  const response = await fetch(`http://localhost:8280/api/smart-backup`, {
-    method: 'POST',
-  });
-  return response;
+export async function triggerBackup(page: Page): Promise<void> {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Smart backup' }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Smart backup completed' })
+  ).toBeVisible({ timeout: 60000 });
 }
 
-export async function getBackupsList(databaseName: string): Promise<any[]> {
-  const response = await fetch(
-    `http://localhost:8280/api/database/${databaseName}/backups`
-  );
-  return await response.json();
-}
-
-export async function restoreBackup(
-  databaseName: string,
-  backupKey: string
-): Promise<Response> {
-  const response = await fetch(
-    `http://localhost:8280/api/database/${databaseName}/restore/${backupKey}`,
-    {
-      method: 'POST',
-    }
-  );
-  return response;
-}
 
 // Folder backup helper functions
 export async function writeFileToFolder(
