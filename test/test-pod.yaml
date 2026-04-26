@@ -38,8 +38,11 @@ spec:
         - containerPort: 8163
           hostPort: 8163
       livenessProbe:
-        tcpSocket:
-          port: 8163
+        exec:
+          command:
+            - node
+            - -e
+            - "require('net').createConnection(8163,'127.0.0.1').on('connect',s=>{s.end();process.exit(0)}).on('error',()=>process.exit(1))"
         initialDelaySeconds: 2
         periodSeconds: 2
         failureThreshold: 30
