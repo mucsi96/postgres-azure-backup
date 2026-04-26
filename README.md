@@ -30,9 +30,50 @@ Simple PostgreSQL backup tool to Azure with UI
 - Java 21
 - Spring Boot 3
 - Angular
-- Microsoft Authentication Library (MSAL)
+- OpenID Connect (`angular-auth-oidc-client`)
 - Azure
-- PostgreSQL 16 client
+- PostgreSQL 17 client
+- Podman (rootless containers + Kubernetes-style pod manifests)
+
+## Local development
+
+Local end-to-end environment is orchestrated by Podman using a
+Kubernetes-style pod manifest at [`test/test-pod.yaml`](test/test-pod.yaml).
+The skeleton patterns (image naming, pod manifest layout, Traefik
+gateway, mock OIDC provider) follow
+[mucsi96/skeleton-app](https://github.com/mucsi96/skeleton-app).
+
+```bash
+# Build images and start the test pod
+scripts/pod_up.sh
+
+# Stop and clean up the test pod
+scripts/pod_down.sh
+```
+
+## Port Mapping
+
+All host-bound ports used by the project live in the **8160–8169** range
+(i.e. `xx60–xx69`). Internal container ports inside the pod also use
+this range so that the same numbers work both inside the pod and from
+the host.
+
+| Port  | Service              | Notes                                                    |
+| ----- | -------------------- | -------------------------------------------------------- |
+| 8160  | Traefik web entry    | Application entry point — UI + `/api` reverse-proxy      |
+| 8161  | Traefik dashboard    | Traefik admin/ping endpoint                              |
+| 8162  | Server actuator      | Spring Boot management port (`/actuator/health/...`)     |
+| 8163  | Azurite blob storage | Azure Blob Storage emulator                              |
+| 8164  | PostgreSQL `db1`     | First test database                                      |
+| 8165  | PostgreSQL `db2`     | Second test database                                     |
+| 8166  | Mock OAuth2          | `mucsi96/mock-oidc-provider` — issues JWTs in test mode  |
+| 8167  | Client (nginx)       | Internal-only port served by the client container        |
+| 8168  | Server (Spring Boot) | Internal-only port served by the server container        |
+| 8169  | Client nginx status  | Internal-only `stub_status` port                         |
+
+When running tests or accessing the application from a browser on the
+host, only **8160–8166** are exposed. Ports **8167–8169** are
+internal to the pod network and reached by Traefik on `127.0.0.1`.
 
 ## Required environment variables
 

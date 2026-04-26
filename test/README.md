@@ -6,7 +6,7 @@ This directory contains the TypeScript version of the Playwright tests for the P
 
 - Node.js 18+ installed
 - npm or yarn package manager
-- Docker and Docker Compose running (for the test environment)
+- Podman installed (for the test environment)
 
 ## Installation
 
@@ -61,11 +61,24 @@ npm run test:report
 ## Environment Setup
 
 The tests expect the following services to be running:
-- Application server on http://localhost:8280
-- PostgreSQL databases on ports 8082 and 8083
-- Azure Blob Storage emulator (Azurite) on port 8081
+- Application (Traefik web entry) on http://localhost:8160
+- Traefik dashboard on http://localhost:8161
+- Server actuator on http://localhost:8162
+- Azure Blob Storage emulator (Azurite) on http://localhost:8163
+- PostgreSQL databases on ports 8164 (db1) and 8165 (db2)
+- Mock OAuth2 provider on http://localhost:8166
 
-Make sure the Docker Compose environment is running before executing the tests.
+Start the Podman pod from the repository root before running the tests:
+
+```bash
+scripts/pod_up.sh
+```
+
+When you are done, tear it down with:
+
+```bash
+scripts/pod_down.sh
+```
 
 ## Configuration
 

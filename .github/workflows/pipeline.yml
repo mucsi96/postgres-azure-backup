@@ -51,7 +51,7 @@ jobs:
         with:
           context: server
           load: true
-          tags: postgres-azure-backup-test-stack-server:latest
+          tags: localhost/postgres-azure-backup-server:test
           cache-from: type=gha,scope=server
           cache-to: type=gha,mode=max,scope=server
       - name: Build client image
@@ -59,13 +59,17 @@ jobs:
         with:
           context: client
           load: true
-          tags: postgres-azure-backup-test-stack-client:latest
+          tags: localhost/postgres-azure-backup-client:test
           cache-from: type=gha,scope=client
           cache-to: type=gha,mode=max,scope=client
-      - name: Setup test environment and start Docker Compose
+      - name: Load images into Podman
+        run: |
+          docker save localhost/postgres-azure-backup-server:test | podman load
+          docker save localhost/postgres-azure-backup-client:test | podman load
+      - name: Setup test environment and start pod
         env:
           SKIP_BUILD: "1"
-        run: scripts/compose_up.sh
+        run: scripts/pod_up.sh
       - name: Run Playwright tests
         working-directory: test
         run: npx playwright test
@@ -75,8 +79,14 @@ jobs:
         with:
           name: test-results
           path: test/test-results
-      - run: docker compose logs
+      - name: Collect pod logs
         if: always()
+        run: |
+          for container in $(podman pod inspect postgres-azure-backup-test --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null); do
+            echo "$container" | grep -q "infra" && continue
+            echo "=== $container ==="
+            podman logs "$container" 2>&1 || true
+          done
 
   publish-server:
     runs-on: ubuntu-latest

@@ -1,0 +1,182 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: postgres-azure-backup-test
+spec:
+  containers:
+    - name: traefik
+      image: docker.io/library/traefik:v3.6
+      ports:
+        - containerPort: 8160
+          hostPort: 8160
+        - containerPort: 8161
+          hostPort: 8161
+      volumeMounts:
+        - name: traefik-config
+          mountPath: /etc/traefik/traefik.yaml
+          readOnly: true
+        - name: traefik-routes
+          mountPath: /etc/traefik/routes.yaml
+          readOnly: true
+      livenessProbe:
+        exec:
+          command: ["traefik", "healthcheck", "--ping"]
+        initialDelaySeconds: 2
+        periodSeconds: 2
+        failureThreshold: 5
+
+    - name: blobstorage
+      image: mcr.microsoft.com/azure-storage/azurite:latest
+      args:
+        - azurite-blob
+        - --blobHost
+        - 0.0.0.0
+        - --blobPort
+        - "8163"
+        - --skipApiVersionCheck
+      ports:
+        - containerPort: 8163
+          hostPort: 8163
+      livenessProbe:
+        tcpSocket:
+          port: 8163
+        initialDelaySeconds: 2
+        periodSeconds: 2
+        failureThreshold: 30
+
+    - name: db1
+      image: docker.io/library/postgres:17.5-bullseye
+      ports:
+        - containerPort: 8164
+          hostPort: 8164
+      env:
+        - name: POSTGRES_DB
+          value: test
+        - name: POSTGRES_PASSWORD
+          value: postgres
+        - name: POSTGRES_USER
+          value: postgres
+        - name: PGPORT
+          value: "8164"
+      livenessProbe:
+        exec:
+          command: ["pg_isready", "-U", "postgres", "-p", "8164"]
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        failureThreshold: 10
+
+    - name: db2
+      image: docker.io/library/postgres:17.5-bullseye
+      ports:
+        - containerPort: 8165
+          hostPort: 8165
+      env:
+        - name: POSTGRES_DB
+          value: test
+        - name: POSTGRES_PASSWORD
+          value: postgres
+        - name: POSTGRES_USER
+          value: postgres
+        - name: PGPORT
+          value: "8165"
+      livenessProbe:
+        exec:
+          command: ["pg_isready", "-U", "postgres", "-p", "8165"]
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        failureThreshold: 10
+
+    - name: mock-oauth2
+      image: docker.io/mucsi96/mock-oidc-provider:latest
+      ports:
+        - containerPort: 8166
+          hostPort: 8166
+      env:
+        - name: PORT
+          value: "8166"
+        - name: ISSUER_ID
+          value: default
+        - name: SUB
+          value: test-user
+        - name: NAME
+          value: Test User
+        - name: PREFERRED_USERNAME
+          value: test-user@example.com
+        - name: ROLES
+          value: DatabaseBackupsReader,DatabaseBackupCreator,DatabaseBackupDownloader,DatabaseBackupRestorer
+        - name: SCP
+          value: readBackups createBackup cleanupBackups restoreBackup downloadBackup
+        - name: AUD
+          value: mock-api-client-id
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 8166
+        initialDelaySeconds: 2
+        periodSeconds: 2
+        failureThreshold: 5
+
+    - name: server
+      image: localhost/postgres-azure-backup-server:test
+      env:
+        - name: SERVER_PORT
+          value: "8168"
+        - name: SPRING_ACTUATOR_PORT
+          value: "8162"
+        - name: SPRING_PROFILES_ACTIVE
+          value: test
+        - name: BLOBSTORAGE_CONNECTION_STRING
+          value: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:8163/devstoreaccount1;"
+        - name: STORAGE_ACCOUNT_CONTAINER_NAME
+          value: backups
+        - name: DATABASES_CONFIG_PATH
+          value: /app/databases_config.json
+        - name: MOCK_OAUTH2_SERVER_URI
+          value: http://localhost:8166
+      volumeMounts:
+        - name: databases-config
+          mountPath: /app/databases_config.json
+          readOnly: true
+        - name: test-uploads
+          mountPath: /tmp/test-uploads
+        - name: test-documents
+          mountPath: /tmp/test-documents
+      livenessProbe:
+        httpGet:
+          path: /actuator/health/readiness
+          port: 8162
+        initialDelaySeconds: 16
+        periodSeconds: 2
+        failureThreshold: 30
+
+    - name: client
+      image: localhost/postgres-azure-backup-client:test
+      livenessProbe:
+        httpGet:
+          path: /
+          port: 8167
+        initialDelaySeconds: 5
+        periodSeconds: 2
+        failureThreshold: 10
+
+  volumes:
+    - name: traefik-config
+      hostPath:
+        path: test/traefik.yaml
+        type: File
+    - name: traefik-routes
+      hostPath:
+        path: test/traefik-routes.yaml
+        type: File
+    - name: databases-config
+      hostPath:
+        path: test/databases_config.json
+        type: File
+    - name: test-uploads
+      hostPath:
+        path: /tmp/test-uploads
+        type: DirectoryOrCreate
+    - name: test-documents
+      hostPath:
+        path: /tmp/test-documents
+        type: DirectoryOrCreate

@@ -1,15 +1,15 @@
 api:
   dashboard: true
-  insecure: true
 
 entryPoints:
   web:
-    address: ":80"
+    address: ":8160"
+  traefik:
+    address: ":8161"
 
 providers:
-  docker:
-    exposedByDefault: false
-    network: learn-language-test-stack_default
+  file:
+    filename: /etc/traefik/routes.yaml
 
 ping: {}
 

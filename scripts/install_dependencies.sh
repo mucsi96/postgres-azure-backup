@@ -40,6 +40,18 @@ if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ]; then
             echo "jq is already installed."
         fi
 
+        # Check and install podman
+        if ! command -v podman >/dev/null 2>&1; then
+            echo "Installing Podman..."
+            sudo apt-get install -y podman
+        else
+            echo "Podman is already installed."
+        fi
+
+        # Enable lingering and Podman socket for rootless Podman
+        loginctl enable-linger "$(whoami)" 2>/dev/null || true
+        systemctl --user enable --now podman.socket 2>/dev/null || true
+
         # Check and install SDKMAN
         if [ ! -d "$HOME/.sdkman" ]; then
             echo "Installing SDKMAN..."
