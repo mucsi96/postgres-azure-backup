@@ -39,12 +39,9 @@ spec:
           hostPort: 8163
       livenessProbe:
         exec:
-          command:
-            - node
-            - -e
-            - "require('net').createConnection(8163,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"
-        initialDelaySeconds: 2
-        periodSeconds: 2
+          command: ["nc", "127.0.0.1", "8163", "-z"]
+        initialDelaySeconds: 1
+        periodSeconds: 1
         failureThreshold: 30
 
     - name: db1
