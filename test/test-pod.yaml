@@ -42,7 +42,7 @@ spec:
           command:
             - node
             - -e
-            - "require('net').createConnection(8163,'127.0.0.1').on('connect',s=>{s.end();process.exit(0)}).on('error',()=>process.exit(1))"
+            - "require('net').createConnection(8163,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"
         initialDelaySeconds: 2
         periodSeconds: 2
         failureThreshold: 30
