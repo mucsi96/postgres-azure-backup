@@ -47,8 +47,7 @@ test.describe('Backups Tests', () => {
   test('shows last backup time', async ({ page }) => {
     await populateDb();
 
-    // Create a backup via API
-    await triggerBackup();
+    await triggerBackup(page);
 
     await page.goto('/');
     await page.getByText('db1').click();
@@ -137,8 +136,7 @@ test.describe('Backups Tests', () => {
     await writeFileToFolder(TEST_FOLDER_1, 'image-5.jpg', 'fake-jpg-content-5');
     await writeFileToFolder(TEST_FOLDER_2, 'report.docx', 'fake-docx-content');
 
-    // Create a backup via API
-    await triggerBackup();
+    await triggerBackup(page);
 
     await page.goto('/');
     await page.getByText('db1').click();
@@ -197,8 +195,7 @@ test.describe('Backups Tests', () => {
   test('downloads pgdump backup', async ({ page }) => {
     await populateDb();
 
-    // Create a backup via API
-    await triggerBackup();
+    await triggerBackup(page);
 
     await page.goto('/');
     await page.getByText('db1').click();
@@ -219,8 +216,7 @@ test.describe('Backups Tests', () => {
   test('downloads SQL backup and verifies content', async ({ page }) => {
     await populateDb();
 
-    // Create a backup via API
-    await triggerBackup();
+    await triggerBackup(page);
 
     await page.goto('/');
     await page.getByText('db1').click();

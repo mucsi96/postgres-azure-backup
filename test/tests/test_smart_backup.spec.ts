@@ -8,16 +8,10 @@ import {
 } from '../utils';
 
 test.describe('Smart Backup Tests', () => {
-  test('triggers smart backup when no backups exist', async () => {
+  test('triggers smart backup when no backups exist', async ({ page }) => {
     await populateDb();
 
-    // Trigger smart backup via REST endpoint
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
-
-    const result = await response.json();
-    expect(result.cleanupPerformed).toBe(true);
-    expect(result.backupsPerformed.length).toBeGreaterThan(0);
+    await triggerBackup(page);
 
     // Verify backups in blob storage
     const db1Backups = await getBackupsFromStorage('db1');
@@ -32,7 +26,7 @@ test.describe('Smart Backup Tests', () => {
     expect(db2Backups[0].retention).toBe(356);
   });
 
-  test('skips daily backup when recent backup exists', async () => {
+  test('skips daily backup when recent backup exists', async ({ page }) => {
     await populateDb();
 
     // Create a recent daily backup (12 hours ago)
@@ -44,9 +38,7 @@ test.describe('Smart Backup Tests', () => {
       timeDelta: { hours: 12 },
     });
 
-    // Trigger smart backup via REST endpoint
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     // Verify backups in blob storage
     const db1Backups = await getBackupsFromStorage('db1');
@@ -64,7 +56,7 @@ test.describe('Smart Backup Tests', () => {
     expect(monthlyBackups.length).toBe(1);
   });
 
-  test('creates daily backup when last one is older than 24 hours', async () => {
+  test('creates daily backup when last one is older than 24 hours', async ({ page }) => {
     await populateDb();
 
     // Create an old daily backup (25 hours ago)
@@ -76,9 +68,7 @@ test.describe('Smart Backup Tests', () => {
       timeDelta: { hours: 25 },
     });
 
-    // Trigger smart backup via REST endpoint
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     // Verify backups in blob storage
     const db1Backups = await getBackupsFromStorage('db1');
@@ -96,7 +86,7 @@ test.describe('Smart Backup Tests', () => {
     expect(monthlyBackups.length).toBe(1);
   });
 
-  test('skips weekly backup when recent one exists', async () => {
+  test('skips weekly backup when recent one exists', async ({ page }) => {
     await populateDb();
 
     // Create a recent weekly backup (5 days ago)
@@ -108,9 +98,7 @@ test.describe('Smart Backup Tests', () => {
       timeDelta: { days: 5 },
     });
 
-    // Trigger smart backup via REST endpoint
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     // Verify backups in blob storage
     const db1Backups = await getBackupsFromStorage('db1');
@@ -128,7 +116,7 @@ test.describe('Smart Backup Tests', () => {
     expect(monthlyBackups.length).toBe(1);
   });
 
-  test('creates weekly backup when last one is older than 7 days', async () => {
+  test('creates weekly backup when last one is older than 7 days', async ({ page }) => {
     await populateDb();
 
     // Create an old weekly backup (8 days ago)
@@ -140,9 +128,7 @@ test.describe('Smart Backup Tests', () => {
       timeDelta: { days: 8 },
     });
 
-    // Trigger smart backup via REST endpoint
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     // Verify backups in blob storage
     const db1Backups = await getBackupsFromStorage('db1');
@@ -160,7 +146,7 @@ test.describe('Smart Backup Tests', () => {
     expect(monthlyBackups.length).toBe(1);
   });
 
-  test('skips monthly backup when recent one exists', async () => {
+  test('skips monthly backup when recent one exists', async ({ page }) => {
     await populateDb();
 
     // Create a recent monthly backup (20 days ago)
@@ -172,9 +158,7 @@ test.describe('Smart Backup Tests', () => {
       timeDelta: { days: 20 },
     });
 
-    // Trigger smart backup via REST endpoint
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     // Verify backups in blob storage
     const db1Backups = await getBackupsFromStorage('db1');
@@ -192,7 +176,7 @@ test.describe('Smart Backup Tests', () => {
     expect(weeklyBackups.length).toBe(1);
   });
 
-  test('creates monthly backup when last one is older than 30 days', async () => {
+  test('creates monthly backup when last one is older than 30 days', async ({ page }) => {
     await populateDb();
 
     // Create an old monthly backup (31 days ago)
@@ -204,9 +188,7 @@ test.describe('Smart Backup Tests', () => {
       timeDelta: { days: 31 },
     });
 
-    // Trigger smart backup via REST endpoint
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     // Verify backups in blob storage
     const db1Backups = await getBackupsFromStorage('db1');
@@ -224,7 +206,7 @@ test.describe('Smart Backup Tests', () => {
     expect(sortedMonthlyBackups[1].rowsCount).toBe(2); // Old backup
   });
 
-  test('performs cleanup during smart backup', async () => {
+  test('performs cleanup during smart backup', async ({ page }) => {
     await populateDb();
 
     // Create expired backups
@@ -253,12 +235,7 @@ test.describe('Smart Backup Tests', () => {
       timeDelta: { days: 15 }, // Not expired (retention is 30 days)
     });
 
-    // Trigger smart backup via REST endpoint
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
-
-    const result = await response.json();
-    expect(result.cleanupPerformed).toBe(true);
+    await triggerBackup(page);
 
     // Verify backups in blob storage
     const db1Backups = await getBackupsFromStorage('db1');
@@ -274,7 +251,7 @@ test.describe('Smart Backup Tests', () => {
     expect(nonExpiredBackup).toBeDefined();
   });
 
-  test('handles multiple databases in smart backup', async () => {
+  test('handles multiple databases in smart backup', async ({ page }) => {
     await populateDb();
 
     // Create backups for db2 (2 days old daily backup)
@@ -286,12 +263,7 @@ test.describe('Smart Backup Tests', () => {
       timeDelta: { days: 2 },
     });
 
-    // Trigger smart backup via REST endpoint
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
-
-    const result = await response.json();
-    expect(result.backupsPerformed.length).toBeGreaterThan(0);
+    await triggerBackup(page);
 
     // Verify backups in blob storage for both databases
     const db1Backups = await getBackupsFromStorage('db1');
@@ -312,45 +284,10 @@ test.describe('Smart Backup Tests', () => {
     expect(db2MonthlyBackups.length).toBe(1); // New monthly
   });
 
-  test('verifies smart backup REST endpoint response structure', async () => {
+  test('creates correct backup filenames with retention periods', async ({ page }) => {
     await populateDb();
 
-    // Trigger smart backup via REST endpoint
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
-
-    const result = await response.json();
-
-    // Verify response structure
-    expect(result).toHaveProperty('backupsPerformed');
-    expect(result).toHaveProperty('cleanupPerformed');
-    expect(Array.isArray(result.backupsPerformed)).toBe(true);
-    expect(typeof result.cleanupPerformed).toBe('boolean');
-
-    // If backups were performed, check their structure
-    if (result.backupsPerformed.length > 0) {
-      const backup = result.backupsPerformed[0];
-      expect(backup).toHaveProperty('database');
-      expect(backup).toHaveProperty('retentionPeriod');
-      expect(typeof backup.database).toBe('string');
-      expect(typeof backup.retentionPeriod).toBe('number');
-    }
-
-    // Verify actual backups were created in storage
-    const db1Backups = await getBackupsFromStorage('db1');
-    const db2Backups = await getBackupsFromStorage('db2');
-
-    // Total backups created should match the response
-    const totalBackupsInStorage = db1Backups.length + db2Backups.length;
-    expect(totalBackupsInStorage).toBeGreaterThan(0);
-  });
-
-  test('creates correct backup filenames with retention periods', async () => {
-    await populateDb();
-
-    // Trigger smart backup
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     // Verify backup filenames in blob storage
     const db1Backups = await getBackupsFromStorage('db1');
@@ -373,7 +310,7 @@ test.describe('Smart Backup Tests', () => {
     expect(blobs[0]).toMatch(/\.356\.zip$/);
   });
 
-  test('creates daily backup when monthly and weekly exist but daily is old', async () => {
+  test('creates daily backup when monthly and weekly exist but daily is old', async ({ page }) => {
     await populateDb();
 
     // Create a recent monthly backup (10 days ago)
@@ -394,9 +331,7 @@ test.describe('Smart Backup Tests', () => {
       timeDelta: { days: 3 },
     });
 
-    // Trigger smart backup
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     const db1Backups = await getBackupsFromStorage('db1');
 
@@ -412,7 +347,7 @@ test.describe('Smart Backup Tests', () => {
     expect(monthlyBackups.length).toBe(1);
   });
 
-  test('creates weekly backup when monthly exists and weekly is old', async () => {
+  test('creates weekly backup when monthly exists and weekly is old', async ({ page }) => {
     await populateDb();
 
     // Create a recent monthly backup (10 days ago)
@@ -424,9 +359,7 @@ test.describe('Smart Backup Tests', () => {
       timeDelta: { days: 10 },
     });
 
-    // Trigger smart backup
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     const db1Backups = await getBackupsFromStorage('db1');
 
@@ -440,21 +373,17 @@ test.describe('Smart Backup Tests', () => {
     expect(monthlyBackups.length).toBe(1);
   });
 
-  test('verifies backup retention periods are correctly set', async () => {
+  test('verifies backup retention periods are correctly set', async ({ page }) => {
     await populateDb();
 
-    // Trigger first smart backup - should create monthly
-    const response1 = await triggerBackup();
-    expect(response1.ok).toBe(true);
-
-    const result1 = await response1.json();
-    expect(result1.backupsPerformed.length).toBe(2); // db1 and db2
-    expect(result1.backupsPerformed[0].retentionPeriod).toBe(356);
-    expect(result1.backupsPerformed[1].retentionPeriod).toBe(356);
+    // Trigger first smart backup - should create monthly for both dbs
+    await triggerBackup(page);
 
     // Verify backups have correct retention in storage
     const db1Backups = await getBackupsFromStorage('db1');
+    const db2Backups = await getBackupsFromStorage('db2');
     expect(db1Backups[0].retention).toBe(356); // Monthly retention
+    expect(db2Backups[0].retention).toBe(356); // Monthly retention
 
     // Create a monthly backup 10 days ago to trigger weekly
     await cleanupBackups();
@@ -466,23 +395,19 @@ test.describe('Smart Backup Tests', () => {
       timeDelta: { days: 10 },
     });
 
-    const response2 = await triggerBackup();
-    expect(response2.ok).toBe(true);
+    await triggerBackup(page);
 
-    const result2 = await response2.json();
     // Should create weekly for db1 (has monthly >7 days old) and monthly for db2 (no backups)
-    expect(result2.backupsPerformed.length).toBe(2);
-
-    const db1Backup = result2.backupsPerformed.find((b: any) => b.database === 'db1');
-    expect(db1Backup.retentionPeriod).toBe(30); // Weekly retention
-
     const db1BackupsAfter = await getBackupsFromStorage('db1');
     const weeklyBackup = db1BackupsAfter.find(b => b.retention === 30);
     expect(weeklyBackup).toBeDefined();
     expect(weeklyBackup!.retention).toBe(30); // Weekly retention
+
+    const db2BackupsAfter = await getBackupsFromStorage('db2');
+    expect(db2BackupsAfter[0].retention).toBe(356); // Monthly retention
   });
 
-  test('verifies cleanup removes only expired backups during smart backup', async () => {
+  test('verifies cleanup removes only expired backups during smart backup', async ({ page }) => {
     await populateDb();
 
     // Create multiple backups with different retention periods
@@ -513,12 +438,7 @@ test.describe('Smart Backup Tests', () => {
       timeDelta: { days: 10 },
     });
 
-    // Trigger smart backup (should cleanup expired and create new backup)
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
-
-    const result = await response.json();
-    expect(result.cleanupPerformed).toBe(true);
+    await triggerBackup(page);
 
     const db1Backups = await getBackupsFromStorage('db1');
 

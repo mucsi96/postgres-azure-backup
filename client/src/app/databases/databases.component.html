@@ -1,6 +1,9 @@
 @if (databases.isLoading()) {
 <div role="progressbar" bt></div>
 } @else {
+<button bt [disabled]="processing()" (click)="smartBackup()">
+  Smart backup
+</button>
 <h2 bt>
   Databases <span bt-badge>{{ databases.value()?.length }}</span>
 </h2>

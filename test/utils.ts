@@ -1,4 +1,4 @@
-import { Locator, Page } from '@playwright/test';
+import { expect, Locator, Page } from '@playwright/test';
 import { BlobServiceClient } from '@azure/storage-blob';
 import { Client } from 'pg';
 import fs from 'fs/promises';
@@ -370,32 +370,14 @@ export function getBlobServiceClient(): BlobServiceClient {
   return blobServiceClient;
 }
 
-export async function triggerBackup(): Promise<Response> {
-  const response = await fetch(`http://localhost:8160/api/smart-backup`, {
-    method: 'POST',
-  });
-  return response;
+export async function triggerBackup(page: Page): Promise<void> {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Smart backup' }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Smart backup completed' })
+  ).toBeVisible({ timeout: 60000 });
 }
 
-export async function getBackupsList(databaseName: string): Promise<any[]> {
-  const response = await fetch(
-    `http://localhost:8160/api/database/${databaseName}/backups`
-  );
-  return await response.json();
-}
-
-export async function restoreBackup(
-  databaseName: string,
-  backupKey: string
-): Promise<Response> {
-  const response = await fetch(
-    `http://localhost:8160/api/database/${databaseName}/restore/${backupKey}`,
-    {
-      method: 'POST',
-    }
-  );
-  return response;
-}
 
 // Folder backup helper functions
 export async function writeFileToFolder(
