@@ -1,7 +1,7 @@
 import {
   provideHttpClient,
   withFetch,
-  withInterceptorsFromDi,
+  withInterceptors,
 } from '@angular/common/http';
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import {
@@ -11,7 +11,8 @@ import {
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
-import { provideMsalConfig } from './msal.config';
+import { authInterceptor } from 'angular-auth-oidc-client';
+import { provideOidcAuth } from './auth.config';
 import { EnvironmentConfig, ENVIRONMENT_CONFIG } from './environment/environment.config';
 
 const globalRippleConfig: RippleGlobalOptions = {
@@ -25,9 +26,9 @@ export function getAppConfig(environment: EnvironmentConfig): ApplicationConfig 
       provideRouter(routes),
       { provide: MAT_RIPPLE_GLOBAL_OPTIONS, useValue: globalRippleConfig },
       provideAnimationsAsync(),
-      provideHttpClient(withInterceptorsFromDi(), withFetch()),
+      provideHttpClient(withFetch(), withInterceptors([authInterceptor()])),
       { provide: ENVIRONMENT_CONFIG, useValue: environment },
-      ...(environment.mockAuth ? [] : provideMsalConfig()),
+      provideOidcAuth(environment),
     ],
   };
 }

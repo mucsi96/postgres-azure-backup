@@ -4,9 +4,16 @@ spring:
     azure:
       keyvault:
         secret:
-          property-sources: []
-      active-directory:
-        enabled: false
+          property-sources:
+            - enabled: false
       storage:
         blob:
           connection-string: ${BLOBSTORAGE_CONNECTION_STRING}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8166/default
+          audiences: mock-api-client-id
+
+mock-oauth2-server-uri: ${MOCK_OAUTH2_SERVER_URI:}

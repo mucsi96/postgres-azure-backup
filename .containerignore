@@ -1,0 +1,8 @@
+.env
+postgres-data
+server/storage
+server/target
+test/
+.vscode/
+.venv/
+vars/

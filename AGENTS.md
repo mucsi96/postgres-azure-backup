@@ -238,7 +238,7 @@ Backup file representation:
 ### Frontend
 - **Angular 20** - Framework (standalone components)
 - **Angular Material** - UI components
-- **MSAL Angular** - Microsoft authentication
+- **angular-auth-oidc-client** - OpenID Connect authentication
 - **RxJS** - Reactive programming
 - **TypeScript** - Language
 
@@ -307,7 +307,7 @@ JSON file with database configurations:
 ### Authentication & Authorization
 - **Framework**: Spring Security + Azure AD (Entra ID)
 - **Token**: JWT from Entra ID
-- **Frontend**: MSAL (Microsoft Authentication Library)
+- **Frontend**: `angular-auth-oidc-client` (OIDC PKCE flow)
 
 ### Roles (RBAC)
 - `APPROLE_DatabaseBackupsReader` - Read backups
@@ -425,27 +425,70 @@ postgres-azure-backup/
 │
 ├── test/                            # Playwright E2E
 │   ├── tests/
+│   ├── test-pod.yaml                # Podman/Kubernetes pod manifest
+│   ├── traefik.yaml
+│   ├── traefik-routes.yaml
 │   └── databases_config.json
 │
-├── docker-compose.yaml
-├── Dockerfile
+├── scripts/
+│   ├── pod_up.sh                    # Build images + start the test pod
+│   ├── pod_down.sh                  # Stop and clean up the test pod
+│   ├── install_dependencies.sh
+│   └── deploy.sh
+│
+├── .containerignore
 └── README.md
 ```
 
+## Skeleton alignment
+
+This project follows the conventions established in
+[mucsi96/skeleton-app](https://github.com/mucsi96/skeleton-app). The
+shared patterns include:
+
+- **Podman + pod manifests** instead of Docker Compose. The local /
+  CI test stack is a single Kubernetes-style pod (`test/test-pod.yaml`)
+  brought up with `podman kube play`.
+- **Image naming**: `localhost/postgres-azure-backup-server:test` and
+  `localhost/postgres-azure-backup-client:test` for local builds.
+- **Traefik** as the single entry point that fronts the client and
+  reverse-proxies `/api` to the server.
+- **Mock OIDC provider** (`mucsi96/mock-oidc-provider`) for local /
+  test authentication; production uses real Microsoft Entra ID.
+- **OIDC client** (`angular-auth-oidc-client`) on the frontend (no
+  MSAL).
+- **Port range `xx60–xx69`** for every port the project allocates
+  (see "Port Mapping" below).
+
 ## Deployment
 
-### Local Development
+### Local Development (Podman)
+
+The application is run locally via Podman using the pod manifest in
+`test/test-pod.yaml`:
+
 ```bash
-docker-compose up
-# App + 2x PostgreSQL + Azurite
-# http://localhost:8280
+# Build images and start the pod (rootless Podman)
+scripts/pod_up.sh
+
+# Tear it down
+scripts/pod_down.sh
 ```
 
-### Docker Build
+Open http://localhost:8160 once the pod is healthy.
+
+`scripts/pod_up.sh` builds the `server` and `client` images with
+`podman build`, then starts the pod with `podman kube play`. Set
+`SKIP_BUILD=1` to reuse already-loaded images (used in CI after
+images are loaded with `podman load`).
+
+### Container Build
 ```bash
-docker build -t postgres-azure-backup .
-# Multi-stage: Maven → Node → Alpine
-# Includes pg_dump, pg_restore, curl
+podman build -t localhost/postgres-azure-backup-server:test server
+podman build -t localhost/postgres-azure-backup-client:test client
+# Server multi-stage: Maven → Liberica JRE Alpine
+# Client multi-stage: Node → nginx
+# Server image includes pg_dump, pg_restore, curl
 ```
 
 ### Kubernetes (Helm)
@@ -455,6 +498,27 @@ helm install mucsi96/spring-app \
   --set env.STORAGE_ACCOUNT_BLOB_URL=https://... \
   --set configFile[0].data=$(base64 < config.json)
 ```
+
+## Port Mapping
+
+All host-bound and internal ports the project allocates live in the
+**8160–8169** (`xx60–xx69`) range. Stock images are reconfigured
+(`PGPORT`, `--blobPort`, Spring `server.port`, nginx `listen`,
+Traefik entrypoints) to use these ports so that addresses are the
+same inside the pod network and on the host.
+
+| Port  | Service              | Bound to host? | Notes                                                |
+| ----- | -------------------- | -------------- | ---------------------------------------------------- |
+| 8160  | Traefik web entry    | yes            | Application entry point — UI + `/api` proxy         |
+| 8161  | Traefik dashboard    | yes            | Traefik admin / ping endpoint                       |
+| 8162  | Server actuator      | yes            | Spring Boot `management.server.port`                |
+| 8163  | Azurite blob storage | yes            | Azure Blob Storage emulator (`--blobPort 8163`)     |
+| 8164  | PostgreSQL `db1`     | yes            | First test database (`PGPORT=8164`)                 |
+| 8165  | PostgreSQL `db2`     | yes            | Second test database (`PGPORT=8165`)                |
+| 8166  | Mock OAuth2          | yes            | `mucsi96/mock-oidc-provider` (JWKS / OIDC)          |
+| 8167  | Client (nginx)       | no             | Reached by Traefik on `127.0.0.1:8167`              |
+| 8168  | Server (Spring Boot) | no             | Reached by Traefik on `127.0.0.1:8168`              |
+| 8169  | Client nginx status  | no             | nginx `stub_status` for diagnostics                 |
 
 ## Testing
 
@@ -467,8 +531,9 @@ helm install mucsi96/spring-app \
 - Database switching
 
 ### Test Setup
-- Docker Compose PostgreSQL instances
+- Podman pod with two PostgreSQL containers (db1, db2)
 - Azurite for blob storage
-- Test profile (no auth)
-- Direct DB queries via `pg`
+- Mock OIDC provider for authentication
+- Test profile (Spring `test` profile)
+- Direct DB queries via `pg` (Node.js client)
 - ZIP testing via `adm-zip`

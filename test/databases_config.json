@@ -1,8 +1,8 @@
 [
   {
     "name": "db1",
-    "host": "db1",
-    "port": 5432,
+    "host": "localhost",
+    "port": 8164,
     "database": "test",
     "schema": "test1",
     "username": "postgres",
@@ -20,8 +20,8 @@
   },
   {
     "name": "db2",
-    "host": "db2",
-    "port": 5432,
+    "host": "localhost",
+    "port": 8165,
     "database": "test",
     "schema": "test2",
     "username": "postgres",

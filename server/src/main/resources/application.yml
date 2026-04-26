@@ -10,14 +10,16 @@ spring:
             - endpoint: https://p06-backup.vault.azure.net/
               enabled: true
 
-      active-directory:
-        enabled: true
-        credential:
-          client-id: ${api-client-id}
-
       storage:
         blob:
           container-name: ${storage-account-container-name}
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://login.microsoftonline.com/${tenant-id:}/v2.0
+          audiences: ${api-client-id:}
 
 management:
   server:

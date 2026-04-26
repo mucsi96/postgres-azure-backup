@@ -6,13 +6,12 @@ on:
       - main
   pull_request:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   test-client:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-test-client-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -28,6 +27,9 @@ jobs:
         run: npm test
   test-e2e:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-test-e2e-${{ github.ref }}
+      cancel-in-progress: true
     needs: test-client
     steps:
       - uses: actions/checkout@v6
@@ -42,8 +44,32 @@ jobs:
       - name: Install Playwright browsers
         working-directory: test
         run: npx playwright install chromium --with-deps
-      - name: Setup test environment and start Docker Compose
-        run: scripts/compose_up.sh
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build server image
+        uses: docker/build-push-action@v6
+        with:
+          context: server
+          load: true
+          tags: localhost/postgres-azure-backup-server:test
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,mode=max,scope=server
+      - name: Build client image
+        uses: docker/build-push-action@v6
+        with:
+          context: client
+          load: true
+          tags: localhost/postgres-azure-backup-client:test
+          cache-from: type=gha,scope=client
+          cache-to: type=gha,mode=max,scope=client
+      - name: Load images into Podman
+        run: |
+          docker save localhost/postgres-azure-backup-server:test | podman load
+          docker save localhost/postgres-azure-backup-client:test | podman load
+      - name: Setup test environment and start pod
+        env:
+          SKIP_BUILD: "1"
+        run: scripts/pod_up.sh
       - name: Run Playwright tests
         working-directory: test
         run: npx playwright test
@@ -53,11 +79,20 @@ jobs:
         with:
           name: test-results
           path: test/test-results
-      - run: docker compose logs
+      - name: Collect pod logs
         if: always()
+        run: |
+          for container in $(podman pod inspect postgres-azure-backup-test --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null); do
+            echo "$container" | grep -q "infra" && continue
+            echo "=== $container ==="
+            podman logs "$container" 2>&1 || true
+          done
 
   publish-server:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-publish-server-${{ github.ref }}
+      cancel-in-progress: true
     needs: test-e2e
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
@@ -76,6 +111,10 @@ jobs:
           prefix: 'server'
           src: server
 
+      - name: Set up Docker Buildx
+        if: steps.get_next_version.outputs.hasNextVersion == 'true'
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to Docker Hub
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
         uses: docker/login-action@v4
@@ -85,19 +124,26 @@ jobs:
 
       - name: Build and push server image
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
-        run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/postgres-azure-backup-server:${{ steps.get_next_version.outputs.version }} server
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/postgres-azure-backup-server:${{ steps.get_next_version.outputs.version }}
+        uses: docker/build-push-action@v6
+        with:
+          context: server
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/postgres-azure-backup-server:${{ steps.get_next_version.outputs.version }}
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,mode=max,scope=server
 
       - name: Create release
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: server-${{ steps.get_next_version.outputs.version }}
+          tag_name: ${{ steps.get_next_version.outputs.tag }}
           generate_release_notes: true
 
   publish-client:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-publish-client-${{ github.ref }}
+      cancel-in-progress: true
     needs: test-e2e
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
@@ -114,6 +160,10 @@ jobs:
           prefix: 'client'
           src: client
 
+      - name: Set up Docker Buildx
+        if: steps.get_next_version.outputs.hasNextVersion == 'true'
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to Docker Hub
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
         uses: docker/login-action@v4
@@ -123,19 +173,26 @@ jobs:
 
       - name: Build and push client image
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
-        run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/postgres-azure-backup-client:${{ steps.get_next_version.outputs.version }} client
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/postgres-azure-backup-client:${{ steps.get_next_version.outputs.version }}
+        uses: docker/build-push-action@v6
+        with:
+          context: client
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/postgres-azure-backup-client:${{ steps.get_next_version.outputs.version }}
+          cache-from: type=gha,scope=client
+          cache-to: type=gha,mode=max,scope=client
 
       - name: Create release
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: client-${{ steps.get_next_version.outputs.version }}
+          tag_name: ${{ steps.get_next_version.outputs.tag }}
           generate_release_notes: true
 
   deploy:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-deploy
+      cancel-in-progress: false
     needs: [publish-server, publish-client]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:

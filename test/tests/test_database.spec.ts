@@ -77,9 +77,7 @@ test.describe('Database Tests', () => {
   test('restores backup', async ({ page }) => {
     await populateDb();
 
-    // Create backup via API
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     await cleanupDb();
 
@@ -115,9 +113,7 @@ test.describe('Database Tests', () => {
   test('doesnt restore excluded tables', async ({ page }) => {
     await populateDb();
 
-    // Create backup via API
-    const response = await triggerBackup();
-    expect(response.ok).toBe(true);
+    await triggerBackup(page);
 
     await cleanupDb();
 
