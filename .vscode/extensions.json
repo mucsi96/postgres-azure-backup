@@ -4,7 +4,6 @@
     "angular.ng-template",
     "editorconfig.editorconfig",
     "vscjava.vscode-java-pack",
-    "ms-azuretools.vscode-containers",
     "ms-kubernetes-tools.vscode-kubernetes-tools",
     "esbenp.prettier-vscode",
     "ms-playwright.playwright"
