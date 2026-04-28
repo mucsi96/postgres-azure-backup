@@ -20,22 +20,23 @@ import io.github.mucsi96.postgresbackuptool.model.Table;
 
 @Service
 public class DatabaseService {
-    private final List<DatabaseConfiguration> databases;
+    private final DatabaseConfigurationProvider configurationProvider;
 
     public DatabaseService(DatabaseConfigurationProvider configurationProvider) {
-        this.databases = configurationProvider.getDatabaseConfigurations();
+        this.configurationProvider = configurationProvider;
     }
 
     public List<DatabaseConfiguration> getDatabases() {
-        return databases;
+        return configurationProvider.getDatabaseConfigurations();
     }
 
     public List<String> getDatabaseNames() {
-        return databases.stream().map(DatabaseConfiguration::getName).toList();
+        return getDatabases().stream().map(DatabaseConfiguration::getName)
+                .toList();
     }
 
     public DatabaseConfiguration getDatabaseConfiguration(String databaseName) {
-        return databases.stream()
+        return getDatabases().stream()
                 .filter(db -> db.getName().equals(databaseName)).findFirst()
                 .orElseThrow(() -> new RuntimeException("Database with name "
                         + databaseName + " not found in configuration"));

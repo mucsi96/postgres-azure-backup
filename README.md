@@ -94,7 +94,7 @@ internal to the pod network and reached by Traefik on `127.0.0.1`.
 
 ## Database configuration
 
-In production, the database configuration is stored as the `dbs-config` secret in Azure Key Vault and loaded automatically via Spring Cloud Azure. The secret value is a JSON array:
+In production, the database configuration is stored as the `dbs-config` secret in Azure Key Vault and fetched on demand each time the application needs it, so the secret can be updated without redeploying. The secret value is a JSON array:
 
 ```json
 [

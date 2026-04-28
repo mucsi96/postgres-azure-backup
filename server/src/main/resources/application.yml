@@ -1,3 +1,6 @@
+keyvault-endpoint: https://p06-backup.vault.azure.net/
+databases-config-secret-name: dbs-config
+
 server:
   servlet:
     context-path: /api
@@ -7,7 +10,7 @@ spring:
       keyvault:
         secret:
           property-sources:
-            - endpoint: https://p06-backup.vault.azure.net/
+            - endpoint: ${keyvault-endpoint}
               enabled: true
 
       storage:
