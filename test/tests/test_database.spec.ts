@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures';
-import { extractTableData, cleanupDb, getDb1Tables, triggerBackup, populateDb, writeFileToFolder, getBackupsFromStorage, executeDbQuery, getTablesInSchema } from '../utils';
+import { extractTableData, cleanupDb, getDb1Tables, triggerBackup, populateDb, writeFileToFolder, getBackupsFromStorage, executeDbQuery, getTablesInSchema, getTableRowCount } from '../utils';
 
 const TEST_FOLDER_1 = '/tmp/test-uploads';
 const TEST_FOLDER_2 = '/tmp/test-documents';
@@ -120,8 +120,14 @@ test.describe('Database Tests', () => {
       await page.getByRole('button', { name: 'Restore' }).click();
       await expect(page.getByRole('status').filter({ hasText: 'Backup restored' })).toBeVisible();
 
-      // db1's own schema is restored
-      expect(await getDb1Tables()).toEqual(['fruites', 'vegetables']);
+      // db1's own schema is restored — excluded tables are recreated
+      // (empty) so the application keeps working.
+      expect(await getDb1Tables()).toEqual([
+        'fruites',
+        'passwords',
+        'secrets',
+        'vegetables',
+      ]);
 
       // The unrelated schema is still intact
       expect(await getTablesInSchema(8164, 'other_tenant')).toEqual(['shared']);
@@ -145,7 +151,7 @@ test.describe('Database Tests', () => {
     expect(backups[0].rowsCount).toBe(9);
   });
 
-  test('doesnt restore excluded tables', async ({ page }) => {
+  test('restores excluded tables empty', async ({ page }) => {
     await populateDb();
 
     await triggerBackup(page);
@@ -158,7 +164,14 @@ test.describe('Database Tests', () => {
     await page.getByRole('button', { name: 'Restore' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Backup restored' })).toBeVisible();
 
+    // Excluded tables must be recreated so the application can keep
+    // working — only their rows are skipped.
     const tables = await getDb1Tables();
-    expect(tables).toEqual(['fruites', 'vegetables']);
+    expect(tables).toEqual(['fruites', 'passwords', 'secrets', 'vegetables']);
+
+    expect(await getTableRowCount(8164, 'test1', 'fruites')).toBe(4);
+    expect(await getTableRowCount(8164, 'test1', 'vegetables')).toBe(5);
+    expect(await getTableRowCount(8164, 'test1', 'passwords')).toBe(0);
+    expect(await getTableRowCount(8164, 'test1', 'secrets')).toBe(0);
   });
 });
