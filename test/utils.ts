@@ -111,7 +111,7 @@ export async function cleanupBackups(): Promise<void> {
   }
 }
 
-async function executeDbQuery(port: number, query: string): Promise<void> {
+export async function executeDbQuery(port: number, query: string): Promise<void> {
   const client = new Client({
     database: 'test',
     host: 'localhost',
@@ -123,6 +123,28 @@ async function executeDbQuery(port: number, query: string): Promise<void> {
   await client.connect();
   await client.query(query);
   await client.end();
+}
+
+export async function getTablesInSchema(
+  port: number,
+  schema: string
+): Promise<string[]> {
+  const client = new Client({
+    database: 'test',
+    host: 'localhost',
+    user: 'postgres',
+    password: 'postgres',
+    port: port,
+  });
+
+  await client.connect();
+  const result = await client.query(
+    'SELECT table_name FROM information_schema.tables WHERE table_schema = $1 ORDER BY table_name',
+    [schema]
+  );
+  await client.end();
+
+  return result.rows.map((row) => row.table_name);
 }
 
 export async function cleanupDb(): Promise<void> {

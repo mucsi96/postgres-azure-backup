@@ -1,7 +1,11 @@
 package io.github.mucsi96.postgresbackuptool.service;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -137,24 +141,62 @@ public class DatabaseService {
         DatabaseConfiguration databaseConfiguration = getDatabaseConfiguration(
                 databaseName);
         String schema = databaseConfiguration.getSchema();
+        String oldSchema = schema + "_old";
         JdbcTemplate jdbcTemplate = databaseConfiguration.getJdbcTemplate();
 
-        System.out.println("Dropping schema " + schema);
+        // Clear leftovers from a previously failed restore
         jdbcTemplate.execute(String.format(
-                "DROP SCHEMA IF EXISTS \"%s\" CASCADE;", schema));
+                "DROP SCHEMA IF EXISTS \"%s\" CASCADE;", oldSchema));
 
-        System.out.println("Restoring schema from dump");
-        int status = new ProcessBuilder("pg_restore", "--dbname",
-                databaseConfiguration.getConnectionString(),
-                "--exit-on-error", "--verbose",
-                dumpFile.getAbsolutePath()).inheritIO().start().waitFor();
+        File pgRestoreSql = File.createTempFile("pg-restore-", ".sql");
+        File combinedSql = File.createTempFile("restore-", ".sql");
+        try {
+            System.out.println("Converting dump to plain SQL");
+            int pgrStatus = new ProcessBuilder("pg_restore", "--no-owner",
+                    "--no-acl",
+                    "--file=" + pgRestoreSql.getAbsolutePath(),
+                    dumpFile.getAbsolutePath()).inheritIO().start().waitFor();
+            if (pgrStatus != 0) {
+                throw new RuntimeException(
+                        "pg_restore failed with status " + pgrStatus);
+            }
 
-        if (status != 0) {
-            throw new RuntimeException(
-                    "pg_restore failed with status " + status);
+            // Single transaction: rename the existing schema aside, restore
+            // into the original name, drop the renamed copy. Concurrent
+            // readers keep seeing the old schema until commit, then switch
+            // atomically to the new one. Any failure rolls back, leaving
+            // the original schema untouched.
+            try (OutputStream out = new FileOutputStream(combinedSql)) {
+                String prelude = String.format(
+                        "DO $do$ BEGIN "
+                                + "IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = '%s') THEN "
+                                + "EXECUTE 'ALTER SCHEMA \"%s\" RENAME TO \"%s\"'; "
+                                + "END IF; END $do$;\n",
+                        schema, schema, oldSchema);
+                out.write(prelude.getBytes(StandardCharsets.UTF_8));
+                Files.copy(pgRestoreSql.toPath(), out);
+                String epilogue = String.format(
+                        "\nDROP SCHEMA IF EXISTS \"%s\" CASCADE;\n",
+                        oldSchema);
+                out.write(epilogue.getBytes(StandardCharsets.UTF_8));
+            }
+
+            System.out.println("Applying restore in a single transaction");
+            int psqlStatus = new ProcessBuilder("psql",
+                    "--single-transaction", "--variable=ON_ERROR_STOP=1",
+                    "--dbname", databaseConfiguration.getConnectionString(),
+                    "--file", combinedSql.getAbsolutePath())
+                            .inheritIO().start().waitFor();
+            if (psqlStatus != 0) {
+                throw new RuntimeException(
+                        "psql restore failed with status " + psqlStatus);
+            }
+
+            System.out.println("Restore complete");
+        } finally {
+            pgRestoreSql.delete();
+            combinedSql.delete();
         }
-
-        System.out.println("Restore complete");
     }
 
     private int getTableRowCount(String databaseName, String tableName) {
