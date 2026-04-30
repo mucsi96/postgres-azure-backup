@@ -1,16 +1,17 @@
 package io.github.mucsi96.postgresbackuptool.service;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import javax.sql.DataSource;
-
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
 
 import io.github.mucsi96.postgresbackuptool.configuration.DatabaseConfiguration;
@@ -139,41 +140,48 @@ public class DatabaseService {
             throws IOException, InterruptedException {
         DatabaseConfiguration databaseConfiguration = getDatabaseConfiguration(
                 databaseName);
-        DataSource dataSource = new DriverManagerDataSource(
-                databaseConfiguration.getRootUrl(),
-                databaseConfiguration.getUsername(),
-                databaseConfiguration.getPassword());
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-        String restoreDatabaseName = databaseConfiguration.getDatabase()
-                + "_restore";
-        String restoreConnectionString = databaseConfiguration
-                .getConnectionString() + "_restore";
+        String schema = databaseConfiguration.getSchema();
 
-        System.out.println("Preparig restore db");
+        File pgRestoreSql = File.createTempFile("pg-restore-", ".sql");
+        File combinedSql = File.createTempFile("restore-", ".sql");
+        try {
+            System.out.println("Converting dump to plain SQL");
+            int pgrStatus = new ProcessBuilder("pg_restore", "--no-owner",
+                    "--no-acl",
+                    "--file=" + pgRestoreSql.getAbsolutePath(),
+                    dumpFile.getAbsolutePath()).inheritIO().start().waitFor();
+            if (pgrStatus != 0) {
+                throw new RuntimeException(
+                        "pg_restore failed with status " + pgrStatus);
+            }
 
-        jdbcTemplate.execute(String.format("DROP DATABASE IF EXISTS \"%s\";",
-                restoreDatabaseName));
-        jdbcTemplate.execute(
-                String.format("CREATE DATABASE \"%s\";", restoreDatabaseName));
+            // Single transaction: drop the existing schema, recreate it from
+            // the dump. Concurrent readers keep seeing the old schema until
+            // commit, then switch atomically to the new one. Any failure
+            // rolls back, leaving the original schema untouched.
+            try (OutputStream out = new FileOutputStream(combinedSql)) {
+                String prelude = String.format(
+                        "DROP SCHEMA IF EXISTS \"%s\" CASCADE;\n", schema);
+                out.write(prelude.getBytes(StandardCharsets.UTF_8));
+                Files.copy(pgRestoreSql.toPath(), out);
+            }
 
-        System.out.println("Restore db prepared");
+            System.out.println("Applying restore in a single transaction");
+            int psqlStatus = new ProcessBuilder("psql",
+                    "--single-transaction", "--variable=ON_ERROR_STOP=1",
+                    "--dbname", databaseConfiguration.getConnectionString(),
+                    "--file", combinedSql.getAbsolutePath())
+                            .inheritIO().start().waitFor();
+            if (psqlStatus != 0) {
+                throw new RuntimeException(
+                        "psql restore failed with status " + psqlStatus);
+            }
 
-        new ProcessBuilder("pg_restore", "--dbname", restoreConnectionString,
-                "--verbose", dumpFile.getAbsolutePath()).inheritIO().start()
-                        .waitFor();
-
-        System.out.println("Restore complete");
-
-        jdbcTemplate.execute(String.format(
-                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s' AND pid <> pg_backend_pid();",
-                databaseConfiguration.getDatabase()));
-        jdbcTemplate.execute(String.format("DROP DATABASE IF EXISTS \"%s\";",
-                databaseConfiguration.getDatabase()));
-        jdbcTemplate.execute(String.format(
-                "ALTER DATABASE \"%s\" RENAME TO \"%s\";", restoreDatabaseName,
-                databaseConfiguration.getDatabase()));
-
-        System.out.println("Switch complete");
+            System.out.println("Restore complete");
+        } finally {
+            pgRestoreSql.delete();
+            combinedSql.delete();
+        }
     }
 
     private int getTableRowCount(String databaseName, String tableName) {

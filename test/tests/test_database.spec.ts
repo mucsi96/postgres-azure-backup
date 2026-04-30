@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures';
-import { extractTableData, cleanupDb, getDb1Tables, triggerBackup, populateDb, writeFileToFolder, getBackupsFromStorage } from '../utils';
+import { extractTableData, cleanupDb, getDb1Tables, triggerBackup, populateDb, writeFileToFolder, getBackupsFromStorage, executeDbQuery, getTablesInSchema } from '../utils';
 
 const TEST_FOLDER_1 = '/tmp/test-uploads';
 const TEST_FOLDER_2 = '/tmp/test-documents';
@@ -93,6 +93,41 @@ test.describe('Database Tests', () => {
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 9');
     await expect(page.getByRole('heading', { name: 'Files' })).toHaveText('Files 0');
     await expect(page.getByRole('heading', { name: 'Tables' })).toHaveText('Tables 2');
+  });
+
+  test('restore leaves unrelated schemas in the same database untouched', async ({ page }) => {
+    await populateDb();
+
+    // db1 manages schema test1 in the "test" database on port 8164.
+    // Add a sibling schema in the same physical database — restoring db1
+    // must not affect it.
+    await executeDbQuery(
+      8164,
+      `DROP SCHEMA IF EXISTS other_tenant CASCADE;
+       CREATE SCHEMA other_tenant;
+       CREATE TABLE other_tenant.shared (value VARCHAR(20));
+       INSERT INTO other_tenant.shared (value) VALUES ('survives-restore');`
+    );
+
+    try {
+      await triggerBackup(page);
+
+      await cleanupDb();
+
+      await page.goto('/');
+      await page.getByText('db1').click();
+      await page.locator(':text("Backups") + table').getByText('356 days').click();
+      await page.getByRole('button', { name: 'Restore' }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Backup restored' })).toBeVisible();
+
+      // db1's own schema is restored
+      expect(await getDb1Tables()).toEqual(['fruites', 'vegetables']);
+
+      // The unrelated schema is still intact
+      expect(await getTablesInSchema(8164, 'other_tenant')).toEqual(['shared']);
+    } finally {
+      await executeDbQuery(8164, 'DROP SCHEMA IF EXISTS other_tenant CASCADE');
+    }
   });
 
   test('creates backup using backup button', async ({ page }) => {
