@@ -194,8 +194,8 @@ Scheduling can be disabled by setting `BACKUP_SCHEDULE_ENABLED=false` or customi
 ## Deployment with Helm
 
 ```bash
-hostname=$(az keyvault secret show --vault-name p06-backup --name hostname --query value --output tsv)
-apiClientId=$(az keyvault secret show --vault-name p06-backup --name api-client-id --query value --output tsv)
+hostname=$(az keyvault secret show --vault-name p07-backup --name hostname --query value --output tsv)
+apiClientId=$(az keyvault secret show --vault-name p07-backup --name api-client-id --query value --output tsv)
 
 helm repo add mucsi96 https://mucsi96.github.io/k8s-helm-charts
 helm upgrade postgres-azure-backup-server mucsi96/spring-app \

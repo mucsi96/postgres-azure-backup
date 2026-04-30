@@ -1,4 +1,4 @@
-keyvault-endpoint: https://p06-backup.vault.azure.net/
+keyvault-endpoint: ${AZURE_KEYVAULT_ENDPOINT}
 databases-config-secret-name: dbs-config
 
 server:
