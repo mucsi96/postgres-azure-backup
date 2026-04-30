@@ -241,5 +241,16 @@ test.describe('Backups Tests', () => {
 
     // Verify SQL content contains expected data from the populated database
     expect(content).toContain('test1');
+
+    // Verify the structure (CREATE TABLE) for excluded tables IS included
+    // so the application can keep working after restore
+    expect(content).toMatch(/CREATE TABLE[^;]*test1\.passwords/);
+    expect(content).toMatch(/CREATE TABLE[^;]*test1\.secrets/);
+
+    // But the data (rows) for excluded tables must NOT be included
+    expect(content).not.toContain('INSERT INTO test1.passwords');
+    expect(content).not.toContain("COPY test1.passwords");
+    expect(content).not.toContain('INSERT INTO test1.secrets');
+    expect(content).not.toContain("COPY test1.secrets");
   });
 });

@@ -147,6 +147,28 @@ export async function getTablesInSchema(
   return result.rows.map((row) => row.table_name);
 }
 
+export async function getTableRowCount(
+  port: number,
+  schema: string,
+  table: string
+): Promise<number> {
+  const client = new Client({
+    database: 'test',
+    host: 'localhost',
+    user: 'postgres',
+    password: 'postgres',
+    port: port,
+  });
+
+  await client.connect();
+  const result = await client.query(
+    `SELECT COUNT(*)::int AS count FROM "${schema}"."${table}"`
+  );
+  await client.end();
+
+  return result.rows[0].count;
+}
+
 export async function cleanupDb(): Promise<void> {
   await executeDbQuery(8164, 'DROP SCHEMA IF EXISTS test1 CASCADE');
   await executeDbQuery(8165, 'DROP SCHEMA IF EXISTS test2 CASCADE');

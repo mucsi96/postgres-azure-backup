@@ -103,7 +103,8 @@ public class DatabaseService {
                         .flatMap(table -> {
                             String fullTableName = databaseConfiguration
                                     .getSchema() + "." + table;
-                            return List.of("--exclude-table", fullTableName)
+                            return List
+                                    .of("--exclude-table-data", fullTableName)
                                     .stream();
                         }).toList())
                 .flatMap(x -> x.stream()).filter(arg -> !arg.isEmpty())
