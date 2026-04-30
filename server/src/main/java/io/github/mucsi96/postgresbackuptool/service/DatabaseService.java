@@ -7,10 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import javax.sql.DataSource;
-
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
 
 import io.github.mucsi96.postgresbackuptool.configuration.DatabaseConfiguration;
@@ -139,41 +136,25 @@ public class DatabaseService {
             throws IOException, InterruptedException {
         DatabaseConfiguration databaseConfiguration = getDatabaseConfiguration(
                 databaseName);
-        DataSource dataSource = new DriverManagerDataSource(
-                databaseConfiguration.getRootUrl(),
-                databaseConfiguration.getUsername(),
-                databaseConfiguration.getPassword());
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-        String restoreDatabaseName = databaseConfiguration.getDatabase()
-                + "_restore";
-        String restoreConnectionString = databaseConfiguration
-                .getConnectionString() + "_restore";
+        String schema = databaseConfiguration.getSchema();
+        JdbcTemplate jdbcTemplate = databaseConfiguration.getJdbcTemplate();
 
-        System.out.println("Preparig restore db");
+        System.out.println("Dropping schema " + schema);
+        jdbcTemplate.execute(String.format(
+                "DROP SCHEMA IF EXISTS \"%s\" CASCADE;", schema));
 
-        jdbcTemplate.execute(String.format("DROP DATABASE IF EXISTS \"%s\";",
-                restoreDatabaseName));
-        jdbcTemplate.execute(
-                String.format("CREATE DATABASE \"%s\";", restoreDatabaseName));
+        System.out.println("Restoring schema from dump");
+        int status = new ProcessBuilder("pg_restore", "--dbname",
+                databaseConfiguration.getConnectionString(),
+                "--exit-on-error", "--verbose",
+                dumpFile.getAbsolutePath()).inheritIO().start().waitFor();
 
-        System.out.println("Restore db prepared");
-
-        new ProcessBuilder("pg_restore", "--dbname", restoreConnectionString,
-                "--verbose", dumpFile.getAbsolutePath()).inheritIO().start()
-                        .waitFor();
+        if (status != 0) {
+            throw new RuntimeException(
+                    "pg_restore failed with status " + status);
+        }
 
         System.out.println("Restore complete");
-
-        jdbcTemplate.execute(String.format(
-                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s' AND pid <> pg_backend_pid();",
-                databaseConfiguration.getDatabase()));
-        jdbcTemplate.execute(String.format("DROP DATABASE IF EXISTS \"%s\";",
-                databaseConfiguration.getDatabase()));
-        jdbcTemplate.execute(String.format(
-                "ALTER DATABASE \"%s\" RENAME TO \"%s\";", restoreDatabaseName,
-                databaseConfiguration.getDatabase()));
-
-        System.out.println("Switch complete");
     }
 
     private int getTableRowCount(String databaseName, String tableName) {

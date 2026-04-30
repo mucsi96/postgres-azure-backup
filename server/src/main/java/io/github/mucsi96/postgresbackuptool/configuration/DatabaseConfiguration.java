@@ -69,11 +69,6 @@ public class DatabaseConfiguration {
     }
 
     @JsonIgnore
-    public String getRootUrl() {
-        return String.format("jdbc:postgresql://%s:%d/postgres", host, port);
-    }
-
-    @JsonIgnore
     public JdbcTemplate getJdbcTemplate() {
         DataSource dataSource = new DriverManagerDataSource(getJdbcUrl(),
                 username, password);
