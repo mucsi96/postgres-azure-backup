@@ -156,7 +156,7 @@ spec:
       livenessProbe:
         httpGet:
           path: /
-          port: 8167
+          port: 8000
         initialDelaySeconds: 5
         periodSeconds: 2
         failureThreshold: 10

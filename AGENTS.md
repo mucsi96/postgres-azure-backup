@@ -516,9 +516,6 @@ same inside the pod network and on the host.
 | 8164  | PostgreSQL `db1`     | yes            | First test database (`PGPORT=8164`)                 |
 | 8165  | PostgreSQL `db2`     | yes            | Second test database (`PGPORT=8165`)                |
 | 8166  | Mock OAuth2          | yes            | `mucsi96/mock-oidc-provider` (JWKS / OIDC)          |
-| 8167  | Client (nginx)       | no             | Reached by Traefik on `127.0.0.1:8167`              |
-| 8168  | Server (Spring Boot) | no             | Reached by Traefik on `127.0.0.1:8168`              |
-| 8169  | Client nginx status  | no             | nginx `stub_status` for diagnostics                 |
 
 ## Testing
 

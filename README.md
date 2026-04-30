@@ -70,8 +70,7 @@ the host.
 | 8168  | Server (Spring Boot) | Local port served by the server container                |
 
 When running tests or accessing the application from a browser on the
-host, only **8160–8166** are exposed. Ports **8167–8169** are
-local to the pod network and reached by Traefik on `127.0.0.1`.
+host, only **8160–8166** are exposed.
 
 ## Required environment variables
 
