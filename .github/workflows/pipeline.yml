@@ -198,10 +198,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Connect to Twingate
-        uses: twingate/github-action@v1
-        with:
-          service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
+      # - name: Connect to Twingate
+      #   uses: twingate/github-action@v1
+      #   with:
+      #     service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
 
       - name: Deploy to Kubernetes
         env:
