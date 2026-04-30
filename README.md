@@ -54,7 +54,7 @@ scripts/pod_down.sh
 ## Port Mapping
 
 All host-bound ports used by the project live in the **8160–8169** range
-(i.e. `xx60–xx69`). Internal container ports inside the pod also use
+(i.e. `xx60–xx69`). local container ports inside the pod also use
 this range so that the same numbers work both inside the pod and from
 the host.
 
@@ -67,13 +67,11 @@ the host.
 | 8164  | PostgreSQL `db1`     | First test database                                      |
 | 8165  | PostgreSQL `db2`     | Second test database                                     |
 | 8166  | Mock OAuth2          | `mucsi96/mock-oidc-provider` — issues JWTs in test mode  |
-| 8167  | Client (nginx)       | Internal-only port served by the client container        |
-| 8168  | Server (Spring Boot) | Internal-only port served by the server container        |
-| 8169  | Client nginx status  | Internal-only `stub_status` port                         |
+| 8168  | Server (Spring Boot) | Local port served by the server container                |
 
 When running tests or accessing the application from a browser on the
 host, only **8160–8166** are exposed. Ports **8167–8169** are
-internal to the pod network and reached by Traefik on `127.0.0.1`.
+local to the pod network and reached by Traefik on `127.0.0.1`.
 
 ## Required environment variables
 
