@@ -141,12 +141,6 @@ public class DatabaseService {
         DatabaseConfiguration databaseConfiguration = getDatabaseConfiguration(
                 databaseName);
         String schema = databaseConfiguration.getSchema();
-        String oldSchema = schema + "_old";
-        JdbcTemplate jdbcTemplate = databaseConfiguration.getJdbcTemplate();
-
-        // Clear leftovers from a previously failed restore
-        jdbcTemplate.execute(String.format(
-                "DROP SCHEMA IF EXISTS \"%s\" CASCADE;", oldSchema));
 
         File pgRestoreSql = File.createTempFile("pg-restore-", ".sql");
         File combinedSql = File.createTempFile("restore-", ".sql");
@@ -161,24 +155,15 @@ public class DatabaseService {
                         "pg_restore failed with status " + pgrStatus);
             }
 
-            // Single transaction: rename the existing schema aside, restore
-            // into the original name, drop the renamed copy. Concurrent
-            // readers keep seeing the old schema until commit, then switch
-            // atomically to the new one. Any failure rolls back, leaving
-            // the original schema untouched.
+            // Single transaction: drop the existing schema, recreate it from
+            // the dump. Concurrent readers keep seeing the old schema until
+            // commit, then switch atomically to the new one. Any failure
+            // rolls back, leaving the original schema untouched.
             try (OutputStream out = new FileOutputStream(combinedSql)) {
                 String prelude = String.format(
-                        "DO $do$ BEGIN "
-                                + "IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = '%s') THEN "
-                                + "EXECUTE 'ALTER SCHEMA \"%s\" RENAME TO \"%s\"'; "
-                                + "END IF; END $do$;\n",
-                        schema, schema, oldSchema);
+                        "DROP SCHEMA IF EXISTS \"%s\" CASCADE;\n", schema);
                 out.write(prelude.getBytes(StandardCharsets.UTF_8));
                 Files.copy(pgRestoreSql.toPath(), out);
-                String epilogue = String.format(
-                        "\nDROP SCHEMA IF EXISTS \"%s\" CASCADE;\n",
-                        oldSchema);
-                out.write(epilogue.getBytes(StandardCharsets.UTF_8));
             }
 
             System.out.println("Applying restore in a single transaction");
