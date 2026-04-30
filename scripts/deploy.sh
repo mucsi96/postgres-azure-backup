@@ -6,6 +6,7 @@ set -e  # Exit immediately if a command exits with a non-zero status
 : "${HOSTNAME:?Environment variable HOSTNAME is required}"
 : "${API_CLIENT_ID:?Environment variable API_CLIENT_ID is required}"
 : "${DOCKERHUB_USERNAME:?Environment variable DOCKERHUB_USERNAME is required}"
+: "${AZURE_KEYVAULT_ENDPOINT:?Environment variable AZURE_KEYVAULT_ENDPOINT is required}"
 
 # Create a temporary file in /dev/shm (RAM) to avoid writing to disk
 KUBECONFIG_FILE=$(mktemp /dev/shm/kubeconfig.XXXXXX)
@@ -37,6 +38,7 @@ helm upgrade postgres-azure-backup-server mucsi96/spring-app \
     --set basePath=/api \
     --set clientId=$API_CLIENT_ID \
     --set serviceAccountName=postgres-azure-backup-api-workload-identity \
+    --set env.AZURE_KEYVAULT_ENDPOINT=$AZURE_KEYVAULT_ENDPOINT \
     --set persistentVolumeClaims[0].name=learn-language-backup-pvc \
     --set persistentVolumeClaims[0].accessMode=ReadWriteOnce \
     --set persistentVolumeClaims[0].volumeName=learn-language-backup \
