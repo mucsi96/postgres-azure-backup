@@ -1,14 +1,12 @@
 @if (databases.isLoading()) {
 <div role="progressbar" bt></div>
 } @else {
-<div class="header">
-  <h2 bt>
-    Databases <span bt-badge>{{ databases.value()?.length }}</span>
-  </h2>
-  <button bt [disabled]="processing()" (click)="smartBackup()">
-    Smart backup
-  </button>
-</div>
+<button bt [disabled]="processing()" (click)="smartBackup()">
+  Smart backup
+</button>
+<h2 bt>
+  Databases <span bt-badge>{{ databases.value()?.length }}</span>
+</h2>
 @if (databases.value()?.length) {
 <table bt id="backups">
   <thead>
