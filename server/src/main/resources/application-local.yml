@@ -1,8 +1,8 @@
 server:
-  port: 8053
+  port: 8168
 management:
   server:
-    port: 8152
+    port: 8162
 
 spring:
   cloud:

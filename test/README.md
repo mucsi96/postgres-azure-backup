@@ -61,12 +61,12 @@ npm run test:report
 ## Environment Setup
 
 The tests expect the following services to be running:
-- Application (Traefik web entry) on http://localhost:8150
-- Traefik dashboard on http://localhost:8151
-- Server actuator on http://localhost:8152
-- Azure Blob Storage emulator (Azurite) on http://localhost:10050
-- PostgreSQL databases on ports 5451 (db1) and 5452 (db2)
-- Mock OAuth2 provider on http://localhost:8050
+- Application (Traefik web entry) on http://localhost:8160
+- Traefik dashboard on http://localhost:8161
+- Server actuator on http://localhost:8162
+- Azure Blob Storage emulator (Azurite) on http://localhost:8163
+- PostgreSQL databases on ports 8164 (db1) and 8165 (db2)
+- Mock OAuth2 provider on http://localhost:8166
 
 Start the Podman pod from the repository root before running the tests:
 

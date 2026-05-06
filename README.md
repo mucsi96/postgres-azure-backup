@@ -53,22 +53,24 @@ scripts/pod_down.sh
 
 ## Port Mapping
 
-All host-exposed ports use the **xx50–xx59** range for their last two
-digits to avoid clashes with other local projects. Container ports
-inside the pod match the host ports so the same numbers work both
-inside the pod and from the host.
+All host-bound ports used by the project live in the **8160–8169** range
+(i.e. `xx60–xx69`). local container ports inside the pod also use
+this range so that the same numbers work both inside the pod and from
+the host.
 
-| Port  | Service              | Context                                                  |
+| Port  | Service              | Notes                                                    |
 | ----- | -------------------- | -------------------------------------------------------- |
-| 5451  | PostgreSQL `db1`     | Test pod — first test database                           |
-| 5452  | PostgreSQL `db2`     | Test pod — second test database                          |
-| 8050  | Mock OAuth2          | Test pod — `mucsi96/mock-oidc-provider` issues JWTs      |
-| 8053  | Server (Spring Boot) | Local dev (VSCode) — `application-local.yml`             |
-| 8054  | Server (Spring Boot) | Test pod (internal, behind Traefik)                      |
-| 8150  | Traefik web entry    | Test pod — application entry point (UI + `/api` proxy)   |
-| 8151  | Traefik dashboard    | Test pod — Traefik admin / ping endpoint                 |
-| 8152  | Spring Actuator      | Local dev & test — `management.server.port`              |
-| 10050 | Azurite blob storage | Test pod — Azure Blob Storage emulator                   |
+| 8160  | Traefik web entry    | Application entry point — UI + `/api` reverse-proxy      |
+| 8161  | Traefik dashboard    | Traefik admin/ping endpoint                              |
+| 8162  | Server actuator      | Spring Boot management port (`/actuator/health/...`)     |
+| 8163  | Azurite blob storage | Azure Blob Storage emulator                              |
+| 8164  | PostgreSQL `db1`     | First test database                                      |
+| 8165  | PostgreSQL `db2`     | Second test database                                     |
+| 8166  | Mock OAuth2          | `mucsi96/mock-oidc-provider` — issues JWTs in test mode  |
+| 8168  | Server (Spring Boot) | Local port served by the server container                |
+
+When running tests or accessing the application from a browser on the
+host, only **8160–8166** are exposed.
 
 ## Required environment variables
 

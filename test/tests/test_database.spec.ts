@@ -98,11 +98,11 @@ test.describe('Database Tests', () => {
   test('restore leaves unrelated schemas in the same database untouched', async ({ page }) => {
     await populateDb();
 
-    // db1 manages schema test1 in the "test" database on port 5451.
+    // db1 manages schema test1 in the "test" database on port 8164.
     // Add a sibling schema in the same physical database — restoring db1
     // must not affect it.
     await executeDbQuery(
-      5451,
+      8164,
       `DROP SCHEMA IF EXISTS other_tenant CASCADE;
        CREATE SCHEMA other_tenant;
        CREATE TABLE other_tenant.shared (value VARCHAR(20));
@@ -130,9 +130,9 @@ test.describe('Database Tests', () => {
       ]);
 
       // The unrelated schema is still intact
-      expect(await getTablesInSchema(5451, 'other_tenant')).toEqual(['shared']);
+      expect(await getTablesInSchema(8164, 'other_tenant')).toEqual(['shared']);
     } finally {
-      await executeDbQuery(5451, 'DROP SCHEMA IF EXISTS other_tenant CASCADE');
+      await executeDbQuery(8164, 'DROP SCHEMA IF EXISTS other_tenant CASCADE');
     }
   });
 
@@ -169,9 +169,9 @@ test.describe('Database Tests', () => {
     const tables = await getDb1Tables();
     expect(tables).toEqual(['fruites', 'passwords', 'secrets', 'vegetables']);
 
-    expect(await getTableRowCount(5451, 'test1', 'fruites')).toBe(4);
-    expect(await getTableRowCount(5451, 'test1', 'vegetables')).toBe(5);
-    expect(await getTableRowCount(5451, 'test1', 'passwords')).toBe(0);
-    expect(await getTableRowCount(5451, 'test1', 'secrets')).toBe(0);
+    expect(await getTableRowCount(8164, 'test1', 'fruites')).toBe(4);
+    expect(await getTableRowCount(8164, 'test1', 'vegetables')).toBe(5);
+    expect(await getTableRowCount(8164, 'test1', 'passwords')).toBe(0);
+    expect(await getTableRowCount(8164, 'test1', 'secrets')).toBe(0);
   });
 });
