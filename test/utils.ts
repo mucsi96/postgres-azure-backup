@@ -7,7 +7,7 @@ import path from 'path';
 const connectionString =
   'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;' +
   'AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;' +
-  'BlobEndpoint=http://localhost:8163/devstoreaccount1;';
+  'BlobEndpoint=http://localhost:10050/devstoreaccount1;';
 
 const blobServiceClient =
   BlobServiceClient.fromConnectionString(connectionString);
@@ -170,8 +170,8 @@ export async function getTableRowCount(
 }
 
 export async function cleanupDb(): Promise<void> {
-  await executeDbQuery(8164, 'DROP SCHEMA IF EXISTS test1 CASCADE');
-  await executeDbQuery(8165, 'DROP SCHEMA IF EXISTS test2 CASCADE');
+  await executeDbQuery(5451, 'DROP SCHEMA IF EXISTS test1 CASCADE');
+  await executeDbQuery(5452, 'DROP SCHEMA IF EXISTS test2 CASCADE');
 }
 
 export async function populateDb(): Promise<void> {
@@ -228,8 +228,8 @@ export async function populateDb(): Promise<void> {
     INSERT INTO test2.secrets (secret) VALUES ('delta');
   `;
 
-  await executeDbQuery(8164, db1Query);
-  await executeDbQuery(8165, db2Query);
+  await executeDbQuery(5451, db1Query);
+  await executeDbQuery(5452, db2Query);
 }
 
 export async function getDb1Tables(): Promise<string[]> {
@@ -238,7 +238,7 @@ export async function getDb1Tables(): Promise<string[]> {
     host: 'localhost',
     user: 'postgres',
     password: 'postgres',
-    port: 8164,
+    port: 5451,
   });
 
   await client.connect();
@@ -256,7 +256,7 @@ export async function mockWindowOpen(page: Page): Promise<void> {
       if (url && url.startsWith('https://blobstorage:10000')) {
         url = url.replace(
           'https://blobstorage:10000',
-          'https://localhost:8163'
+          'https://localhost:10050'
         );
         window.location.href = url;
       }

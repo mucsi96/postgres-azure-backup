@@ -7,10 +7,10 @@ spec:
     - name: traefik
       image: docker.io/library/traefik:v3.6
       ports:
-        - containerPort: 8160
-          hostPort: 8160
-        - containerPort: 8161
-          hostPort: 8161
+        - containerPort: 8150
+          hostPort: 8150
+        - containerPort: 8151
+          hostPort: 8151
       volumeMounts:
         - name: traefik-config
           mountPath: /etc/traefik/traefik.yaml
@@ -32,14 +32,14 @@ spec:
         - --blobHost
         - 0.0.0.0
         - --blobPort
-        - "8163"
+        - "10050"
         - --skipApiVersionCheck
       ports:
-        - containerPort: 8163
-          hostPort: 8163
+        - containerPort: 10050
+          hostPort: 10050
       livenessProbe:
         exec:
-          command: ["nc", "127.0.0.1", "8163", "-z"]
+          command: ["nc", "127.0.0.1", "10050", "-z"]
         initialDelaySeconds: 1
         periodSeconds: 1
         failureThreshold: 30
@@ -47,8 +47,8 @@ spec:
     - name: db1
       image: docker.io/library/postgres:17.5-bullseye
       ports:
-        - containerPort: 8164
-          hostPort: 8164
+        - containerPort: 5451
+          hostPort: 5451
       env:
         - name: POSTGRES_DB
           value: test
@@ -57,10 +57,10 @@ spec:
         - name: POSTGRES_USER
           value: postgres
         - name: PGPORT
-          value: "8164"
+          value: "5451"
       livenessProbe:
         exec:
-          command: ["pg_isready", "-U", "postgres", "-p", "8164"]
+          command: ["pg_isready", "-U", "postgres", "-p", "5451"]
         initialDelaySeconds: 5
         periodSeconds: 5
         failureThreshold: 10
@@ -68,8 +68,8 @@ spec:
     - name: db2
       image: docker.io/library/postgres:17.5-bullseye
       ports:
-        - containerPort: 8165
-          hostPort: 8165
+        - containerPort: 5452
+          hostPort: 5452
       env:
         - name: POSTGRES_DB
           value: test
@@ -78,10 +78,10 @@ spec:
         - name: POSTGRES_USER
           value: postgres
         - name: PGPORT
-          value: "8165"
+          value: "5452"
       livenessProbe:
         exec:
-          command: ["pg_isready", "-U", "postgres", "-p", "8165"]
+          command: ["pg_isready", "-U", "postgres", "-p", "5452"]
         initialDelaySeconds: 5
         periodSeconds: 5
         failureThreshold: 10
@@ -89,11 +89,11 @@ spec:
     - name: mock-oauth2
       image: docker.io/mucsi96/mock-oidc-provider:latest
       ports:
-        - containerPort: 8166
-          hostPort: 8166
+        - containerPort: 8050
+          hostPort: 8050
       env:
         - name: PORT
-          value: "8166"
+          value: "8050"
         - name: ISSUER_ID
           value: default
         - name: SUB
@@ -113,7 +113,7 @@ spec:
       livenessProbe:
         httpGet:
           path: /health
-          port: 8166
+          port: 8050
         initialDelaySeconds: 2
         periodSeconds: 2
         failureThreshold: 5
@@ -122,19 +122,19 @@ spec:
       image: localhost/postgres-azure-backup-server:test
       env:
         - name: SERVER_PORT
-          value: "8168"
+          value: "8054"
         - name: SPRING_ACTUATOR_PORT
-          value: "8162"
+          value: "8152"
         - name: SPRING_PROFILES_ACTIVE
           value: test
         - name: BLOBSTORAGE_CONNECTION_STRING
-          value: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:8163/devstoreaccount1;"
+          value: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:10050/devstoreaccount1;"
         - name: STORAGE_ACCOUNT_CONTAINER_NAME
           value: backups
         - name: DATABASES_CONFIG_PATH
           value: /app/databases_config.json
         - name: MOCK_OAUTH2_SERVER_URI
-          value: http://localhost:8166
+          value: http://localhost:8050
       volumeMounts:
         - name: databases-config
           mountPath: /app/databases_config.json
@@ -146,7 +146,7 @@ spec:
       livenessProbe:
         httpGet:
           path: /actuator/health/readiness
-          port: 8162
+          port: 8152
         initialDelaySeconds: 16
         periodSeconds: 2
         failureThreshold: 30

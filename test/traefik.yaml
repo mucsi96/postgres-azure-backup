@@ -3,9 +3,9 @@ api:
 
 entryPoints:
   web:
-    address: ":8160"
+    address: ":8150"
   traefik:
-    address: ":8161"
+    address: ":8151"
 
 providers:
   file:

@@ -2,7 +2,7 @@
   {
     "name": "db1",
     "host": "localhost",
-    "port": 8164,
+    "port": 5451,
     "database": "test",
     "schema": "test1",
     "username": "postgres",
@@ -21,7 +21,7 @@
   {
     "name": "db2",
     "host": "localhost",
-    "port": 8165,
+    "port": 5452,
     "database": "test",
     "schema": "test2",
     "username": "postgres",

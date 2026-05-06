@@ -12,7 +12,7 @@ export default defineConfig({
     ['list']
   ],
   use: {
-    baseURL: 'http://localhost:8160',
+    baseURL: 'http://localhost:8150',
     trace: 'on-first-retry',
     ignoreHTTPSErrors: true,
     screenshot: 'only-on-failure',

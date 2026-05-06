@@ -475,7 +475,7 @@ scripts/pod_up.sh
 scripts/pod_down.sh
 ```
 
-Open http://localhost:8160 once the pod is healthy.
+Open http://localhost:8150 once the pod is healthy.
 
 `scripts/pod_up.sh` builds the `server` and `client` images with
 `podman build`, then starts the pod with `podman kube play`. Set
@@ -501,21 +501,25 @@ helm install mucsi96/spring-app \
 
 ## Port Mapping
 
-All host-bound and internal ports the project allocates live in the
-**8160–8169** (`xx60–xx69`) range. Stock images are reconfigured
-(`PGPORT`, `--blobPort`, Spring `server.port`, nginx `listen`,
-Traefik entrypoints) to use these ports so that addresses are the
-same inside the pod network and on the host.
+All host-exposed ports use the **xx50–xx59** range for their last two
+digits to avoid clashes with other local projects. Stock images are
+reconfigured (`PGPORT`, `--blobPort`, Spring `server.port`, nginx
+`listen`, Traefik entrypoints) so the same numbers work both inside
+the pod network and on the host. Local dev and the test pod use
+distinct ports for the Spring Boot server so they can run side by
+side.
 
-| Port  | Service              | Bound to host? | Notes                                                |
-| ----- | -------------------- | -------------- | ---------------------------------------------------- |
-| 8160  | Traefik web entry    | yes            | Application entry point — UI + `/api` proxy         |
-| 8161  | Traefik dashboard    | yes            | Traefik admin / ping endpoint                       |
-| 8162  | Server actuator      | yes            | Spring Boot `management.server.port`                |
-| 8163  | Azurite blob storage | yes            | Azure Blob Storage emulator (`--blobPort 8163`)     |
-| 8164  | PostgreSQL `db1`     | yes            | First test database (`PGPORT=8164`)                 |
-| 8165  | PostgreSQL `db2`     | yes            | Second test database (`PGPORT=8165`)                |
-| 8166  | Mock OAuth2          | yes            | `mucsi96/mock-oidc-provider` (JWKS / OIDC)          |
+| Port  | Service              | Context                                                  |
+| ----- | -------------------- | -------------------------------------------------------- |
+| 5451  | PostgreSQL `db1`     | Test pod — first test database (`PGPORT=5451`)           |
+| 5452  | PostgreSQL `db2`     | Test pod — second test database (`PGPORT=5452`)          |
+| 8050  | Mock OAuth2          | Test pod — `mucsi96/mock-oidc-provider` (JWKS / OIDC)    |
+| 8053  | Server (Spring Boot) | Local dev (VSCode) — `application-local.yml`             |
+| 8054  | Server (Spring Boot) | Test pod (internal, behind Traefik)                      |
+| 8150  | Traefik web entry    | Test pod — application entry point (UI + `/api` proxy)   |
+| 8151  | Traefik dashboard    | Test pod — Traefik admin / ping endpoint                 |
+| 8152  | Spring Actuator      | Local dev & test — `management.server.port`              |
+| 10050 | Azurite blob storage | Test pod — Azure Blob Storage emulator (`--blobPort`)    |
 
 ## Testing
 
