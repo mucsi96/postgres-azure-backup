@@ -2,11 +2,13 @@
 
 set -e  # Exit immediately if a command exits with a non-zero status
 
-: "${K8S_CONFIG:?Environment variable K8S_CONFIG is required}"
-: "${HOSTNAME:?Environment variable HOSTNAME is required}"
-: "${API_CLIENT_ID:?Environment variable API_CLIENT_ID is required}"
+: "${AZURE_KEYVAULT_NAME:?Environment variable AZURE_KEYVAULT_NAME is required}"
 : "${DOCKERHUB_USERNAME:?Environment variable DOCKERHUB_USERNAME is required}"
-: "${AZURE_KEYVAULT_ENDPOINT:?Environment variable AZURE_KEYVAULT_ENDPOINT is required}"
+
+AZURE_KEYVAULT_ENDPOINT="https://${AZURE_KEYVAULT_NAME}.vault.azure.net/"
+K8S_CONFIG=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name k8s-config --query value -o tsv)
+HOSTNAME=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name hostname --query value -o tsv)
+API_CLIENT_ID=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name api-client-id --query value -o tsv)
 
 # Create a temporary file in /dev/shm (RAM) to avoid writing to disk
 KUBECONFIG_FILE=$(mktemp /dev/shm/kubeconfig.XXXXXX)
