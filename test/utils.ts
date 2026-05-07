@@ -197,6 +197,10 @@ export async function populateDb(): Promise<void> {
     INSERT INTO test1.secrets (NAME) VALUES ('a');
     INSERT INTO test1.secrets (NAME) VALUES ('b');
     INSERT INTO test1.secrets (NAME) VALUES ('c');
+    ANALYZE test1.fruites;
+    ANALYZE test1.vegetables;
+    ANALYZE test1.passwords;
+    ANALYZE test1.secrets;
   `;
 
   const db2Query = `
@@ -226,6 +230,10 @@ export async function populateDb(): Promise<void> {
     INSERT INTO test2.secrets (secret) VALUES ('bravo');
     INSERT INTO test2.secrets (secret) VALUES ('charlie');
     INSERT INTO test2.secrets (secret) VALUES ('delta');
+    ANALYZE test2.animals;
+    ANALYZE test2.countries;
+    ANALYZE test2.books;
+    ANALYZE test2.secrets;
   `;
 
   await executeDbQuery(8164, db1Query);

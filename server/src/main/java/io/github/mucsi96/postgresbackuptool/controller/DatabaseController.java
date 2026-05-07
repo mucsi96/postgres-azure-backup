@@ -36,19 +36,19 @@ public class DatabaseController {
     @ResponseBody
     public List<Database> getDatabases() {
         return databaseService.getDatabaseNames().stream().map(databaseName -> {
-            DatabaseInfo databaseInfo = databaseService
-                    .getDatabaseInfo(databaseName);
+            DatabaseService.DatabaseSummary summary = databaseService
+                    .getDatabaseSummary(databaseName);
             DatabaseConfiguration databaseConfiguration = databaseService
                     .getDatabaseConfiguration(databaseName);
-            Optional<Instant> lastBackupTime = backupService.getLastBackupTime(
-                    databaseConfiguration.getPrefix());
             List<Backup> backups = backupService
                     .getBackups(databaseConfiguration.getPrefix());
+            Optional<Instant> lastBackupTime = backups.stream().findFirst()
+                    .map(Backup::getLastModified);
             int totalFileCount = folderBackupService
                     .collectFolders(databaseConfiguration.getFolderBackups()).size();
             return Database.builder().name(databaseName)
-                    .totalRowCount(databaseInfo.getTotalRowCount())
-                    .tablesCount(databaseInfo.getTables().size())
+                    .totalRowCount(summary.totalRowCount())
+                    .tablesCount(summary.tablesCount())
                     .fileCount(totalFileCount)
                     .backupsCount(backups.size())
                     .lastBackupTime(lastBackupTime.orElse(null)).build();
