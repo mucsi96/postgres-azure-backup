@@ -1,17 +1,15 @@
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, resource, signal } from '@angular/core';
-import {
-  ErrorNotificationEvent,
-  SuccessNotificationEvent,
-} from '@mucsi96/ui-elements';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Database } from '../../types';
 import { fetchJson } from '../utils/fetchJson';
-import { HttpClient } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root',
 })
 export class DatabasesService {
   private readonly http = inject(HttpClient);
+  private readonly snackBar = inject(MatSnackBar);
   readonly processing = signal(false);
   readonly databases = resource<Database[], {}>({
     loader: async () => {
@@ -24,12 +22,7 @@ export class DatabasesService {
           ...db,
           lastBackupTime: db.lastBackupTime && new Date(db.lastBackupTime),
         }));
-      } catch (error) {
-        const message =
-          error instanceof Error && error.message
-            ? error.message
-            : 'Could not get databases.';
-        document.dispatchEvent(new ErrorNotificationEvent(message));
+      } catch {
         return [];
       }
     },
@@ -39,15 +32,12 @@ export class DatabasesService {
     try {
       this.processing.set(true);
       await fetchJson<void>(this.http, '/api/smart-backup', { method: 'post' });
-      document.dispatchEvent(
-        new SuccessNotificationEvent('Smart backup completed')
-      );
-    } catch (error) {
-      const message =
-        error instanceof Error && error.message
-          ? error.message
-          : 'Could not run smart backup.';
-      document.dispatchEvent(new ErrorNotificationEvent(message));
+      this.snackBar.open('Smart backup completed', 'Close', {
+        duration: 3000,
+        verticalPosition: 'top',
+      });
+    } catch {
+      // Error toast is shown by the global error interceptor.
     }
     this.processing.set(false);
     this.databases.reload();

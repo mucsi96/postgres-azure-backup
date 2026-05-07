@@ -14,6 +14,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from 'angular-auth-oidc-client';
 import { provideOidcAuth } from './auth.config';
 import { EnvironmentConfig, ENVIRONMENT_CONFIG } from './environment/environment.config';
+import { errorInterceptor } from './utils/error.interceptor';
 
 const globalRippleConfig: RippleGlobalOptions = {
   disabled: true,
@@ -26,7 +27,10 @@ export function getAppConfig(environment: EnvironmentConfig): ApplicationConfig 
       provideRouter(routes),
       { provide: MAT_RIPPLE_GLOBAL_OPTIONS, useValue: globalRippleConfig },
       provideAnimationsAsync(),
-      provideHttpClient(withFetch(), withInterceptors([authInterceptor()])),
+      provideHttpClient(
+        withFetch(),
+        withInterceptors([authInterceptor(), errorInterceptor])
+      ),
       { provide: ENVIRONMENT_CONFIG, useValue: environment },
       provideOidcAuth(environment),
     ],

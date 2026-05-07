@@ -1,9 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, resource, signal } from '@angular/core';
-import {
-  ErrorNotificationEvent,
-  SuccessNotificationEvent,
-} from '@mucsi96/ui-elements';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Table } from '../../types';
 import { SelectedDatabaseService } from '../database/selected-database.service';
 import { fetchJson } from '../utils/fetchJson';
@@ -14,6 +11,7 @@ import { fetchJson } from '../utils/fetchJson';
 export class TablesService {
   private readonly http = inject(HttpClient);
   private readonly selectedDatabaseService = inject(SelectedDatabaseService);
+  private readonly snackBar = inject(MatSnackBar);
   readonly processing = signal(false);
   readonly tables = resource<
     {
@@ -37,12 +35,7 @@ export class TablesService {
           fileCount: number;
         }>(this.http, `/api/database/${databaseName}/tables`);
         return response;
-      } catch (error) {
-        const message =
-          error instanceof Error && error.message
-            ? error.message
-            : 'Could not get tables.';
-        document.dispatchEvent(new ErrorNotificationEvent(message));
+      } catch {
         return { tables: [], totalRowCount: 0, fileCount: 0 };
       }
     },
@@ -60,13 +53,12 @@ export class TablesService {
         `/api/database/${databaseName}/backup`,
         { method: 'post' }
       );
-      document.dispatchEvent(new SuccessNotificationEvent('Backup created'));
-    } catch (error) {
-      const message =
-        error instanceof Error && error.message
-          ? error.message
-          : 'Could not create backup.';
-      document.dispatchEvent(new ErrorNotificationEvent(message));
+      this.snackBar.open('Backup created', 'Close', {
+        duration: 3000,
+        verticalPosition: 'top',
+      });
+    } catch {
+      // Error toast is shown by the global error interceptor.
     }
     this.processing.set(false);
     this.tables.reload();
@@ -84,14 +76,13 @@ export class TablesService {
         `/api/database/${databaseName}/restore/${selectedBackup}`,
         { method: 'post' }
       );
-      document.dispatchEvent(new SuccessNotificationEvent('Backup restored'));
+      this.snackBar.open('Backup restored', 'Close', {
+        duration: 3000,
+        verticalPosition: 'top',
+      });
       this.tables.reload();
-    } catch (error) {
-      const message =
-        error instanceof Error && error.message
-          ? error.message
-          : 'Could not restore backup.';
-      document.dispatchEvent(new ErrorNotificationEvent(message));
+    } catch {
+      // Error toast is shown by the global error interceptor.
     }
     this.processing.set(false);
     this.tables.reload();
@@ -111,10 +102,8 @@ export class TablesService {
       );
 
       window.open(`/api/download/${token}`, '_self');
-    } catch (error) {
-      document.dispatchEvent(
-        new ErrorNotificationEvent('Could not export SQL data.')
-      );
+    } catch {
+      // Error toast is shown by the global error interceptor.
     }
     this.processing.set(false);
   }
@@ -138,8 +127,8 @@ export class TablesService {
       );
 
       window.open(`/api/download/${token}`, '_self');
-    } catch (error) {
-      document.dispatchEvent(new ErrorNotificationEvent('Could not download backup.'));
+    } catch {
+      // Error toast is shown by the global error interceptor.
     }
   }
 }
