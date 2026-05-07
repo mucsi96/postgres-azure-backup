@@ -68,11 +68,8 @@ public class BackupService {
         long size = properties.getContentLength() != null
                 ? properties.getContentLength()
                 : 0L;
-        Instant lastModified = properties.getLastModified() != null
-                ? properties.getLastModified().toInstant()
-                : parseBackupTimestamp(name);
         return Backup.builder().name(name)
-                .lastModified(lastModified)
+                .lastModified(parseBackupTimestamp(name))
                 .size(size)
                 .totalRowCount(getTotalCountFromName(name))
                 .fileCount(getFileCountFromName(name))
