@@ -25,7 +25,11 @@ export class DatabasesService {
           lastBackupTime: db.lastBackupTime && new Date(db.lastBackupTime),
         }));
       } catch (error) {
-        dispatchEvent(new ErrorNotificationEvent('Could not get databases.'));
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : 'Could not get databases.';
+        dispatchEvent(new ErrorNotificationEvent(message));
         return [];
       }
     },
@@ -39,7 +43,11 @@ export class DatabasesService {
         new SuccessNotificationEvent('Smart backup completed')
       );
     } catch (error) {
-      dispatchEvent(new ErrorNotificationEvent('Could not run smart backup.'));
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Could not run smart backup.';
+      dispatchEvent(new ErrorNotificationEvent(message));
     }
     this.processing.set(false);
     this.databases.reload();

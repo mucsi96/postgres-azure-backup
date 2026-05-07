@@ -38,7 +38,11 @@ export class TablesService {
         }>(this.http, `/api/database/${databaseName}/tables`);
         return response;
       } catch (error) {
-        dispatchEvent(new ErrorNotificationEvent('Could not get tables.'));
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : 'Could not get tables.';
+        dispatchEvent(new ErrorNotificationEvent(message));
         return { tables: [], totalRowCount: 0, fileCount: 0 };
       }
     },
@@ -58,7 +62,11 @@ export class TablesService {
       );
       document.dispatchEvent(new SuccessNotificationEvent('Backup created'));
     } catch (error) {
-      dispatchEvent(new ErrorNotificationEvent('Could not create backup.'));
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Could not create backup.';
+      dispatchEvent(new ErrorNotificationEvent(message));
     }
     this.processing.set(false);
     this.tables.reload();
@@ -79,7 +87,11 @@ export class TablesService {
       document.dispatchEvent(new SuccessNotificationEvent('Backup restored'));
       this.tables.reload();
     } catch (error) {
-      dispatchEvent(new ErrorNotificationEvent('Could not restore backup.'));
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Could not restore backup.';
+      dispatchEvent(new ErrorNotificationEvent(message));
     }
     this.processing.set(false);
     this.tables.reload();

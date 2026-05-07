@@ -36,13 +36,18 @@ public class FolderBackupService {
             Path folderPath = Paths.get(config.getPath());
 
             if (!Files.exists(folderPath)) {
-                log.warn("Folder does not exist: {}", config.getPath());
-                continue;
+                throw new FolderBackupPathException(String.format(
+                    "Folder backup path does not exist: '%s'. "
+                    + "The PersistentVolumeClaim is likely missing or its mountPath is misconfigured. "
+                    + "Verify the PVC is bound and mounted at this path on the backup pod.",
+                    config.getPath()));
             }
 
             if (!Files.isDirectory(folderPath)) {
-                log.warn("Path is not a directory: {}", config.getPath());
-                continue;
+                throw new FolderBackupPathException(String.format(
+                    "Folder backup path is not a directory: '%s'. "
+                    + "Check that the configured path points to a directory, not a file.",
+                    config.getPath()));
             }
 
             log.info("Collecting files from folder: {}", config.getPath());
