@@ -1,35 +1,60 @@
 @if (tableData.isLoading()) {
-<div role="progressbar" bt></div>
+<mat-spinner class="page-loading" />
 } @else {
-<button bt [disabled]="processing()" (click)="createBackup()">Backup</button>
-<button bt [disabled]="processing()" (click)="exportSql()">Export SQL</button>
-<h2 bt>
-  Records <span bt-badge>{{ totalRowCount() }}</span>
-</h2>
-<h2 bt>
-  Files <span bt-badge>{{ fileCount() }}</span>
-</h2>
-<div class="tables">
-  <h2 bt>
-    Tables <span bt-badge>{{ tables()?.length }}</span>
+<section class="actions">
+  <button
+    mat-flat-button
+    color="primary"
+    [disabled]="processing()"
+    (click)="createBackup()"
+  >
+    Backup
+  </button>
+  <button
+    mat-stroked-button
+    [disabled]="processing()"
+    (click)="exportSql()"
+  >
+    Export SQL
+  </button>
+</section>
+
+<section class="stats">
+  <div class="stat">
+    <span class="label">Records</span>
+    <span class="count-badge">{{ totalRowCount() }}</span>
+  </div>
+  <div class="stat">
+    <span class="label">Files</span>
+    <span class="count-badge">{{ fileCount() }}</span>
+  </div>
+</section>
+
+<section class="tables">
+  <h2>
+    Tables <span class="count-badge">{{ tables()?.length }}</span>
   </h2>
   @if (tables()?.length) {
-  <table bt>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th bt-center-align>Records</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (table of tables(); track table.name) {
-      <tr>
-        <td bt-highlighted bt-no-wrap>{{ table.name }}</td>
-        <td bt-center-align>{{ table.rowCount }}</td>
-      </tr>
-      }
-    </tbody>
-  </table>
+  <mat-card class="table-card">
+    <table mat-table [dataSource]="tables() ?? []" class="data-table">
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Name</th>
+        <td mat-cell *matCellDef="let table" class="highlighted">
+          {{ table.name }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="rowCount">
+        <th mat-header-cell *matHeaderCellDef class="center">Records</th>
+        <td mat-cell *matCellDef="let table" class="center">
+          {{ table.rowCount }}
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </mat-card>
   }
-</div>
+</section>
 }

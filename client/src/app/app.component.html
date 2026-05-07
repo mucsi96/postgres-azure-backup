@@ -1,13 +1,14 @@
-<header bt>
+<mat-toolbar class="header">
   <nav>
-    <a routerLink="" bt-logo (click)="resetSelectedDatabase()"
+    <a mat-button routerLink="" (click)="resetSelectedDatabase()"
       >Postgres Backup Tool</a
     >
-    @if(isAuthenticated()) {
-      <app-header></app-header>
+    @if (isAuthenticated()) {
+    <app-header></app-header>
     }
   </nav>
-</header>
-<main bt>
+</mat-toolbar>
+
+<main>
   <router-outlet></router-outlet>
 </main>

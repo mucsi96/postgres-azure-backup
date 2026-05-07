@@ -1,47 +1,84 @@
 @if (databases.isLoading()) {
-<div role="progressbar" bt></div>
+<mat-spinner class="page-loading" />
 } @else {
-<button bt [disabled]="processing()" (click)="smartBackup()">
-  Smart backup
-</button>
-<h2 bt>
-  Databases <span bt-badge>{{ databases.value()?.length }}</span>
-</h2>
+<div class="header-row">
+  <h2>
+    Databases
+    <span class="count-badge">{{ databases.value()?.length }}</span>
+  </h2>
+  <button
+    mat-flat-button
+    color="primary"
+    [disabled]="processing()"
+    (click)="smartBackup()"
+  >
+    Smart backup
+  </button>
+</div>
 @if (databases.value()?.length) {
-<table bt id="backups">
-  <thead>
-    <tr>
-      <th></th>
-      <th>Name</th>
-      <th bt-center-align>Tables</th>
-      <th bt-center-align>Records</th>
-      <th bt-center-align>Files</th>
-      <th bt-center-align>Backups</th>
-      <th bt-right-align>Last backup</th>
-    </tr>
-  </thead>
-  <tbody>
-    @for (database of databases.value(); track database.name) {
-    <tr (click)="selectDatabase(database)">
-      <td bt-row-selector></td>
-      <td bt-no-wrap bt-now-wrap bt-highlighted>{{ database.name }}</td>
-      <td bt-no-wrap bt-center-align>{{ database.tablesCount }}</td>
-      <td bt-no-wrap bt-center-align>{{ database.totalRowCount }}</td>
-      <td bt-no-wrap bt-center-align>{{ database.fileCount }}</td>
-      <td bt-no-wrap bt-center-align>{{ database.backupsCount }}</td>
-
-      <td
-        bt-no-wrap
-        bt-right-align
-        bt-text
-        [attr.bt-green]="!olderThenOneDay(database.lastBackupTime) ? '' : null"
-        [attr.bt-red]="olderThenOneDay(database.lastBackupTime) ? '' : null"
-      >
-        @if (database.lastBackupTime)
-        {{{ database.lastBackupTime | relativeTime }}}@else { — }
+<mat-card class="table-card">
+  <table mat-table [dataSource]="databases.value() ?? []" class="databases-table">
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef>Name</th>
+      <td mat-cell *matCellDef="let database" class="highlighted">
+        {{ database.name }}
       </td>
-    </tr>
-    }
-  </tbody>
-</table>
+    </ng-container>
+
+    <ng-container matColumnDef="tablesCount">
+      <th mat-header-cell *matHeaderCellDef class="center">Tables</th>
+      <td mat-cell *matCellDef="let database" class="center">
+        {{ database.tablesCount }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="totalRowCount">
+      <th mat-header-cell *matHeaderCellDef class="center">Records</th>
+      <td mat-cell *matCellDef="let database" class="center">
+        {{ database.totalRowCount }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="fileCount">
+      <th mat-header-cell *matHeaderCellDef class="center">Files</th>
+      <td mat-cell *matCellDef="let database" class="center">
+        {{ database.fileCount }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="backupsCount">
+      <th mat-header-cell *matHeaderCellDef class="center">Backups</th>
+      <td mat-cell *matCellDef="let database" class="center">
+        {{ database.backupsCount }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="lastBackupTime">
+      <th mat-header-cell *matHeaderCellDef class="right">Last backup</th>
+      <td mat-cell *matCellDef="let database" class="right">
+        <span
+          class="badge"
+          [class.green]="
+            database.lastBackupTime && !olderThenOneDay(database.lastBackupTime)
+          "
+          [class.red]="olderThenOneDay(database.lastBackupTime)"
+        >
+          @if (database.lastBackupTime) {
+            {{ database.lastBackupTime | relativeTime }}
+          } @else {
+            —
+          }
+        </span>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr
+      mat-row
+      *matRowDef="let row; columns: displayedColumns"
+      class="clickable-row"
+      (click)="selectDatabase(row)"
+    ></tr>
+  </table>
+</mat-card>
 } }

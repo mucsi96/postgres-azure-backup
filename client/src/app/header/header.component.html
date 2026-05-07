@@ -1,41 +1,31 @@
 <div class="selected-database">
   @if (databaseName()) {
-  <button bt bt-dropdown popovertarget="dropdown-menu-popover">
+  <button mat-stroked-button [matMenuTriggerFor]="databaseMenu" class="database-trigger">
     {{ databaseName() }}
-    <svg></svg>
+    <mat-icon>arrow_drop_down</mat-icon>
   </button>
-  <div popover bt id="dropdown-menu-popover" #popover>
-    <ul bt-dropdown-menu>
-      @for(database of databases.value(); track database.name) {
-      <li>
-        <a
-          routerLink="/database/{{ database.name }}"
-          (click)="popover.hidePopover()"
-          >{{ database.name }}</a
-        >
-      </li>
-      }
-    </ul>
-  </div>
+  <mat-menu #databaseMenu="matMenu">
+    @for (database of databases.value(); track database.name) {
+    <a mat-menu-item routerLink="/database/{{ database.name }}">{{ database.name }}</a>
+    }
+  </mat-menu>
   @let time = lastBackupTime.value();
-  <h3 bt>
-    Last backup
+  <div class="last-backup">
+    <span class="label">Last backup</span>
     <span
-      bt-badge
-      [attr.bt-green]="!olderThenOneDay(time) ? '' : null"
-      [attr.bt-red]="olderThenOneDay(time) ? '' : null"
+      class="badge"
+      [class.green]="time && !olderThenOneDay(time)"
+      [class.red]="olderThenOneDay(time)"
       >@if (time) {{{ time | relativeTime }}} @else { — }</span
     >
-  </h3>
+  </div>
   }
-  <button bt-avatar id="avatar" popovertarget="avatar-popover">
+  <button class="avatar" [matMenuTriggerFor]="profileMenu" aria-label="Profile menu">
     {{ profile()?.initials }}
   </button>
-  <div popover bt id="avatar-popover">
-    <ul bt-dropdown-menu>
-      <li>
-        {{ profile()?.name }}
-      </li>
-    </ul>
-  </div>
+  <mat-menu #profileMenu="matMenu">
+    <span class="profile-name">
+      {{ profile()?.name }}
+    </span>
+  </mat-menu>
 </div>

@@ -1,3 +1,25 @@
+.header {
+  border-bottom: 1px solid hsl(215, 14%, 34%);
+  display: block;
+  padding: env(safe-area-inset-top) 0 0;
+
+  nav {
+    padding: 0 max(1rem, env(safe-area-inset-right)) 0
+      max(1rem, env(safe-area-inset-left));
+    max-width: 90rem;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+  }
+}
+
 main {
-  margin-top: 32px;
+  display: block;
+  padding: 1px max(1rem, env(safe-area-inset-right))
+    env(safe-area-inset-bottom) max(1rem, env(safe-area-inset-left));
+  max-width: 90rem;
+  margin: 32px auto 0;
 }

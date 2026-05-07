@@ -1,23 +1,89 @@
 :host {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  column-gap: 20px;
-  row-gap: 20px;
+  display: block;
 }
 
-button {
-  grid-column: 2;
-  grid-row: 1;
-  align-self: center;
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  gap: 1rem;
 }
 
-h2 {
-  grid-column: 1;
-  grid-row: 1;
-  align-self: center;
+.header-row h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
 }
 
-[role="progressbar"],
-table {
-  grid-column: 1 / -1;
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  padding: 0 8px;
+  height: 22px;
+  border-radius: 999px;
+  background-color: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+  font-size: 0.75rem;
+}
+
+.table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.databases-table {
+  width: 100%;
+  background: transparent;
+}
+
+.databases-table .center {
+  text-align: center;
+}
+
+.databases-table .right {
+  text-align: right;
+}
+
+.databases-table .highlighted {
+  color: var(--mat-sys-on-surface);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.clickable-row:hover {
+  background-color: var(--mat-sys-surface-container);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.badge.green {
+  background-color: hsl(145, 78%, 28%);
+  color: hsl(145, 78%, 92%);
+}
+
+.badge.red {
+  background-color: hsl(0, 60%, 35%);
+  color: hsl(0, 96%, 92%);
+}
+
+.page-loading {
+  margin: 80px auto;
 }

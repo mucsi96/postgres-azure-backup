@@ -2,5 +2,11 @@
   display: grid;
   grid-template-columns: 1fr 4fr;
   align-items: flex-start;
-  gap: 32px;
+  gap: 2rem;
+}
+
+@media (max-width: 1000px) {
+  :host {
+    grid-template-columns: 1fr;
+  }
 }

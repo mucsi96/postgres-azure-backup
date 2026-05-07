@@ -1,10 +1,76 @@
 :host {
   display: grid;
-  gap: 40px;
-
-  .tables {
-    display: grid;
-    gap: 20px;
-  }
+  gap: 1.5rem;
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--mat-sys-surface);
+  border-radius: 0.5rem;
+  color: var(--mat-sys-on-surface);
+  font-size: 0.875rem;
+}
+
+.tables {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.tables h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+}
+
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  padding: 0 8px;
+  height: 22px;
+  border-radius: 999px;
+  background-color: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+  font-size: 0.75rem;
+}
+
+.table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.data-table {
+  width: 100%;
+  background: transparent;
+}
+
+.data-table .center {
+  text-align: center;
+}
+
+.data-table .highlighted {
+  color: var(--mat-sys-on-surface);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.page-loading {
+  margin: 80px auto;
+}

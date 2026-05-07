@@ -1,5 +1,69 @@
 .selected-database {
   display: inline-flex;
   align-items: center;
-  gap: 20px;
+  gap: 1rem;
+}
+
+.database-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.last-backup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--mat-app-text-color);
+  font-size: 0.875rem;
+}
+
+.last-backup .label {
+  color: var(--mat-sys-on-surface);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.badge.green {
+  background-color: hsl(145, 78%, 28%);
+  color: hsl(145, 78%, 92%);
+}
+
+.badge.red {
+  background-color: hsl(0, 60%, 35%);
+  color: hsl(0, 96%, 92%);
+}
+
+.avatar {
+  display: inline-flex;
+  user-select: none;
+  background-color: hsl(215, 14%, 34%);
+  border-radius: 50%;
+  height: 40px;
+  justify-content: center;
+  align-items: center;
+  aspect-ratio: 1;
+  color: white;
+  font-size: 18px;
+  border: unset;
+  cursor: pointer;
+}
+
+.profile-name {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding-left: var(--mat-menu-item-leading-spacing);
+  padding-right: var(--mat-menu-item-trailing-spacing);
+  min-height: 36px;
+  color: var(--mat-sys-on-surface);
 }

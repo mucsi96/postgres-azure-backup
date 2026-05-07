@@ -2,7 +2,6 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { getAppConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
 import { EnvironmentConfig } from './app/environment/environment.config';
-import '@mucsi96/ui-elements';
 
 loadEnvironmentConfig().then(environment => {
   bootstrapApplication(AppComponent, getAppConfig(environment))

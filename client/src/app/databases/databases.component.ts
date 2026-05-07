@@ -1,4 +1,8 @@
 import { Component, inject } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTableModule } from '@angular/material/table';
 import { Router } from '@angular/router';
 import { Database } from '../../types';
 import { olderThenOneDay } from '../utils/dateUtils';
@@ -8,7 +12,13 @@ import { DatabasesService } from './databases.service';
 @Component({
   selector: 'app-databases',
   standalone: true,
-  imports: [RelativeTimePipe],
+  imports: [
+    RelativeTimePipe,
+    MatButtonModule,
+    MatCardModule,
+    MatProgressSpinnerModule,
+    MatTableModule,
+  ],
   templateUrl: './databases.component.html',
   styleUrl: './databases.component.css',
 })
@@ -18,6 +28,15 @@ export class DatabasesComponent {
   databases = this.databasesService.databases;
   processing = this.databasesService.processing;
   olderThenOneDay = olderThenOneDay;
+
+  readonly displayedColumns = [
+    'name',
+    'tablesCount',
+    'totalRowCount',
+    'fileCount',
+    'backupsCount',
+    'lastBackupTime',
+  ];
 
   selectDatabase(database: Database) {
     this.router.navigate(['/database', database.name]);
