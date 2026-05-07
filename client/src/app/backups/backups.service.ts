@@ -1,6 +1,5 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, resource } from '@angular/core';
-import { ErrorNotificationEvent } from '@mucsi96/ui-elements';
 import { Backup } from '../../types';
 import { SelectedDatabaseService } from '../database/selected-database.service';
 import { fetchJson } from '../utils/fetchJson';
@@ -30,8 +29,7 @@ export class BackupsService {
           ...backup,
           lastModified: new Date(backup.lastModified),
         }));
-      } catch (error) {
-        dispatchEvent(new ErrorNotificationEvent('Could not get backups.'));
+      } catch {
         return [];
       }
     },
@@ -54,10 +52,7 @@ export class BackupsService {
         );
 
         return lastBackupTime && new Date(lastBackupTime);
-      } catch (error) {
-        dispatchEvent(
-          new ErrorNotificationEvent('Could not get last backup time.')
-        );
+      } catch {
         return undefined;
       }
     },

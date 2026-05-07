@@ -144,7 +144,7 @@ test.describe('Folder Backup Tests', () => {
     // Restore backup via UI
     await page.locator(':text("Backups") + table').getByText('356 days').click();
     await page.getByRole('button', { name: 'Restore' }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Backup restored' })).toBeVisible();
+    await expect(page.getByText('Backup restored')).toBeVisible();
 
     // Verify UI still shows file count after restore
     await expect(page.getByRole('heading', { name: 'Files' })).toHaveText('Files 2');
