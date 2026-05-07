@@ -89,7 +89,7 @@ test.describe('Database Tests', () => {
 
     await page.locator(':text("Backups") + table').getByText('356 days').click();
     await page.getByRole('button', { name: 'Restore' }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Backup restored' })).toBeVisible();
+    await expect(page.getByText('Backup restored')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 9');
     await expect(page.getByRole('heading', { name: 'Files' })).toHaveText('Files 0');
     await expect(page.getByRole('heading', { name: 'Tables' })).toHaveText('Tables 2');
@@ -118,7 +118,7 @@ test.describe('Database Tests', () => {
       await page.getByText('db1').click();
       await page.locator(':text("Backups") + table').getByText('356 days').click();
       await page.getByRole('button', { name: 'Restore' }).click();
-      await expect(page.getByRole('status').filter({ hasText: 'Backup restored' })).toBeVisible();
+      await expect(page.getByText('Backup restored')).toBeVisible();
 
       // db1's own schema is restored — excluded tables are recreated
       // (empty) so the application keeps working.
@@ -144,7 +144,7 @@ test.describe('Database Tests', () => {
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 9');
 
     await page.getByRole('button', { name: 'Backup' }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Backup created' })).toBeVisible();
+    await expect(page.getByText('Backup created')).toBeVisible();
 
     const backups = await getBackupsFromStorage('db1');
     expect(backups.length).toBe(1);
@@ -162,7 +162,7 @@ test.describe('Database Tests', () => {
     await page.getByText('db1').click();
     await page.locator(':text("Backups") + table').getByText('356 days').click();
     await page.getByRole('button', { name: 'Restore' }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Backup restored' })).toBeVisible();
+    await expect(page.getByText('Backup restored')).toBeVisible();
 
     // Excluded tables must be recreated so the application can keep
     // working — only their rows are skipped.

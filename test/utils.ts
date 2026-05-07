@@ -426,7 +426,7 @@ export async function triggerBackup(page: Page): Promise<void> {
   await page.goto('/');
   await page.getByRole('button', { name: 'Smart backup' }).click();
   await expect(
-    page.getByRole('status').filter({ hasText: 'Smart backup completed' })
+    page.getByText('Smart backup completed')
   ).toBeVisible({ timeout: 60000 });
 }
 
