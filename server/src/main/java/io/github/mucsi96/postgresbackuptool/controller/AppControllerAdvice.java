@@ -9,8 +9,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import io.github.mucsi96.postgresbackuptool.service.FolderBackupPathException;
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 
 @ControllerAdvice
+@Slf4j
 public class AppControllerAdvice {
 
   @ExceptionHandler(ConstraintViolationException.class)
@@ -20,6 +22,7 @@ public class AppControllerAdvice {
 
   @ExceptionHandler(FolderBackupPathException.class)
   public ResponseEntity<Map<String, String>> handleFolderBackupPath(FolderBackupPathException ex) {
+    log.error("Folder backup path misconfiguration: {}", ex.getMessage());
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
         .body(Map.of("message", ex.getMessage()));
   }

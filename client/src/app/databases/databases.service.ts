@@ -29,7 +29,7 @@ export class DatabasesService {
           error instanceof Error && error.message
             ? error.message
             : 'Could not get databases.';
-        dispatchEvent(new ErrorNotificationEvent(message));
+        document.dispatchEvent(new ErrorNotificationEvent(message));
         return [];
       }
     },
@@ -47,7 +47,7 @@ export class DatabasesService {
         error instanceof Error && error.message
           ? error.message
           : 'Could not run smart backup.';
-      dispatchEvent(new ErrorNotificationEvent(message));
+      document.dispatchEvent(new ErrorNotificationEvent(message));
     }
     this.processing.set(false);
     this.databases.reload();

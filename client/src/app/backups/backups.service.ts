@@ -31,7 +31,11 @@ export class BackupsService {
           lastModified: new Date(backup.lastModified),
         }));
       } catch (error) {
-        dispatchEvent(new ErrorNotificationEvent('Could not get backups.'));
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : 'Could not get backups.';
+        document.dispatchEvent(new ErrorNotificationEvent(message));
         return [];
       }
     },
@@ -55,9 +59,11 @@ export class BackupsService {
 
         return lastBackupTime && new Date(lastBackupTime);
       } catch (error) {
-        dispatchEvent(
-          new ErrorNotificationEvent('Could not get last backup time.')
-        );
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : 'Could not get last backup time.';
+        document.dispatchEvent(new ErrorNotificationEvent(message));
         return undefined;
       }
     },

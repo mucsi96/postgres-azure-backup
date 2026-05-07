@@ -42,7 +42,7 @@ export class TablesService {
           error instanceof Error && error.message
             ? error.message
             : 'Could not get tables.';
-        dispatchEvent(new ErrorNotificationEvent(message));
+        document.dispatchEvent(new ErrorNotificationEvent(message));
         return { tables: [], totalRowCount: 0, fileCount: 0 };
       }
     },
@@ -66,7 +66,7 @@ export class TablesService {
         error instanceof Error && error.message
           ? error.message
           : 'Could not create backup.';
-      dispatchEvent(new ErrorNotificationEvent(message));
+      document.dispatchEvent(new ErrorNotificationEvent(message));
     }
     this.processing.set(false);
     this.tables.reload();
@@ -91,7 +91,7 @@ export class TablesService {
         error instanceof Error && error.message
           ? error.message
           : 'Could not restore backup.';
-      dispatchEvent(new ErrorNotificationEvent(message));
+      document.dispatchEvent(new ErrorNotificationEvent(message));
     }
     this.processing.set(false);
     this.tables.reload();
@@ -112,7 +112,7 @@ export class TablesService {
 
       window.open(`/api/download/${token}`, '_self');
     } catch (error) {
-      dispatchEvent(
+      document.dispatchEvent(
         new ErrorNotificationEvent('Could not export SQL data.')
       );
     }
@@ -139,7 +139,7 @@ export class TablesService {
 
       window.open(`/api/download/${token}`, '_self');
     } catch (error) {
-      dispatchEvent(new ErrorNotificationEvent('Could not download backup.'));
+      document.dispatchEvent(new ErrorNotificationEvent('Could not download backup.'));
     }
   }
 }
