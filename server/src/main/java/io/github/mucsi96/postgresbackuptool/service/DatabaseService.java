@@ -68,6 +68,37 @@ public class DatabaseService {
 
     }
 
+    public record DatabaseSummary(int tablesCount, int totalRowCount) {
+    }
+
+    public DatabaseSummary getDatabaseSummary(String databaseName) {
+        DatabaseConfiguration databaseConfiguration = getDatabaseConfiguration(
+                databaseName);
+        List<String> excludeTables = databaseConfiguration.getExcludeTables();
+        String sql = "SELECT c.relname AS table_name, "
+                + "GREATEST(c.reltuples, 0)::bigint AS row_count "
+                + "FROM pg_class c "
+                + "JOIN pg_namespace n ON n.oid = c.relnamespace "
+                + "WHERE c.relkind = 'r' AND n.nspname = ?";
+        List<Map<String, Object>> rows = databaseConfiguration.getJdbcTemplate()
+                .queryForList(sql, databaseConfiguration.getSchema());
+        int tablesCount = 0;
+        long totalRowCount = 0L;
+        for (Map<String, Object> row : rows) {
+            String tableName = (String) row.get("table_name");
+            if (excludeTables.contains(tableName)) {
+                continue;
+            }
+            tablesCount++;
+            Object rc = row.get("row_count");
+            if (rc instanceof Number) {
+                totalRowCount += ((Number) rc).longValue();
+            }
+        }
+        return new DatabaseSummary(tablesCount,
+                (int) Math.min(totalRowCount, Integer.MAX_VALUE));
+    }
+
     public File createDump(String databaseName, String format)
             throws IOException, InterruptedException {
         return executePgDump(databaseName, format, false);
