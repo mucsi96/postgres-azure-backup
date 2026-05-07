@@ -51,6 +51,10 @@ public class DatabaseConfiguration {
 
     private List<FolderBackupConfig> folderBackups = List.of();
 
+    public List<FolderBackupConfig> getFolderBackups() {
+        return folderBackups == null ? List.of() : folderBackups;
+    }
+
     @JsonIgnore
     public String getPrefix() {
         return name.toLowerCase().replaceAll("[^a-zA-Z0-9]", "-");
