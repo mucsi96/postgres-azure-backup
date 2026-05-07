@@ -1,6 +1,3 @@
-keyvault-endpoint: ${AZURE_KEYVAULT_ENDPOINT}
-databases-config-secret-name: dbs-config
-
 server:
   forward-headers-strategy: framework
   servlet:
@@ -11,7 +8,7 @@ spring:
       keyvault:
         secret:
           property-sources:
-            - endpoint: ${keyvault-endpoint}
+            - endpoint: ${AZURE_KEYVAULT_ENDPOINT}
               enabled: true
 
       storage:
