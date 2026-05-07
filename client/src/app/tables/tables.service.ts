@@ -56,6 +56,7 @@ export class TablesService {
       this.snackBar.open('Backup created', 'Close', {
         duration: 3000,
         verticalPosition: 'top',
+        panelClass: ['success'],
       });
     } catch {
       // Error toast is shown by the global error interceptor.
@@ -79,6 +80,7 @@ export class TablesService {
       this.snackBar.open('Backup restored', 'Close', {
         duration: 3000,
         verticalPosition: 'top',
+        panelClass: ['success'],
       });
       this.tables.reload();
     } catch {

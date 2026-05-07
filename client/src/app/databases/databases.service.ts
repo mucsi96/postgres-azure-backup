@@ -35,6 +35,7 @@ export class DatabasesService {
       this.snackBar.open('Smart backup completed', 'Close', {
         duration: 3000,
         verticalPosition: 'top',
+        panelClass: ['success'],
       });
     } catch {
       // Error toast is shown by the global error interceptor.

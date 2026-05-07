@@ -9,3 +9,15 @@ body {
   color: var(--bt-text-color);
   font-family: var(--bt-font-family);
 }
+
+mat-snack-bar-container {
+  &.success {
+    --mat-snack-bar-container-color: hsl(145, 78%, 68%);
+    --mat-snack-bar-supporting-text-color: hsl(145, 100%, 14%);
+  }
+
+  &.error {
+    --mat-snack-bar-container-color: hsl(0, 96%, 77%);
+    --mat-snack-bar-supporting-text-color: hsl(0, 74%, 16%);
+  }
+}
