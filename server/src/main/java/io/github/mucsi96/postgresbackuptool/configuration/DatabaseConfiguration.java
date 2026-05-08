@@ -51,6 +51,10 @@ public class DatabaseConfiguration {
 
     private List<FolderBackupConfig> folderBackups = List.of();
 
+    public List<String> getExcludeTables() {
+        return excludeTables == null ? List.of() : excludeTables;
+    }
+
     public List<FolderBackupConfig> getFolderBackups() {
         return folderBackups == null ? List.of() : folderBackups;
     }
