@@ -1,4 +1,7 @@
 import { Component, inject } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { Router } from '@angular/router';
 import { Database } from '../../types';
 import { olderThenOneDay } from '../utils/dateUtils';
@@ -8,7 +11,7 @@ import { DatabasesService } from './databases.service';
 @Component({
   selector: 'app-databases',
   standalone: true,
-  imports: [RelativeTimePipe],
+  imports: [RelativeTimePipe, MatButtonModule, MatIconModule, MatMenuModule],
   templateUrl: './databases.component.html',
   styleUrl: './databases.component.css',
 })

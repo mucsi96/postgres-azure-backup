@@ -2,25 +2,28 @@
 <div role="progressbar" bt></div>
 } @else {
 <div class="backup-actions">
-  <button bt [disabled]="processing()" (click)="backup()">Backup</button>
   <button
-    bt
-    bt-dropdown
+    mat-flat-button
+    color="primary"
+    class="backup-primary"
     [disabled]="processing()"
-    popovertarget="backup-options-popover"
+    (click)="backup()"
+  >
+    Backup
+  </button>
+  <button
+    mat-icon-button
+    color="primary"
+    class="backup-menu-trigger"
+    [disabled]="processing()"
+    [matMenuTriggerFor]="backupMenu"
     aria-label="More backup options"
   >
-    <svg></svg>
+    <mat-icon>arrow_drop_down</mat-icon>
   </button>
-  <div popover bt id="backup-options-popover" #backupOptionsPopover>
-    <ul bt-dropdown-menu>
-      <li>
-        <a (click)="smartBackup(); backupOptionsPopover.hidePopover()"
-          >Backup if needed</a
-        >
-      </li>
-    </ul>
-  </div>
+  <mat-menu #backupMenu="matMenu">
+    <button mat-menu-item (click)="smartBackup()">Backup if needed</button>
+  </mat-menu>
 </div>
 <h2 bt>
   Databases <span bt-badge>{{ databases.value()?.length }}</span>
