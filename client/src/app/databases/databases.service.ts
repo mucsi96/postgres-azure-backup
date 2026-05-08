@@ -43,4 +43,20 @@ export class DatabasesService {
     this.processing.set(false);
     this.databases.reload();
   }
+
+  async backupAll() {
+    try {
+      this.processing.set(true);
+      await fetchJson<void>(this.http, '/api/backup-all', { method: 'post' });
+      this.snackBar.open('Backup completed', 'Close', {
+        duration: 3000,
+        verticalPosition: 'top',
+        panelClass: ['success'],
+      });
+    } catch {
+      // Error toast is shown by the global error interceptor.
+    }
+    this.processing.set(false);
+    this.databases.reload();
+  }
 }

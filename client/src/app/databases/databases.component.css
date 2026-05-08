@@ -5,10 +5,13 @@
   row-gap: 20px;
 }
 
-button {
+.backup-actions {
   grid-column: 2;
   grid-row: 1;
   align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 h2 {

@@ -424,7 +424,8 @@ export function getBlobServiceClient(): BlobServiceClient {
 
 export async function triggerBackup(page: Page): Promise<void> {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Smart backup' }).click();
+  await page.getByRole('button', { name: 'More backup options' }).click();
+  await page.getByText('Backup if needed').click();
   await expect(
     page.getByText('Smart backup completed')
   ).toBeVisible({ timeout: 60000 });

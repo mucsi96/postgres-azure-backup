@@ -46,6 +46,13 @@ public class BackupController {
     }
 
     @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupCreator')")
+    @PostMapping("/backup-all")
+    @ResponseBody
+    void performBackupAll() throws IOException, InterruptedException {
+        backupOrchestrationService.performBackup(7);
+    }
+
+    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupCreator')")
     @PostMapping("/database/{database_name}/backup")
     @ResponseBody
     void performBackup(@PathVariable("database_name") String databaseName)

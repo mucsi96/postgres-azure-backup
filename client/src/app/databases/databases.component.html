@@ -1,9 +1,27 @@
 @if (databases.isLoading()) {
 <div role="progressbar" bt></div>
 } @else {
-<button bt [disabled]="processing()" (click)="smartBackup()">
-  Smart backup
-</button>
+<div class="backup-actions">
+  <button bt [disabled]="processing()" (click)="backup()">Backup</button>
+  <button
+    bt
+    bt-dropdown
+    [disabled]="processing()"
+    popovertarget="backup-options-popover"
+    aria-label="More backup options"
+  >
+    <svg></svg>
+  </button>
+  <div popover bt id="backup-options-popover" #backupOptionsPopover>
+    <ul bt-dropdown-menu>
+      <li>
+        <a (click)="smartBackup(); backupOptionsPopover.hidePopover()"
+          >Backup if needed</a
+        >
+      </li>
+    </ul>
+  </div>
+</div>
 <h2 bt>
   Databases <span bt-badge>{{ databases.value()?.length }}</span>
 </h2>

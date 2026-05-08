@@ -23,6 +23,13 @@ export class DatabasesComponent {
     this.router.navigate(['/database', database.name]);
   }
 
+  async backup() {
+    if (this.processing()) {
+      return;
+    }
+    await this.databasesService.backupAll();
+  }
+
   async smartBackup() {
     if (this.processing()) {
       return;
