@@ -48,9 +48,9 @@ helm upgrade postgres-azure-backup-server mucsi96/spring-app \
     --set persistentVolumeClaims[0].storageClassName="" \
     --set persistentVolumeClaims[0].storage=5Gi \
     --set resources.requests.memory=512Mi \
-    --set resources.requests.cpu=500m \
+    --set resources.requests.cpu=50m \
     --set resources.limits.memory=1Gi \
-    --set resources.limits.cpu=1 \
+    --set resources.limits.cpu=500m \
     --wait
 
 echo "Deploying client: $DOCKERHUB_USERNAME/postgres-azure-backup-client:$clientLatestTag to $HOSTNAME using client-app chart $clientAppChartVersion"
