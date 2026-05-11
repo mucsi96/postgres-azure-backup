@@ -6,18 +6,18 @@ set -e  # Exit immediately if a command exits with a non-zero status
 : "${DOCKERHUB_USERNAME:?Environment variable DOCKERHUB_USERNAME is required}"
 
 AZURE_KEYVAULT_ENDPOINT="https://${AZURE_KEYVAULT_NAME}.vault.azure.net/"
-K8S_CONFIG=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name k8s-config --query value -o tsv)
-HOSTNAME=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name hostname --query value -o tsv)
-API_CLIENT_ID=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name api-client-id --query value -o tsv)
 
 # Create a temporary file in /dev/shm (RAM) to avoid writing to disk
-KUBECONFIG_FILE=$(mktemp /dev/shm/kubeconfig.XXXXXX)
-chmod 600 "$KUBECONFIG_FILE"
-echo "$K8S_CONFIG" > "$KUBECONFIG_FILE"
-export KUBECONFIG="$KUBECONFIG_FILE"
+KUBECONFIG=$(mktemp /dev/shm/kubeconfig.XXXXXX)
+export KUBECONFIG
 
 # Ensure the temporary file is deleted when the script exits
-trap 'rm -f "$KUBECONFIG_FILE"' EXIT
+trap 'rm -f "$KUBECONFIG"' EXIT
+
+"$(dirname "$0")/pull_kubeconfig.sh"
+
+HOSTNAME=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name hostname --query value -o tsv)
+API_CLIENT_ID=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name api-client-id --query value -o tsv)
 
 # Get latest tags for both server and client
 serverLatestTag=$(curl -s "https://registry.hub.docker.com/v2/repositories/$DOCKERHUB_USERNAME/postgres-azure-backup-server/tags" | jq -r '.results | map(select(.name != "latest")) | sort_by(.last_updated) | reverse | .[0].name')
@@ -33,7 +33,6 @@ echo "Deploying server: $DOCKERHUB_USERNAME/postgres-azure-backup-server:$server
 helm upgrade postgres-azure-backup-server mucsi96/spring-app \
     --install \
     --version $springAppChartVersion \
-    --namespace backup \
     --set image=$DOCKERHUB_USERNAME/postgres-azure-backup-server:$serverLatestTag \
     --set entryPoint=web \
     --set host=$HOSTNAME \
@@ -58,7 +57,6 @@ echo "Deploying client: $DOCKERHUB_USERNAME/postgres-azure-backup-client:$client
 helm upgrade postgres-azure-backup-client mucsi96/client-app \
     --install \
     --version $clientAppChartVersion \
-    --namespace backup \
     --set image=$DOCKERHUB_USERNAME/postgres-azure-backup-client:$clientLatestTag \
     --set host=$HOSTNAME \
     --set entryPoint=web \
