@@ -29,7 +29,7 @@ helm repo add mucsi96 https://mucsi96.github.io/k8s-helm-charts --force-update
 springAppChartVersion=$(helm search repo mucsi96/spring-app --output json | jq -r '.[0].version')
 clientAppChartVersion=$(helm search repo mucsi96/client-app --output json | jq -r '.[0].version')
 
-echo "Deploying server: $DOCKERHUB_USERNAME/postgres-azure-backup-server:$serverLatestTag to $HOSTNAME using spring-app chart $springAppChartVersion"
+echo "Deploying server: $DOCKERHUB_USERNAME/postgres-azure-backup-server:$serverLatestTag using spring-app chart $springAppChartVersion"
 helm upgrade postgres-azure-backup-server mucsi96/spring-app \
     --install \
     --version $springAppChartVersion \
@@ -52,7 +52,7 @@ helm upgrade postgres-azure-backup-server mucsi96/spring-app \
     --set resources.limits.cpu=500m \
     --wait
 
-echo "Deploying client: $DOCKERHUB_USERNAME/postgres-azure-backup-client:$clientLatestTag to $HOSTNAME using client-app chart $clientAppChartVersion"
+echo "Deploying client: $DOCKERHUB_USERNAME/postgres-azure-backup-client:$clientLatestTag using client-app chart $clientAppChartVersion"
 
 helm upgrade postgres-azure-backup-client mucsi96/client-app \
     --install \
