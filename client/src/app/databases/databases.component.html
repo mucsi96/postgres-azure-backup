@@ -1,6 +1,9 @@
 @if (databases.isLoading()) {
 <bt-bar-loader />
 } @else {
+<h2 bt>
+  Databases <span bt-badge>{{ databases.value()?.length }}</span>
+</h2>
 <bt-split-button
   label="Backup"
   menuAriaLabel="More backup options"
@@ -9,9 +12,6 @@
 >
   <button mat-menu-item (click)="smartBackup()">Backup if needed</button>
 </bt-split-button>
-<h2 bt>
-  Databases <span bt-badge>{{ databases.value()?.length }}</span>
-</h2>
 @if (databases.value()?.length) {
 <table bt id="backups">
   <thead>
