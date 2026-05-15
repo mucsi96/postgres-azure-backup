@@ -1,10 +1,12 @@
 import { Component, computed, inject } from '@angular/core';
+import { BarLoaderComponent } from '@mucsi96/angular-material-theme';
 import { BackupsService } from '../backups/backups.service';
 import { TablesService } from './tables.service';
 
 @Component({
   selector: 'app-tables',
   standalone: true,
+  imports: [BarLoaderComponent],
   templateUrl: './tables.component.html',
   styleUrl: './tables.component.css',
 })

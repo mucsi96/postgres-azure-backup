@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, resource, signal } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificationsService } from '@mucsi96/angular-material-theme';
 import { Table } from '../../types';
 import { SelectedDatabaseService } from '../database/selected-database.service';
 import { fetchJson } from '../utils/fetchJson';
@@ -11,7 +11,7 @@ import { fetchJson } from '../utils/fetchJson';
 export class TablesService {
   private readonly http = inject(HttpClient);
   private readonly selectedDatabaseService = inject(SelectedDatabaseService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notifications = inject(NotificationsService);
   readonly processing = signal(false);
   readonly tables = resource<
     {
@@ -53,11 +53,7 @@ export class TablesService {
         `/api/database/${databaseName}/backup`,
         { method: 'post' }
       );
-      this.snackBar.open('Backup created', 'Close', {
-        duration: 3000,
-        verticalPosition: 'top',
-        panelClass: ['success'],
-      });
+      this.notifications.success('Backup created');
     } catch {
       // Error toast is shown by the global error interceptor.
     }
@@ -77,11 +73,7 @@ export class TablesService {
         `/api/database/${databaseName}/restore/${selectedBackup}`,
         { method: 'post' }
       );
-      this.snackBar.open('Backup restored', 'Close', {
-        duration: 3000,
-        verticalPosition: 'top',
-        panelClass: ['success'],
-      });
+      this.notifications.success('Backup restored');
       this.tables.reload();
     } catch {
       // Error toast is shown by the global error interceptor.
