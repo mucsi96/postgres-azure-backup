@@ -1,5 +1,7 @@
-import { EnvironmentProviders } from '@angular/core';
+import { EnvironmentProviders, makeEnvironmentProviders } from '@angular/core';
 import {
+  AbstractSecurityStorage,
+  DefaultLocalStorageService,
   LogLevel,
   provideAuth,
   withAppInitializerAuthCheck,
@@ -15,44 +17,51 @@ export function provideOidcAuth(config: EnvironmentConfig): EnvironmentProviders
 }
 
 function provideAzureAdOidcConfig(config: EnvironmentConfig): EnvironmentProviders {
-  return provideAuth(
-    {
-      config: {
-        authority: `https://login.microsoftonline.com/${config.tenantId}/v2.0`,
-        authWellknownEndpointUrl: `https://login.microsoftonline.com/${config.tenantId}/v2.0`,
-        redirectUrl: window.location.origin,
-        postLogoutRedirectUri: window.location.origin,
-        clientId: config.clientId,
-        scope: `openid profile offline_access ${config.apiClientId}/readBackups ${config.apiClientId}/createBackup ${config.apiClientId}/cleanupBackups ${config.apiClientId}/restoreBackup ${config.apiClientId}/downloadBackup`,
-        responseType: 'code',
-        silentRenew: true,
-        useRefreshToken: true,
-        autoUserInfo: false,
-        disableIatOffsetValidation: true,
-        logLevel: LogLevel.Debug,
-        secureRoutes: ['/api'],
+  return makeEnvironmentProviders([
+    provideAuth(
+      {
+        config: {
+          authority: `https://login.microsoftonline.com/${config.tenantId}/v2.0`,
+          authWellknownEndpointUrl: `https://login.microsoftonline.com/${config.tenantId}/v2.0`,
+          redirectUrl: window.location.origin,
+          postLogoutRedirectUri: window.location.origin,
+          clientId: config.clientId,
+          scope: `openid profile offline_access ${config.apiClientId}/readBackups ${config.apiClientId}/createBackup ${config.apiClientId}/cleanupBackups ${config.apiClientId}/restoreBackup ${config.apiClientId}/downloadBackup`,
+          responseType: 'code',
+          silentRenew: true,
+          useRefreshToken: true,
+          renewTimeBeforeTokenExpiresInSeconds: 60,
+          autoUserInfo: false,
+          disableIatOffsetValidation: true,
+          logLevel: LogLevel.Warn,
+          secureRoutes: ['/api'],
+        },
       },
-    },
-    withAppInitializerAuthCheck()
-  );
+      withAppInitializerAuthCheck()
+    ),
+    { provide: AbstractSecurityStorage, useClass: DefaultLocalStorageService },
+  ]);
 }
 
 function provideMockOidcConfig(config: EnvironmentConfig): EnvironmentProviders {
-  return provideAuth(
-    {
-      config: {
-        authority: `${config.mockOAuth2ServerUri}/default`,
-        redirectUrl: window.location.origin,
-        postLogoutRedirectUri: window.location.origin,
-        clientId: 'mock-client-id',
-        scope: 'openid profile',
-        responseType: 'code',
-        silentRenew: false,
-        autoUserInfo: false,
-        logLevel: LogLevel.Debug,
-        secureRoutes: ['/api'],
+  return makeEnvironmentProviders([
+    provideAuth(
+      {
+        config: {
+          authority: `${config.mockOAuth2ServerUri}/default`,
+          redirectUrl: window.location.origin,
+          postLogoutRedirectUri: window.location.origin,
+          clientId: 'mock-client-id',
+          scope: 'openid profile',
+          responseType: 'code',
+          silentRenew: false,
+          autoUserInfo: false,
+          logLevel: LogLevel.Warn,
+          secureRoutes: ['/api'],
+        },
       },
-    },
-    withAppInitializerAuthCheck()
-  );
+      withAppInitializerAuthCheck()
+    ),
+    { provide: AbstractSecurityStorage, useClass: DefaultLocalStorageService },
+  ]);
 }
