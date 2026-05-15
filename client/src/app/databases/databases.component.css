@@ -1,32 +1,9 @@
 :host {
   display: grid;
   grid-template-columns: 1fr auto;
+  align-items: center;
   column-gap: 20px;
   row-gap: 20px;
-}
-
-.backup-actions {
-  grid-column: 2;
-  grid-row: 1;
-  align-self: center;
-  display: inline-flex;
-  align-items: center;
-}
-
-.backup-actions .backup-primary {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.backup-actions .backup-menu-trigger {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-}
-
-h2 {
-  grid-column: 1;
-  grid-row: 1;
-  align-self: center;
 }
 
 bt-bar-loader,

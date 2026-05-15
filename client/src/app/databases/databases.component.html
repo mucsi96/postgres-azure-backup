@@ -1,33 +1,17 @@
 @if (databases.isLoading()) {
 <bt-bar-loader />
 } @else {
-<div class="backup-actions">
-  <button
-    mat-flat-button
-    color="primary"
-    class="backup-primary"
-    [disabled]="processing()"
-    (click)="backup()"
-  >
-    Backup
-  </button>
-  <button
-    mat-icon-button
-    color="primary"
-    class="backup-menu-trigger"
-    [disabled]="processing()"
-    [matMenuTriggerFor]="backupMenu"
-    aria-label="More backup options"
-  >
-    <mat-icon>arrow_drop_down</mat-icon>
-  </button>
-  <mat-menu #backupMenu="matMenu">
-    <button mat-menu-item (click)="smartBackup()">Backup if needed</button>
-  </mat-menu>
-</div>
 <h2 bt>
   Databases <span bt-badge>{{ databases.value()?.length }}</span>
 </h2>
+<bt-split-button
+  label="Backup"
+  menuAriaLabel="More backup options"
+  [disabled]="processing()"
+  (primaryAction)="backup()"
+>
+  <button mat-menu-item (click)="smartBackup()">Backup if needed</button>
+</bt-split-button>
 @if (databases.value()?.length) {
 <table bt id="backups">
   <thead>
