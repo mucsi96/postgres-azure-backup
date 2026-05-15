@@ -8,9 +8,7 @@
   [disabled]="processing()"
   (primaryAction)="backup()"
 >
-  <button mat-menu-item (click)="smartBackup()">
-    <span>Backup if needed</span>
-  </button>
+  <button mat-menu-item (click)="smartBackup()">Backup if needed</button>
 </bt-split-button>
 <h2 bt>
   Databases <span bt-badge>{{ databases.value()?.length }}</span>
