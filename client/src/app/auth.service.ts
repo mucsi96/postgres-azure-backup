@@ -1,12 +1,12 @@
 import { computed, inject, Injectable } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificationsService } from '@mucsi96/angular-material-theme';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notifications = inject(NotificationsService);
   private readonly oidcSecurityService = inject(OidcSecurityService);
 
   readonly isAuthenticated = computed(
@@ -29,10 +29,6 @@ export class AuthService {
 
   private showError(error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    this.snackBar.open('An error occurred. ' + message, 'Close', {
-      duration: 3000,
-      verticalPosition: 'top',
-      panelClass: ['error'],
-    });
+    this.notifications.error('An error occurred. ' + message);
   }
 }
