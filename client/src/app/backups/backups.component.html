@@ -1,5 +1,5 @@
 @if (backups.isLoading()) {
-<div role="progressbar" bt></div>
+<bt-bar-loader />
 } @else {
 <h2 bt>
   Backups <span bt-badge>{{ backups.value()?.length }}</span>

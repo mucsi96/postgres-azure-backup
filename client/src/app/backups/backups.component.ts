@@ -5,6 +5,7 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { BarLoaderComponent } from '@mucsi96/angular-material-theme';
 import { Backup } from '../../types';
 import { TablesService } from '../tables/tables.service';
 import { RelativeTimePipe } from '../utils/relativeTime.pipe';
@@ -21,6 +22,7 @@ import { BackupsService } from './backups.service';
     RelativeTimePipe,
     MatIconModule,
     MatButtonModule,
+    BarLoaderComponent,
   ],
   templateUrl: './backups.component.html',
   styleUrl: './backups.component.css',

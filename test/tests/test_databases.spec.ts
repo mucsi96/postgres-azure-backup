@@ -43,7 +43,7 @@ test.describe('Databases Tests', () => {
     await page.goto('/');
     await expect(page.getByRole('row')).toHaveCount(3);
 
-    const tableData = await extractTableData(page.locator(':text("Databases") + table'));
+    const tableData = await extractTableData(page.locator(':text("Databases") ~ table'));
 
     expect(tableData).toEqual([
       {

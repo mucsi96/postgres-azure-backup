@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, resource, signal } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificationsService } from '@mucsi96/angular-material-theme';
 import { Database } from '../../types';
 import { fetchJson } from '../utils/fetchJson';
 
@@ -9,7 +9,7 @@ import { fetchJson } from '../utils/fetchJson';
 })
 export class DatabasesService {
   private readonly http = inject(HttpClient);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notifications = inject(NotificationsService);
   readonly processing = signal(false);
   readonly databases = resource<Database[], {}>({
     loader: async () => {
@@ -32,11 +32,7 @@ export class DatabasesService {
     try {
       this.processing.set(true);
       await fetchJson<void>(this.http, '/api/smart-backup', { method: 'post' });
-      this.snackBar.open('Smart backup completed', 'Close', {
-        duration: 3000,
-        verticalPosition: 'top',
-        panelClass: ['success'],
-      });
+      this.notifications.success('Smart backup completed');
     } catch {
       // Error toast is shown by the global error interceptor.
     }
@@ -48,11 +44,7 @@ export class DatabasesService {
     try {
       this.processing.set(true);
       await fetchJson<void>(this.http, '/api/backup-all', { method: 'post' });
-      this.snackBar.open('Backup completed', 'Close', {
-        duration: 3000,
-        verticalPosition: 'top',
-        panelClass: ['success'],
-      });
+      this.notifications.success('Backup completed');
     } catch {
       // Error toast is shown by the global error interceptor.
     }

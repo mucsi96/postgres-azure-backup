@@ -1,8 +1,10 @@
 import { Component, inject } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { Router } from '@angular/router';
+import {
+  BarLoaderComponent,
+  SplitButtonComponent,
+} from '@mucsi96/angular-material-theme';
 import { Database } from '../../types';
 import { olderThenOneDay } from '../utils/dateUtils';
 import { RelativeTimePipe } from '../utils/relativeTime.pipe';
@@ -11,7 +13,12 @@ import { DatabasesService } from './databases.service';
 @Component({
   selector: 'app-databases',
   standalone: true,
-  imports: [RelativeTimePipe, MatButtonModule, MatIconModule, MatMenuModule],
+  imports: [
+    RelativeTimePipe,
+    MatMenuModule,
+    BarLoaderComponent,
+    SplitButtonComponent,
+  ],
   templateUrl: './databases.component.html',
   styleUrl: './databases.component.css',
 })
