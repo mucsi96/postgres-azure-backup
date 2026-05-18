@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Serve with nginx
-FROM nginx:1.30-alpine
+FROM nginx:1.31-alpine
 
 # Install wget for health checks
 RUN apk add --no-cache wget
