@@ -13,11 +13,11 @@
     "@azure/storage-blob": "12.31.0",
     "@playwright/test": "1.60.0",
     "@types/adm-zip": "0.5.8",
-    "@types/node": "25.8.0",
+    "@types/node": "25.9.1",
     "@types/pg": "8.20.0",
     "adm-zip": "0.5.17",
     "dotenv": "17.4.2",
-    "pg": "8.20.0",
+    "pg": "8.21.0",
     "typescript": "6.0.3"
   }
 }
