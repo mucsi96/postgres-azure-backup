@@ -4,7 +4,7 @@
 </button>
 <mat-menu #dbMenu="matMenu">
   @for(database of databases.value(); track database.name) {
-  <a mat-menu-item routerLink="/database/{{ database.name }}">
+  <a mat-menu-item [role]="$any('link')" routerLink="/database/{{ database.name }}">
     {{ database.name }}
   </a>
   }
