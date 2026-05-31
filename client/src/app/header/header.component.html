@@ -4,27 +4,25 @@
 </button>
 <mat-menu #dbMenu="matMenu">
   @for(database of databases.value(); track database.name) {
-  <a mat-menu-item [role]="$any('link')" routerLink="/database/{{ database.name }}">
+  <a mat-menu-item [routerLink]="['/database', database.name]">
     {{ database.name }}
   </a>
   }
 </mat-menu>
 @let time = lastBackupTime.value();
-<h3 class="last-backup">
+<p class="last-backup">
   Last backup
   <span
     class="badge"
     [class.green]="time && !olderThenOneDay(time)"
-    [class.red]="olderThenOneDay(time)"
+    [class.red]="time && olderThenOneDay(time)"
     >@if (time) {{{ time | relativeTime }}} @else { — }</span
   >
-</h3>
+</p>
 }
 <button class="avatar" [matMenuTriggerFor]="profileMenu">
   {{ profile()?.initials }}
 </button>
 <mat-menu #profileMenu="matMenu">
-  <span class="profile-name">
-    {{ profile()?.name }}
-  </span>
+  <button mat-menu-item disabled>{{ profile()?.name }}</button>
 </mat-menu>

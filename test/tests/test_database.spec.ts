@@ -11,7 +11,7 @@ test.describe('Database Tests', () => {
     await page.goto('/');
     await page.getByText('db1').click();
     await page.getByRole('button', { name: 'db1' }).click();
-    await page.getByRole('link', { name: 'db2' }).click();
+    await page.getByRole('menuitem', { name: 'db2' }).click();
     await expect(page.getByRole('heading', { name: 'Records' })).toHaveText('Records 17');
     await expect(page.getByRole('heading', { name: 'Files' })).toHaveText('Files 0');
     await expect(page.getByRole('heading', { name: 'Tables' })).toHaveText('Tables 3');
