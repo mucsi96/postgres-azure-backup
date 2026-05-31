@@ -1,13 +1,14 @@
-<header bt>
+<mat-toolbar class="header">
   <nav>
-    <a routerLink="" mat-button (click)="resetSelectedDatabase()"
-      >Postgres Backup Tool</a
-    >
+    <a mat-button href="/">Postgres Backup Tool</a>
     @if(isAuthenticated()) {
+    <div class="header-right">
       <app-header></app-header>
+    </div>
     }
   </nav>
-</header>
-<main bt>
+</mat-toolbar>
+
+<main>
   <router-outlet></router-outlet>
 </main>

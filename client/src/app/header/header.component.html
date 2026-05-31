@@ -1,41 +1,28 @@
-<div class="selected-database">
-  @if (databaseName()) {
-  <button bt bt-dropdown popovertarget="dropdown-menu-popover">
-    {{ databaseName() }}
-    <svg></svg>
-  </button>
-  <div popover bt id="dropdown-menu-popover" #popover>
-    <ul bt-dropdown-menu>
-      @for(database of databases.value(); track database.name) {
-      <li>
-        <a
-          routerLink="/database/{{ database.name }}"
-          (click)="popover.hidePopover()"
-          >{{ database.name }}</a
-        >
-      </li>
-      }
-    </ul>
-  </div>
-  @let time = lastBackupTime.value();
-  <h3 bt>
-    Last backup
-    <span
-      bt-badge
-      [attr.bt-green]="!olderThenOneDay(time) ? '' : null"
-      [attr.bt-red]="olderThenOneDay(time) ? '' : null"
-      >@if (time) {{{ time | relativeTime }}} @else { — }</span
-    >
-  </h3>
+@if (databaseName()) {
+<button mat-button [matMenuTriggerFor]="dbMenu">
+  {{ databaseName() }}
+</button>
+<mat-menu #dbMenu="matMenu">
+  @for(database of databases.value(); track database.name) {
+  <a mat-menu-item [routerLink]="['/database', database.name]">
+    {{ database.name }}
+  </a>
   }
-  <button bt-avatar id="avatar" popovertarget="avatar-popover">
-    {{ profile()?.initials }}
-  </button>
-  <div popover bt id="avatar-popover">
-    <ul bt-dropdown-menu>
-      <li>
-        {{ profile()?.name }}
-      </li>
-    </ul>
-  </div>
-</div>
+</mat-menu>
+@let time = lastBackupTime.value();
+<p class="last-backup">
+  Last backup
+  <span
+    class="badge"
+    [class.green]="time && !olderThenOneDay(time)"
+    [class.red]="time && olderThenOneDay(time)"
+    >@if (time) {{{ time | relativeTime }}} @else { — }</span
+  >
+</p>
+}
+<button class="avatar" [matMenuTriggerFor]="profileMenu">
+  {{ profile()?.initials }}
+</button>
+<mat-menu #profileMenu="matMenu">
+  <button mat-menu-item disabled>{{ profile()?.name }}</button>
+</mat-menu>
