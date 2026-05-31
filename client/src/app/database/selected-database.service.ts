@@ -9,8 +9,4 @@ export class SelectedDatabaseService {
   setDatabaseName(name: string | undefined) {
     this.databaseName.set(name);
   }
-
-  resetSelectedDatabase() {
-    this.databaseName.set(undefined);
-  }
 }

@@ -1,5 +1,64 @@
-.selected-database {
+:host {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.last-backup {
   display: inline-flex;
   align-items: center;
-  gap: 20px;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bt-text-default);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  background-color: var(--bt-outline);
+  color: var(--bt-text-default);
+}
+
+.badge.green {
+  background-color: var(--bt-success, #2e7d32);
+  color: var(--bt-text-on-brand, #fff);
+}
+
+.badge.red {
+  background-color: var(--bt-error, #c62828);
+  color: var(--bt-text-on-brand, #fff);
+}
+
+.avatar {
+  display: inline-flex;
+  user-select: none;
+  background-color: var(--bt-outline);
+  border-radius: 50%;
+  height: 40px;
+  justify-content: center;
+  align-items: center;
+  aspect-ratio: 1;
+  color: var(--bt-text-on-brand);
+  font-size: 18px;
+  border: unset;
+  cursor: pointer;
+}
+
+.profile-menu {
+  margin: 10px;
+}
+
+.profile-name {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding-left: var(--mat-menu-item-leading-spacing);
+  padding-right: var(--mat-menu-item-trailing-spacing);
+  min-height: 36px;
+  color: var(--bt-text-default);
 }

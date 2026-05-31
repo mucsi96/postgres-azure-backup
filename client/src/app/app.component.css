@@ -1,7 +1,33 @@
-a[mat-button] {
-  font-size: 16px;
+.header {
+  border-bottom: 1px solid var(--bt-outline);
+  display: block;
+  height: auto;
+  padding: env(safe-area-inset-top) 0 0;
+
+  nav {
+    padding: 0 max(1rem, env(safe-area-inset-right)) 0 max(1rem, env(safe-area-inset-left));
+    max-width: 90rem;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: var(--mat-toolbar-standard-height, 64px);
+
+    a[mat-button] {
+      font-size: 16px;
+    }
+  }
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 main {
-  margin-top: 32px;
+  display: block;
+  padding: 1px max(1rem, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(1rem, env(safe-area-inset-left));
+  max-width: 90rem;
+  margin: 50px auto 0;
 }
