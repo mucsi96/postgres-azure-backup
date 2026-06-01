@@ -2,9 +2,11 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { getAppConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
 import { EnvironmentConfig } from './app/environment/environment.config';
+import { initFaro } from './app/utils/faro';
 import '@mucsi96/ui-elements';
 
 loadEnvironmentConfig().then(environment => {
+  initFaro(environment.clientLogUrl, environment.clientAppName);
   bootstrapApplication(AppComponent, getAppConfig(environment))
     .catch((err) => console.error(err));
 });

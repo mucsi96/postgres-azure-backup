@@ -6,6 +6,8 @@ set -e  # Exit immediately if a command exits with a non-zero status
 : "${DOCKERHUB_USERNAME:?Environment variable DOCKERHUB_USERNAME is required}"
 
 AZURE_KEYVAULT_ENDPOINT="https://${AZURE_KEYVAULT_NAME}.vault.azure.net/"
+SERVER_RELEASE_NAME=postgres-azure-backup-server
+CLIENT_RELEASE_NAME=postgres-azure-backup-client
 
 # Create a temporary file in /dev/shm (RAM) to avoid writing to disk
 KUBECONFIG=$(mktemp /dev/shm/kubeconfig.XXXXXX)
@@ -30,7 +32,7 @@ springAppChartVersion=$(helm search repo mucsi96/spring-app --output json | jq -
 clientAppChartVersion=$(helm search repo mucsi96/client-app --output json | jq -r '.[0].version')
 
 echo "Deploying server: $DOCKERHUB_USERNAME/postgres-azure-backup-server:$serverLatestTag using spring-app chart $springAppChartVersion"
-helm upgrade postgres-azure-backup-server mucsi96/spring-app \
+helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --install \
     --version $springAppChartVersion \
     --set image=$DOCKERHUB_USERNAME/postgres-azure-backup-server:$serverLatestTag \
@@ -40,6 +42,7 @@ helm upgrade postgres-azure-backup-server mucsi96/spring-app \
     --set clientId=$API_CLIENT_ID \
     --set serviceAccountName=postgres-azure-backup-api-workload-identity \
     --set env.AZURE_KEYVAULT_ENDPOINT=$AZURE_KEYVAULT_ENDPOINT \
+    --set env.CLIENT_APP_NAME=$CLIENT_RELEASE_NAME \
     --set persistentVolumeClaims[0].name=learn-language-backup-pvc \
     --set persistentVolumeClaims[0].accessMode=ReadWriteOnce \
     --set persistentVolumeClaims[0].volumeName=learn-language-backup \
@@ -54,7 +57,7 @@ helm upgrade postgres-azure-backup-server mucsi96/spring-app \
 
 echo "Deploying client: $DOCKERHUB_USERNAME/postgres-azure-backup-client:$clientLatestTag using client-app chart $clientAppChartVersion"
 
-helm upgrade postgres-azure-backup-client mucsi96/client-app \
+helm upgrade $CLIENT_RELEASE_NAME mucsi96/client-app \
     --install \
     --version $clientAppChartVersion \
     --set image=$DOCKERHUB_USERNAME/postgres-azure-backup-client:$clientLatestTag \

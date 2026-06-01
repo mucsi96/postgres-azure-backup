@@ -22,13 +22,20 @@ public class EnvironmentController {
     @Value("${mock-oauth2-server-uri:}")
     private String mockOAuth2ServerUri;
 
+    @Value("${client-log-url:}")
+    private String clientLogUrl;
+
+    @Value("${client-app-name:}")
+    private String clientAppName;
+
     @GetMapping("/environment")
     public ConfigResponse getConfig() {
         return new ConfigResponse(tenantId, uiClientId, clientId,
-                mockOAuth2ServerUri);
+                mockOAuth2ServerUri, clientLogUrl, clientAppName);
     }
 
     public record ConfigResponse(String tenantId, String clientId,
-            String apiClientId, String mockOAuth2ServerUri) {
+            String apiClientId, String mockOAuth2ServerUri,
+            String clientLogUrl, String clientAppName) {
     }
 }
