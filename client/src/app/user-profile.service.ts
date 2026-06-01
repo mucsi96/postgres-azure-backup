@@ -1,5 +1,10 @@
-import { computed, Injectable, inject } from '@angular/core';
+import { Injectable, inject, linkedSignal } from '@angular/core';
 import { AuthService } from './auth.service';
+
+interface UserProfile {
+  name: string;
+  initials: string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -7,27 +12,37 @@ import { AuthService } from './auth.service';
 export class UserProfileService {
   private readonly authService = inject(AuthService);
 
-  profile = computed(() => {
-    const userDataResult = this.authService.userData();
-    const userData = userDataResult?.userData;
-    const name = userData?.name ?? userData?.preferred_username;
+  // Derive the profile from the auth user data, but keep the last known value
+  // while the user data is momentarily empty during a token renewal (which
+  // happens when the installed PWA resumes on mobile). A plain computed would
+  // blank out and make the avatar disappear; linkedSignal lets us fall back to
+  // the previous value instead.
+  profile = linkedSignal<unknown, UserProfile | undefined>({
+    source: this.authService.userData,
+    computation: (userDataResult, previous) => {
+      const userData = (
+        userDataResult as
+          | { userData?: { name?: string; preferred_username?: string } }
+          | undefined
+      )?.userData;
+      const name = userData?.name ?? userData?.preferred_username;
 
-    if (!name) {
-      return undefined;
-    }
+      if (!name) {
+        return previous?.value;
+      }
 
-    return {
-      name,
-      initials: this.getInitials(name),
-    };
+      return {
+        name,
+        initials: this.getInitials(name),
+      };
+    },
   });
 
-  private getInitials(name: string | undefined): string {
-    if (!name) return '';
-    const initials = name
+  private getInitials(name: string): string {
+    return name
       .split(' ')
-      .map((n) => n[0])
-      .join('');
-    return initials.toUpperCase();
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase();
   }
 }

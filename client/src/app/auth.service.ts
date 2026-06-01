@@ -16,10 +16,12 @@ export class AuthService {
   readonly userData = this.oidcSecurityService.userData;
 
   login(): void {
+    console.info('[auth] Full re-authentication started (redirect to authority)');
     this.oidcSecurityService.authorize();
   }
 
   logout(): void {
+    console.info('[auth] Logout started');
     this.oidcSecurityService
       .logoff()
       .subscribe({

@@ -33,6 +33,12 @@ function provideAzureAdOidcConfig(config: EnvironmentConfig): EnvironmentProvide
           renewTimeBeforeTokenExpiresInSeconds: 60,
           autoUserInfo: false,
           disableIatOffsetValidation: true,
+          // Refresh-token flow returns a new ID token without a fresh nonce
+          // (no new authorize call). With autoCleanStateAfterAuthentication
+          // the original nonce is also gone, so validating against it always
+          // fails with IncorrectNonce - resetting the session and blanking
+          // the avatar when the iPhone PWA resumes from background.
+          ignoreNonceAfterRefresh: true,
           logLevel: LogLevel.Warn,
           secureRoutes: ['/api'],
         },
