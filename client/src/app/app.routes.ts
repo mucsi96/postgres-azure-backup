@@ -1,17 +1,17 @@
 import { Routes } from '@angular/router';
 import { DatabaseComponent } from './database/database.component';
 import { DatabasesComponent } from './databases/databases.component';
-import { autoLoginPartialRoutesGuard } from 'angular-auth-oidc-client';
+import { authGuard } from './utils/auth.guard';
 
 export const routes: Routes = [
   {
     path: '',
     component: DatabasesComponent,
-    canActivate: [autoLoginPartialRoutesGuard],
+    canActivate: [authGuard],
   },
   {
     path: 'database/:name',
     component: DatabaseComponent,
-    canActivate: [autoLoginPartialRoutesGuard],
+    canActivate: [authGuard],
   },
 ];
