@@ -13,12 +13,12 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { provideRouter } from '@angular/router';
 import { provideAngularMaterialTheme } from '@mucsi96/angular-material-theme';
 import { routes } from './app.routes';
-import { authInterceptor } from 'angular-auth-oidc-client';
+import { AuthService } from './auth.service';
 import { provideOidcAuth } from './auth.config';
 import { EnvironmentConfig, ENVIRONMENT_CONFIG } from './environment/environment.config';
 import { authRetryInterceptor } from './utils/auth-retry.interceptor';
 import { errorInterceptor } from './utils/error.interceptor';
-import { TokenRenewalService } from './utils/token-renewal.service';
+import { tokenInterceptor } from './utils/token.interceptor';
 
 export function getAppConfig(environment: EnvironmentConfig): ApplicationConfig {
   return {
@@ -32,12 +32,12 @@ export function getAppConfig(environment: EnvironmentConfig): ApplicationConfig 
         withInterceptors([
           errorInterceptor,
           authRetryInterceptor,
-          authInterceptor(),
+          tokenInterceptor,
         ])
       ),
       { provide: ENVIRONMENT_CONFIG, useValue: environment },
       provideOidcAuth(environment),
-      provideAppInitializer(() => inject(TokenRenewalService).init()),
+      provideAppInitializer(() => inject(AuthService).init()),
     ],
   };
 }
