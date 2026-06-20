@@ -45,7 +45,7 @@ spec:
         failureThreshold: 30
 
     - name: db1
-      image: docker.io/library/postgres:17.5-bullseye
+      image: docker.io/library/postgres:18-trixie
       ports:
         - containerPort: 8164
           hostPort: 8164
@@ -66,7 +66,7 @@ spec:
         failureThreshold: 10
 
     - name: db2
-      image: docker.io/library/postgres:17.5-bullseye
+      image: docker.io/library/postgres:18-trixie
       ports:
         - containerPort: 8165
           hostPort: 8165
