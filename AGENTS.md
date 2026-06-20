@@ -252,7 +252,7 @@ Backup file representation:
 - **Docker** - Containerization
 - **Docker Compose** - Local orchestration
 - **Azurite** - Azure Blob Storage emulator
-- **PostgreSQL 17** - Database
+- **PostgreSQL 18** - Database
 - **Helm** - Kubernetes deployment
 
 ## Configuration

@@ -22,7 +22,7 @@ VOLUME /tmp
 ARG DEPENDENCY=/workspace/target/dependency
 ARG SPRING_PROFILES_ACTIVE=prod
 
-RUN apk add postgresql17-client curl
+RUN apk add postgresql18-client curl
 
 # Copy application layers
 COPY --from=build ${DEPENDENCY}/BOOT-INF/lib /app/lib

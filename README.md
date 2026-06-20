@@ -32,7 +32,7 @@ Simple PostgreSQL backup tool to Azure with UI
 - Angular
 - OpenID Connect (`angular-auth-oidc-client`)
 - Azure
-- PostgreSQL 17 client
+- PostgreSQL 18 client
 - Podman (rootless containers + Kubernetes-style pod manifests)
 
 ## Local development
