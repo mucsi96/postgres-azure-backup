@@ -1,5 +1,5 @@
 # Stage 1: Build Angular application
-FROM node:26 AS build
+FROM docker.io/library/node:26 AS build
 
 WORKDIR /workspace
 
@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Serve with nginx
-FROM nginx:1.31-alpine
+FROM docker.io/library/nginx:1.31-alpine
 
 # Install wget for health checks
 RUN apk add --no-cache wget
