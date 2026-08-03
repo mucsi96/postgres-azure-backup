@@ -11,10 +11,10 @@
   },
   "devDependencies": {
     "@azure/storage-blob": "12.33.0",
-    "@playwright/test": "1.61.1",
+    "@playwright/test": "1.62.1",
     "@types/adm-zip": "0.5.8",
-    "@types/node": "26.1.1",
-    "@types/pg": "8.20.0",
+    "@types/node": "26.1.2",
+    "@types/pg": "8.20.3",
     "adm-zip": "0.6.0",
     "dotenv": "17.4.2",
     "pg": "8.22.0",
