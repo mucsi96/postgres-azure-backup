@@ -38,8 +38,8 @@
     "@angular/cli": "22.0.7",
     "@angular/compiler-cli": "22.0.7",
     "@vitest/ui": "4.1.10",
-    "jsdom": "29.1.1",
-    "typescript": "6.0.3",
+    "jsdom": "30.0.1",
+    "typescript": "7.0.2",
     "vitest": "4.1.10"
   }
 }
