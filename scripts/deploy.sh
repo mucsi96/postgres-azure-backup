@@ -49,6 +49,12 @@ helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --set persistentVolumeClaims[0].mountPath=/app/storage/learn-language \
     --set persistentVolumeClaims[0].storageClassName="" \
     --set persistentVolumeClaims[0].storage=5Gi \
+    --set persistentVolumeClaims[1].name=library-backup-pvc \
+    --set persistentVolumeClaims[1].accessMode=ReadWriteOnce \
+    --set persistentVolumeClaims[1].volumeName=library-backup \
+    --set persistentVolumeClaims[1].mountPath=/app/storage/library \
+    --set persistentVolumeClaims[1].storageClassName="" \
+    --set persistentVolumeClaims[1].storage=5Gi \
     --set resources.requests.memory=512Mi \
     --set resources.requests.cpu=50m \
     --set resources.limits.memory=1Gi \
