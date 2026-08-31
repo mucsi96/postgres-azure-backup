@@ -57,7 +57,7 @@ helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --set persistentVolumeClaims[1].storage=5Gi \
     --set persistentVolumeClaims[2].name=cooking-backup-pvc \
     --set persistentVolumeClaims[2].accessMode=ReadWriteOnce \
-    --set persistentVolumeClaims[2].volumeName=cooking \
+    --set persistentVolumeClaims[2].volumeName=cooking-backup \
     --set persistentVolumeClaims[2].mountPath=/app/storage/cooking \
     --set persistentVolumeClaims[2].storageClassName="" \
     --set persistentVolumeClaims[2].storage=5Gi \
