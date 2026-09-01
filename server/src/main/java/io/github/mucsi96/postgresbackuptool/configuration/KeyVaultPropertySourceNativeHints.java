@@ -28,6 +28,13 @@ import com.azure.spring.cloud.autoconfigure.implementation.keyvault.secrets.prop
  * {@code ${storage-account-container-name}} while creating {@code backupService}.
  *
  * Only the prod profile reads secrets from Key Vault, so no test covers this.
+ * To check the hints by hand, build the native image and start it with
+ * {@code AZURE_KEYVAULT_ENDPOINT} pointing at an unreachable host: with the
+ * metadata in place the post-processor binds the property source and fails
+ * on the connection, which is the proof it did not skip. Silently reaching
+ * the first unresolvable placeholder instead means the binding is gone
+ * again. The AOT-on-JVM run cannot show this - reflection always works
+ * there.
  */
 @Configuration(proxyBeanMethods = false)
 @ImportRuntimeHints(KeyVaultPropertySourceNativeHints.Registrar.class)
