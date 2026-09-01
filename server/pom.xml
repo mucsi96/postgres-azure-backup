@@ -175,7 +175,7 @@
                                 <storage-account-container-name>backups</storage-account-container-name>
                                 <storage-account-blob-url>https://aot-build.blob.core.windows.net/</storage-account-blob-url>
                                 <api-client-id>aot-build</api-client-id>
-                                <BLOBSTORAGE_CONNECTION_STRING>DefaultEndpointsProtocol=http;AccountName=aot-build;AccountKey=aot-build;BlobEndpoint=http://localhost:8163/aot-build;</BLOBSTORAGE_CONNECTION_STRING>
+                                <BLOBSTORAGE_CONNECTION_STRING>aot-build-placeholder</BLOBSTORAGE_CONNECTION_STRING>
                                 <DATABASES_CONFIG_PATH>/app/databases_config.json</DATABASES_CONFIG_PATH>
                             </systemPropertyVariables>
                         </configuration>
