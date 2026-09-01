@@ -82,7 +82,9 @@ helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --wait
 
 # The client is nginx serving prebuilt static assets: a few Mi resident, so the
-# memory limit only has to cover request buffers.
+# memory limit only has to cover request buffers. No CPU limit, for the same
+# reason as the server: the chart defaults to 100m, which on a single-user node
+# only throttles nginx's startup and request bursts.
 echo "Deploying client: $DOCKERHUB_USERNAME/postgres-azure-backup-client:$clientLatestTag using client-app chart $clientAppChartVersion"
 
 helm upgrade $CLIENT_RELEASE_NAME mucsi96/client-app \
@@ -94,4 +96,5 @@ helm upgrade $CLIENT_RELEASE_NAME mucsi96/client-app \
     --set resources.requests.memory=16Mi \
     --set resources.requests.cpu=5m \
     --set resources.limits.memory=32Mi \
+    --set resources.limits.cpu=null \
     --wait
