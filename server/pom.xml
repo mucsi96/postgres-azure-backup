@@ -122,6 +122,24 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- JDK 23 stopped running annotation processors that are
+                         merely on the classpath, so Lombok has to be named as a
+                         processor explicitly. Without this the build tool chain
+                         (JDK 25) compiles every Lombok-generated member away and
+                         fails with "cannot find symbol: variable log". -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
@@ -182,7 +200,11 @@
                         <!-- azure-core build-time initializes a few Jackson
                              core classes but not everything they hold on to,
                              which would leave objects of run-time initialized
-                             types in the image heap; cover the whole package. -->
+                             types in the image heap. Naming those types one by
+                             one was tried first and turned into whack-a-mole
+                             (Base64Variants pulls in Base64Variant, which pulls
+                             in its nested PaddingReadBehaviour), hence the whole
+                             package. -->
                         <buildArg>--initialize-at-build-time=com.fasterxml.jackson.core</buildArg>
                         <!-- See native-image.security for why the builder has
                              to ignore jar signatures. -->

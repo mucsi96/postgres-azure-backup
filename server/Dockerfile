@@ -3,7 +3,10 @@
 # copying it in is cheaper and more predictable than installing it there.
 FROM docker.io/library/maven:3-eclipse-temurin-25-alpine AS maven
 
-# Stage 2: Compile the application into a native executable
+# Stage 2: Compile the application into a native executable.
+# The toolchain is JDK 25 while the project's language level stays at 21: the
+# compiler targets 21 via maven.compiler.release, and 25 is simply the JDK the
+# current Liberica NIK release ships.
 FROM docker.io/bellsoft/liberica-native-image-kit-container:jdk-25-nik-25-musl AS build
 
 COPY --from=maven /usr/share/maven /usr/share/maven
@@ -47,7 +50,7 @@ RUN mkdir -p /app/conf && : > /app/conf/net.properties
 # An absolute heap cap rather than the percentage of physical memory the default
 # uses: the executable is already around 150Mi resident before any heap is
 # allocated, so the headroom the container needs is a constant, not a fraction.
-# 256Mi of heap fits the 512Mi limit in scripts/deploy.sh alongside that and the
+# 256Mi of heap fits the 768Mi limit in scripts/deploy.sh alongside that and the
 # pg_dump / pg_restore / psql child processes - keep the two in step. The Azure
 # SDK sets Content-Length explicitly on the JDK HTTP client, which the client
 # rejects unless the header is allow-listed.

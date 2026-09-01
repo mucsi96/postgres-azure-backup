@@ -549,7 +549,11 @@ Spring Cloud Azure needs one workaround in application code:
 `ImportBeanDefinitionRegistrar` using a lambda instance supplier, which AOT
 cannot turn into generated code, so it drops the bean and the image fails to
 start with "required a bean of type AzureGlobalProperties that could not be
-found". See the class comment for why it uses its own bean name.
+found". See the class comment for why it uses its own bean name. That
+workaround turns on Spring Cloud Azure's registration order, which is not a
+public contract, so smoke-test the native image whenever
+`spring-cloud-azure-dependencies` moves - a change there could drop the bean
+again with no compile-time signal.
 
 Most AOT problems reproduce without waiting for a native compile (which
 takes several minutes). Run the AOT-processed application on a normal JVM:

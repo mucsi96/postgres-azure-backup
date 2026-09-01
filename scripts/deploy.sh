@@ -35,7 +35,10 @@ clientAppChartVersion=$(helm search repo mucsi96/client-app --output json | jq -
 # streams dumps and blobs through temp files instead of buffering them, so the
 # heap stays small. The memory limit has to cover that 150Mi, the 256Mi heap the
 # image is capped at (see the ENTRYPOINT in server/Dockerfile - keep the two in
-# step) and the pg_dump / pg_restore / psql child processes.
+# step) and the pg_dump / pg_restore / psql child processes. Those children are
+# why the limit is not tighter: 150Mi + 256Mi would fit in 512Mi, but that would
+# leave them less room than the 1Gi/768Mi-heap sizing this replaced, and
+# pg_dump's own use is not constant - large objects and wide rows push it up.
 #
 # No CPU limit. pg_dump, pg_restore and psql run as child processes inside the
 # same cgroup, so a quota is shared with whatever is doing the actual work, and
@@ -74,7 +77,7 @@ helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --set persistentVolumeClaims[2].storage=5Gi \
     --set resources.requests.memory=256Mi \
     --set resources.requests.cpu=50m \
-    --set resources.limits.memory=512Mi \
+    --set resources.limits.memory=768Mi \
     --set resources.limits.cpu=null \
     --wait
 
