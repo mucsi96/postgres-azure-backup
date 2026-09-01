@@ -619,6 +619,23 @@ than Jackson want `BindableRuntimeHintsRegistrar`, which registers exactly
 what `JavaBeanBinder` looks for over the whole class hierarchy; see
 `KeyVaultPropertySourceNativeHints`.
 
+### Release and image publishing
+
+`publish-server` and `publish-client` each ask `mucsi96/get-next-version` for
+a version. It answers from the newest `server-N` / `client-N` tag: no changes
+under the component's directory since that tag means no version, and every
+publish step is skipped. The release step must therefore tag the commit its
+image was built from - `target_commitish: ${{ github.sha }}` - because the
+action otherwise tags whatever the default branch points at when the release
+is created, and the server's native build takes long enough that another push
+frequently lands first. A tag left on a commit that was never built makes the
+next run believe that commit is already released, so nothing is published for
+it. That is silent: `deploy` resolves the newest tag on Docker Hub by
+`last_updated` and succeeds, deploying the previous commit's image, so a
+fix can look deployed while the running image predates it. When a change does
+not reach production, check that a release tag exists on the commit and that
+`publish-server` did not skip its build steps.
+
 ### Kubernetes (Helm)
 ```bash
 helm install mucsi96/spring-app \
