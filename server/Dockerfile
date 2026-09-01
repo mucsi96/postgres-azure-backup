@@ -9,10 +9,6 @@ FROM docker.io/library/maven:3-eclipse-temurin-25-alpine AS maven
 # current Liberica NIK release ships.
 FROM docker.io/bellsoft/liberica-native-image-kit-container:jdk-25-nik-25-musl AS build
 
-# --static links libz in, and the NIK image ships only the shared zlib, so the
-# link step ends in "cannot find -lz" after the whole compile has succeeded.
-RUN apk add --no-cache zlib-static
-
 COPY --from=maven /usr/share/maven /usr/share/maven
 ENV PATH="/usr/share/maven/bin:${PATH}"
 
@@ -40,8 +36,9 @@ FROM docker.io/library/alpine:3.23
 VOLUME /tmp
 
 # pg_dump / pg_restore / psql are invoked as subprocesses; curl is used for
-# health checks. The executable is fully static, so no JRE and no libc here.
-RUN apk add --no-cache postgresql18-client curl
+# health checks. The executable is linked against musl and zlib, both of which
+# Alpine provides - but no JRE, which is the point.
+RUN apk add --no-cache postgresql18-client curl zlib
 
 COPY --from=build /workspace/target/postgres-azure-backup /app/postgres-azure-backup
 

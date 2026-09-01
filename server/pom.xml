@@ -192,9 +192,13 @@
                         <enabled>true</enabled>
                     </metadataRepository>
                     <buildArgs>
-                        <!-- Fully static musl binary so the runtime image only
-                             needs the PostgreSQL client tools, no libc/JRE. -->
-                        <buildArg>--static</buildArg>
+                        <!-- musl, to match the Alpine runtime image. Not
+                             --static: a fully static binary segfaulted on
+                             startup in the container, before GraalVM's own
+                             segfault handler was installed and so with no
+                             output at all, while the same build ran fine
+                             outside one. Dynamic musl is what the Liberica NIK
+                             musl image is built to produce. -->
                         <buildArg>--libc=musl</buildArg>
                         <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                         <!-- azure-core build-time initializes a few Jackson

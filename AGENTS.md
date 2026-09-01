@@ -494,8 +494,8 @@ podman build -t localhost/postgres-azure-backup-client:test client
 
 #### Native image and the baked-in Spring profile
 
-The server is compiled ahead of time into a fully static GraalVM native
-executable, so there is no JRE in the runtime image and startup is in the
+The server is compiled ahead of time into a GraalVM native executable linked
+against musl, so there is no JRE in the runtime image and startup is in the
 tens of milliseconds rather than seconds.
 
 Ahead-of-time processing resolves bean definitions at build time, which
@@ -555,9 +555,11 @@ public contract, so smoke-test the native image whenever
 `spring-cloud-azure-dependencies` moves - a change there could drop the bean
 again with no compile-time signal.
 
-The `--static` link needs a static zlib (`zlib-static`), which the Liberica
-NIK image does not ship. Without it the whole compile succeeds and only the
-final link fails, several minutes in, with "cannot find -lz".
+The image is deliberately not built with `--static`. A fully static binary
+links (given `zlib-static`, which the NIK image does not ship) but then
+segfaults the moment it starts in the container - before GraalVM installs its
+own segfault handler, so with no output whatsoever, which looks exactly like
+a container that silently never starts.
 
 Most AOT problems reproduce without waiting for a native compile (which
 takes several minutes). Run the AOT-processed application on a normal JVM:
