@@ -189,11 +189,19 @@ jobs:
           cache-from: type=gha,scope=server-prod
           cache-to: type=gha,mode=max,scope=server-prod
 
+      # Tag the commit this image was actually built from. Without
+      # target_commitish the release action tags whatever main points at when
+      # the release is created, which is a different commit whenever another
+      # push lands during the eight minutes the native build takes. The next
+      # run then asks get-next-version for a version, sees the tag already on
+      # its own HEAD, concludes nothing changed and publishes nothing - while
+      # deploy still succeeds, on the previous commit's image.
       - name: Create release
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.get_next_version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           generate_release_notes: true
 
   publish-client:
@@ -239,11 +247,14 @@ jobs:
           cache-from: type=gha,scope=client
           cache-to: type=gha,mode=max,scope=client
 
+      # Tag the commit this image was built from, not whatever main points
+      # at by the time the release is created - see publish-server above.
       - name: Create release
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.get_next_version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           generate_release_notes: true
 
   deploy:
