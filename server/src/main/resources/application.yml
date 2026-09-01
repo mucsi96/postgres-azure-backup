@@ -19,6 +19,7 @@ spring:
       - com.azure.spring.cloud.autoconfigure.implementation.context.AzureTokenCredentialAutoConfiguration
       - com.azure.spring.cloud.autoconfigure.implementation.storage.blob.AzureStorageBlobAutoConfiguration
       - com.azure.spring.cloud.autoconfigure.implementation.storage.blob.AzureStorageBlobResourceAutoConfiguration
+      - com.azure.spring.cloud.autoconfigure.implementation.keyvault.secrets.AzureKeyVaultSecretAutoConfiguration
   cloud:
     azure:
       storage:

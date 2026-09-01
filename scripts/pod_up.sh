@@ -14,7 +14,7 @@ if [ "${SKIP_BUILD:-}" = "1" ]; then
   echo "Skipping image build (SKIP_BUILD=1)..."
 else
   echo "Building container images..."
-  podman build -t localhost/postgres-azure-backup-server:test "$PROJECT_DIR/server" &
+  podman build -t localhost/postgres-azure-backup-server:test --build-arg SPRING_PROFILES_ACTIVE=test "$PROJECT_DIR/server" &
   podman build -t localhost/postgres-azure-backup-client:test "$PROJECT_DIR/client" &
   wait
 fi

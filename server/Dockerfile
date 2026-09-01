@@ -17,14 +17,27 @@ WORKDIR /workspace
 COPY pom.xml ./
 RUN mvn dependency:go-offline -Pnative -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
+# The image is profile-specific: bean conditions such as @Profile are
+# evaluated during AOT processing, so AOT runs with the target profile active
+# and the resulting native image only works with that profile. The default
+# produces the prod image; CI builds the E2E test image with
+# --build-arg SPRING_PROFILES_ACTIVE=test.
+ARG SPRING_PROFILES_ACTIVE=prod
+
 # Copy source code, run Spring AOT processing and compile the native image.
 # SPRING_ACTUATOR_PORT must be resolvable during AOT processing (it has no
 # default in application.yml so deployments fail fast when it is missing);
 # any value different from the server port matches every real deployment,
 # because the "management runs on a separate port" condition is fixed at
-# build time.
+# build time. The Key Vault property source is disabled for the AOT run
+# (no vault is reachable at build time); it is re-evaluated at runtime,
+# where these env vars are not set.
 COPY src ./src
-RUN SPRING_ACTUATOR_PORT=8162 mvn native:compile -Pnative -DskipTests -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+RUN SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE} \
+    SPRING_ACTUATOR_PORT=8162 \
+    AZURE_KEYVAULT_ENDPOINT= \
+    SPRING_CLOUD_AZURE_KEYVAULT_SECRET_PROPERTYSOURCES_0_ENABLED=false \
+    mvn native:compile -Pnative -DskipTests -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 # Stage 3: Runtime image (no JVM needed, just the native binary + pg tools)
 FROM docker.io/library/alpine:3.23

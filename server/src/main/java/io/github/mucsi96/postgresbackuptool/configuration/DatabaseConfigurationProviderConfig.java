@@ -9,13 +9,17 @@ import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
+import org.springframework.context.annotation.Profile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.github.mucsi96.postgresbackuptool.model.DumpFormat;
 import io.github.mucsi96.postgresbackuptool.model.FolderBackupConfig;
 
+// The @Profile conditions are evaluated during AOT processing for the GraalVM
+// native image build, so every profile needs its own image: the Dockerfile
+// runs AOT with the target profile active (SPRING_PROFILES_ACTIVE build arg)
+// and only that profile's bean ends up in the native image.
 @Configuration
 @RegisterReflectionForBinding({ DatabaseConfiguration.class,
     FolderBackupConfig.class, DumpFormat.class })
@@ -24,48 +28,47 @@ public class DatabaseConfigurationProviderConfig {
     @Value("${dbs-config:}")
     String databasesConfig;
 
-    @Value("${databasesConfigPath:}")
-    String databasesConfigPath;
-
-    // Profile-specific behavior is decided at runtime instead of with
-    // @Profile-conditional beans: GraalVM native images evaluate bean
-    // conditions during AOT processing, so profile-guarded beans would be
-    // missing from the native image. The JSON parsing below never runs during
-    // AOT processing (where dbs-config is blank): AOT registers bean
-    // definitions without instantiating them.
     @Bean
-    DatabaseConfigurationProvider databaseConfigurationProvider(
-            Environment environment, ObjectMapper objectMapper)
-            throws IOException {
-        List<DatabaseConfiguration> databases;
+    @Profile("prod")
+    DatabaseConfigurationProvider prodDatabaseConfigurationProvider(
+            ObjectMapper objectMapper) throws IOException {
+        List<DatabaseConfiguration> databases = parseDatabasesConfig(
+                objectMapper);
+        return () -> databases;
+    }
 
-        if (environment.matchesProfiles("test")) {
-            if (databasesConfigPath.isBlank()) {
-                throw new IllegalStateException(
-                        "databasesConfigPath (DATABASES_CONFIG_PATH) is required in the test profile");
-            }
+    @Bean
+    @Profile("local")
+    DatabaseConfigurationProvider localDatabaseConfigurationProvider(
+            ObjectMapper objectMapper) throws IOException {
+        List<DatabaseConfiguration> databases = parseDatabasesConfig(
+                objectMapper);
+        // Adjust host to localhost for local development
+        databases.forEach(db -> {
+            db.setHost("localhost");
+            db.setPort(5461);
+        });
+        return () -> databases;
+    }
 
-            databases = Arrays.asList(objectMapper.readValue(
-                    Paths.get(databasesConfigPath).toFile(),
-                    DatabaseConfiguration[].class));
-        } else {
-            if (databasesConfig.isBlank()) {
-                throw new IllegalStateException(
-                        "dbs-config is required when not running with the test profile");
-            }
+    @Bean
+    @Profile("test")
+    DatabaseConfigurationProvider testDatabaseConfigurationProvider(
+            @Value("${databasesConfigPath}") String databasesConfigPath,
+            ObjectMapper objectMapper) throws IOException {
+        List<DatabaseConfiguration> databases = Arrays.asList(
+                objectMapper.readValue(Paths.get(databasesConfigPath).toFile(),
+                        DatabaseConfiguration[].class));
+        return () -> databases;
+    }
 
-            databases = Arrays.asList(objectMapper.readValue(databasesConfig,
-                    DatabaseConfiguration[].class));
-
-            if (environment.matchesProfiles("local")) {
-                // Adjust host to localhost for local development
-                databases.forEach(db -> {
-                    db.setHost("localhost");
-                    db.setPort(5461);
-                });
-            }
+    private List<DatabaseConfiguration> parseDatabasesConfig(
+            ObjectMapper objectMapper) throws IOException {
+        if (databasesConfig.isBlank()) {
+            throw new IllegalStateException("dbs-config is required");
         }
 
-        return () -> databases;
+        return Arrays.asList(objectMapper.readValue(databasesConfig,
+                DatabaseConfiguration[].class));
     }
 }

@@ -230,10 +230,12 @@ Backup file representation:
 - **GraalVM Native Image** - The server is compiled ahead-of-time into a
   native executable (Liberica Native Image Kit, Spring AOT). Note: bean
   conditions such as `@Profile` and `@ConditionalOnProperty` are evaluated
-  at build time, so profile-specific behavior must be decided at runtime
-  (see `DatabaseConfigurationProviderConfig`, `BackupScheduler`,
-  `StorageConfiguration`), and reflection-based JSON binding outside
-  controllers needs `@RegisterReflectionForBinding` hints.
+  at build time, so the images are profile-specific — AOT runs with the
+  target profile active (`SPRING_PROFILES_ACTIVE` Docker build arg: `prod`
+  by default, `test` for the E2E image) and an image only works with the
+  profile it was built for. Reflection-based JSON binding outside
+  controllers needs `@RegisterReflectionForBinding` hints (see
+  `DatabaseConfigurationProviderConfig`).
 - **Spring Boot 3** - Framework
 - **Spring Security** - Authentication/Authorization
 - **Spring Cloud Azure** - Entra ID integration
@@ -491,10 +493,12 @@ images are loaded with `podman load`).
 
 ### Container Build
 ```bash
-podman build -t localhost/postgres-azure-backup-server:test server
+podman build -t localhost/postgres-azure-backup-server:test --build-arg SPRING_PROFILES_ACTIVE=test server
 podman build -t localhost/postgres-azure-backup-client:test client
 # Server multi-stage: Maven + Liberica Native Image Kit (GraalVM) → Alpine
 #   (the server runs as a native executable; no JVM in the runtime image)
+# Server images are profile-specific (SPRING_PROFILES_ACTIVE build arg,
+#   default prod): bean conditions are fixed at build time by Spring AOT
 # Client multi-stage: Node → nginx
 # Server image includes pg_dump, pg_restore, curl
 ```

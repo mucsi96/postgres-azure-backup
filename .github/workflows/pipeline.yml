@@ -38,6 +38,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: server
+          build-args: |
+            SPRING_PROFILES_ACTIVE=test
           tags: localhost/postgres-azure-backup-server:test
           outputs: type=docker,dest=/tmp/server-image.tar
           cache-from: type=gha,scope=server
