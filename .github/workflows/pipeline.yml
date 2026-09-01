@@ -87,7 +87,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-test-e2e-${{ github.ref }}
       cancel-in-progress: true
-    needs: [test-client, build-images]
+    needs: [test-client, build-images, build-prod-image]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

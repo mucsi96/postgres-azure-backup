@@ -3,9 +3,14 @@ package io.github.mucsi96.postgresbackuptool.configuration;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
+import org.springframework.aot.hint.MemberCategory;
+import org.springframework.aot.hint.RuntimeHints;
+import org.springframework.aot.hint.RuntimeHintsRegistrar;
+import org.springframework.aot.hint.TypeReference;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ImportRuntimeHints;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
@@ -14,7 +19,25 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 
 @Configuration
+@ImportRuntimeHints(StorageConfiguration.AzureBlobRuntimeHints.class)
 public class StorageConfiguration {
+
+  // The Azure SDK builds storage exceptions reflectively
+  // (ResponseExceptionConstructorCache); without constructor hints, error
+  // responses fail with NoSuchMethodException in the native image instead of
+  // surfacing as BlobStorageException.
+  static class AzureBlobRuntimeHints implements RuntimeHintsRegistrar {
+    @Override
+    public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
+      hints.reflection().registerType(
+          TypeReference.of(
+              "com.azure.storage.blob.implementation.models.BlobStorageExceptionInternal"),
+          MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
+      hints.reflection().registerType(
+          TypeReference.of("com.azure.storage.blob.models.BlobStorageException"),
+          MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
+    }
+  }
 
   // The blob container client is created explicitly instead of relying on
   // Spring Cloud Azure auto-configuration: the auto-configured beans are
