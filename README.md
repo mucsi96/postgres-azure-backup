@@ -28,6 +28,7 @@ Simple PostgreSQL backup tool to Azure with UI
 ## Stack
 
 - Java 21
+- GraalVM Native Image (server compiled ahead-of-time)
 - Spring Boot 3
 - Angular
 - OpenID Connect (`angular-auth-oidc-client`)

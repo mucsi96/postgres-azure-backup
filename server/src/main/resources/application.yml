@@ -2,15 +2,25 @@ server:
   forward-headers-strategy: framework
   servlet:
     context-path: /api
+# The Key Vault property source is configured in the prod and local profiles
+# (instead of here) so that it stays inactive during AOT processing for the
+# GraalVM native image build, where no profile is active and
+# AZURE_KEYVAULT_ENDPOINT is not set.
 spring:
+  # The Spring Cloud Azure auto-configurations are excluded because the GraalVM
+  # native image build fails on them: the Azure jars are signed, and the
+  # unsigned Spring AOT-generated classes placed in the same packages trigger
+  # "signer information does not match" errors. They are not needed:
+  # BlobContainerClient is created in StorageConfiguration, and the Key Vault
+  # property source is an environment post-processor, not an auto-configuration.
+  autoconfigure:
+    exclude:
+      - com.azure.spring.cloud.autoconfigure.implementation.context.AzureGlobalPropertiesAutoConfiguration
+      - com.azure.spring.cloud.autoconfigure.implementation.context.AzureTokenCredentialAutoConfiguration
+      - com.azure.spring.cloud.autoconfigure.implementation.storage.blob.AzureStorageBlobAutoConfiguration
+      - com.azure.spring.cloud.autoconfigure.implementation.storage.blob.AzureStorageBlobResourceAutoConfiguration
   cloud:
     azure:
-      keyvault:
-        secret:
-          property-sources:
-            - endpoint: ${AZURE_KEYVAULT_ENDPOINT}
-              enabled: true
-
       storage:
         blob:
           container-name: ${storage-account-container-name}
@@ -22,9 +32,12 @@ spring:
           issuer-uri: https://login.microsoftonline.com/${tenant-id:}/v2.0
           audiences: ${api-client-id:}
 
+# The default value keeps the port resolvable during AOT processing for the
+# GraalVM native image build. It must stay different from the server port:
+# the "management runs on a separate port" condition is fixed at build time.
 management:
   server:
-    port: ${SPRING_ACTUATOR_PORT}
+    port: ${SPRING_ACTUATOR_PORT:8162}
   endpoints:
     web:
       exposure:

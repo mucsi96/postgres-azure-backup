@@ -1,36 +1,41 @@
-# Stage 1: Build server with Maven
-FROM docker.io/library/maven:3-eclipse-temurin-21 AS build
+# Stage 1: Maven distribution (plain Java, works on musl with the NIK JDK)
+FROM docker.io/library/maven:3-eclipse-temurin-21 AS maven
+
+# Stage 2: Build a GraalVM native executable with Liberica Native Image Kit.
+# The musl-based (Alpaquita) variant produces a binary that runs on Alpine.
+# NIK 25 (JDK 25) is required by the reachability-metadata schema used by the
+# GraalVM native-maven-plugin version that Spring Boot manages.
+FROM docker.io/bellsoft/liberica-native-image-kit-container:jdk-25-nik-25-musl AS build
+
+COPY --from=maven /usr/share/maven /opt/maven
+ENV MAVEN_HOME=/opt/maven
+ENV PATH=/opt/maven/bin:$PATH
 
 WORKDIR /workspace
 
 # Copy POM and download dependencies (cached separately from source)
 COPY pom.xml ./
-RUN mvn dependency:go-offline -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+RUN mvn dependency:go-offline -Pnative -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
-# Copy source code and build
+# Copy source code, run Spring AOT processing and compile the native image
 COPY src ./src
-RUN mvn package -DskipTests -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+RUN mvn native:compile -Pnative -DskipTests -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
-# Extract dependencies for layer caching
-RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
-
-# Stage 2: Runtime image
-FROM docker.io/bellsoft/liberica-openjre-alpine-musl:26
+# Stage 3: Runtime image (no JVM needed, just the native binary + pg tools)
+FROM docker.io/library/alpine:3.23
 
 VOLUME /tmp
 
-ARG DEPENDENCY=/workspace/target/dependency
 ARG SPRING_PROFILES_ACTIVE=prod
 
-RUN apk add postgresql18-client curl
+RUN apk add --no-cache postgresql18-client curl
 
-# Copy application layers
-COPY --from=build ${DEPENDENCY}/BOOT-INF/lib /app/lib
-COPY --from=build ${DEPENDENCY}/META-INF /app/META-INF
-COPY --from=build ${DEPENDENCY}/BOOT-INF/classes /app
+COPY --from=build /workspace/target/postgres-azure-backup /app/postgres-azure-backup
 
 # Set environment variables
 ENV SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
 
-# Run the application
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-Djdk.httpclient.allowRestrictedHeaders=content-length", "-cp", "app:app/lib/*", "io.github.mucsi96.postgresbackuptool.App"]
+# Run the application. java.home is not set in a native image, but the Azure
+# JDK HttpClient builder resolves ${java.home}/conf/net.properties from it, so
+# it is pointed at a directory without that file.
+ENTRYPOINT ["/app/postgres-azure-backup", "-Djdk.httpclient.allowRestrictedHeaders=content-length", "-Djava.home=/app"]

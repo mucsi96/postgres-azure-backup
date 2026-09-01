@@ -226,7 +226,14 @@ Backup file representation:
 ## Technology Stack
 
 ### Backend
-- **Java 21** - Runtime
+- **Java 21** - Language level
+- **GraalVM Native Image** - The server is compiled ahead-of-time into a
+  native executable (Liberica Native Image Kit, Spring AOT). Note: bean
+  conditions such as `@Profile` and `@ConditionalOnProperty` are evaluated
+  at build time, so profile-specific behavior must be decided at runtime
+  (see `DatabaseConfigurationProviderConfig`, `BackupScheduler`,
+  `StorageConfiguration`), and reflection-based JSON binding outside
+  controllers needs `@RegisterReflectionForBinding` hints.
 - **Spring Boot 3** - Framework
 - **Spring Security** - Authentication/Authorization
 - **Spring Cloud Azure** - Entra ID integration
@@ -486,7 +493,8 @@ images are loaded with `podman load`).
 ```bash
 podman build -t localhost/postgres-azure-backup-server:test server
 podman build -t localhost/postgres-azure-backup-client:test client
-# Server multi-stage: Maven → Liberica JRE Alpine
+# Server multi-stage: Maven + Liberica Native Image Kit (GraalVM) → Alpine
+#   (the server runs as a native executable; no JVM in the runtime image)
 # Client multi-stage: Node → nginx
 # Server image includes pg_dump, pg_restore, curl
 ```

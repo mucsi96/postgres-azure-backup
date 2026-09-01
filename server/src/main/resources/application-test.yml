@@ -2,10 +2,6 @@ databasesConfigPath: ${DATABASES_CONFIG_PATH}
 spring:
   cloud:
     azure:
-      keyvault:
-        secret:
-          property-sources:
-            - enabled: false
       storage:
         blob:
           connection-string: ${BLOBSTORAGE_CONNECTION_STRING}

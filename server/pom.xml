@@ -106,6 +106,38 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- JDK 23+ (used for the GraalVM native image build) no
+                         longer runs annotation processors found on the
+                         classpath implicitly, so Lombok must be declared
+                         explicitly -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.graalvm.buildtools</groupId>
+                <artifactId>native-maven-plugin</artifactId>
+                <configuration>
+                    <buildArgs>
+                        <!-- The logging bootstrap (SLF4J provider lookup and
+                             the Logback context) and the Jackson Base64Variant
+                             constants end up in the image heap, so these
+                             packages/classes must be initialized at build
+                             time -->
+                        <buildArg>--initialize-at-build-time=org.slf4j,ch.qos.logback</buildArg>
+                        <buildArg>--initialize-at-build-time=com.fasterxml.jackson.core.Base64Variant,com.fasterxml.jackson.core.Base64Variant$PaddingReadBehaviour,com.fasterxml.jackson.core.Base64Variants</buildArg>
+                    </buildArgs>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>

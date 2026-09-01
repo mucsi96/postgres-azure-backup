@@ -4,7 +4,7 @@ import io.github.mucsi96.postgresbackuptool.service.SmartBackupService;
 import io.github.mucsi96.postgresbackuptool.service.SmartBackupService.SmartBackupResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -13,12 +13,12 @@ import org.springframework.stereotype.Component;
  * Runs every 24 hours to ensure regular backup coverage.
  */
 @Component
-@Profile("!test")
 @RequiredArgsConstructor
 @Slf4j
 public class BackupScheduler {
 
     private final SmartBackupService smartBackupService;
+    private final Environment environment;
 
     /**
      * Scheduled task that runs immediately on application startup and then every 24 hours (86400000 milliseconds).
@@ -26,6 +26,14 @@ public class BackupScheduler {
      */
     @Scheduled(fixedDelay = 86400000)
     public void performScheduledBackup() {
+        // The test profile is checked at runtime instead of excluding the bean
+        // with @Profile("!test"): GraalVM native images evaluate bean
+        // conditions during AOT processing, so the profile would be fixed at
+        // build time.
+        if (environment.matchesProfiles("test")) {
+            return;
+        }
+
         log.info("Starting scheduled smart backup (24-hour interval)");
 
         try {
