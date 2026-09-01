@@ -3,9 +3,6 @@ package io.github.mucsi96.postgresbackuptool.service;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -13,10 +10,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
-import org.springframework.core.io.WritableResource;
 import org.springframework.stereotype.Service;
 
 import com.azure.storage.blob.BlobClient;
@@ -33,17 +26,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class BackupService {
     private final DateTimeFormatter dateTimeFormatter;
-    private final String containerName;
-    private final ResourceLoader resourceLoader;
     private final BlobContainerClient blobContainerClient;
 
     public BackupService(DateTimeFormatter dateTimeFormatter,
-            @Value("${spring.cloud.azure.storage.blob.container-name}") String containerName,
-            ResourceLoader resourceLoader,
             BlobContainerClient blobContainerClient) {
         this.dateTimeFormatter = dateTimeFormatter;
-        this.containerName = containerName;
-        this.resourceLoader = resourceLoader;
         this.blobContainerClient = blobContainerClient;
     }
 
@@ -82,15 +69,14 @@ public class BackupService {
         return dateTimeFormatter.parse(name.substring(0, 15), Instant::from);
     }
 
+    // The blob client is used directly instead of the azure-blob:// resource
+    // protocol: the protocol resolver comes from a Spring Cloud Azure
+    // auto-configuration that is excluded because it breaks the GraalVM
+    // native image build (see application.yml).
     public void createBackup(String prefix, File dumpFile, String fileName)
             throws IOException {
-        String location = String.format("azure-blob://%s/%s/%s", containerName,
-                prefix, fileName);
-        WritableResource resource = (WritableResource) resourceLoader
-                .getResource(location);
-        try (OutputStream os = resource.getOutputStream()) {
-            Files.copy(dumpFile.toPath(), os);
-        }
+        blobContainerClient.getBlobClient(prefix + "/" + fileName)
+                .uploadFromFile(dumpFile.getAbsolutePath(), true);
     }
 
     public record BackupStreamInfo(InputStream inputStream, long contentLength) {}
@@ -104,12 +90,9 @@ public class BackupService {
     }
 
     public File downloadBackup(String prefix, String key) throws IOException {
-        String location = String.format("azure-blob://%s/%s/%s", containerName,
-                prefix, key);
-        Resource resource = resourceLoader.getResource(location);
         File file = File.createTempFile("backup-", ".zip");
-        Files.copy(resource.getInputStream(), file.toPath(),
-                StandardCopyOption.REPLACE_EXISTING);
+        blobContainerClient.getBlobClient(prefix + "/" + key)
+                .downloadToFile(file.getAbsolutePath(), true);
         return file;
     }
 
