@@ -49,6 +49,11 @@ public class DatabaseConfigurationProviderConfig {
                     Paths.get(databasesConfigPath).toFile(),
                     DatabaseConfiguration[].class));
         } else {
+            if (databasesConfig.isBlank()) {
+                throw new IllegalStateException(
+                        "dbs-config is required when not running with the test profile");
+            }
+
             databases = Arrays.asList(objectMapper.readValue(databasesConfig,
                     DatabaseConfiguration[].class));
 

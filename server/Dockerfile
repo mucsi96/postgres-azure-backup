@@ -17,9 +17,14 @@ WORKDIR /workspace
 COPY pom.xml ./
 RUN mvn dependency:go-offline -Pnative -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
-# Copy source code, run Spring AOT processing and compile the native image
+# Copy source code, run Spring AOT processing and compile the native image.
+# SPRING_ACTUATOR_PORT must be resolvable during AOT processing (it has no
+# default in application.yml so deployments fail fast when it is missing);
+# any value different from the server port matches every real deployment,
+# because the "management runs on a separate port" condition is fixed at
+# build time.
 COPY src ./src
-RUN mvn native:compile -Pnative -DskipTests -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+RUN SPRING_ACTUATOR_PORT=8162 mvn native:compile -Pnative -DskipTests -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 # Stage 3: Runtime image (no JVM needed, just the native binary + pg tools)
 FROM docker.io/library/alpine:3.23

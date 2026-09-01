@@ -32,12 +32,14 @@ spring:
           issuer-uri: https://login.microsoftonline.com/${tenant-id:}/v2.0
           audiences: ${api-client-id:}
 
-# The default value keeps the port resolvable during AOT processing for the
-# GraalVM native image build. It must stay different from the server port:
-# the "management runs on a separate port" condition is fixed at build time.
+# SPRING_ACTUATOR_PORT has no default here so a deployment that forgets to
+# set it still fails fast at startup. AOT processing for the GraalVM native
+# image build needs the placeholder resolvable, so the Dockerfile build stage
+# sets the env var (to a value different from the server port — the
+# "management runs on a separate port" condition is fixed at build time).
 management:
   server:
-    port: ${SPRING_ACTUATOR_PORT:8162}
+    port: ${SPRING_ACTUATOR_PORT}
   endpoints:
     web:
       exposure:

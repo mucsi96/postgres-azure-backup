@@ -25,12 +25,44 @@ jobs:
       - name: Run client tests
         working-directory: client
         run: npm test
+  build-images:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-build-images-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build server image
+        uses: docker/build-push-action@v6
+        with:
+          context: server
+          tags: localhost/postgres-azure-backup-server:test
+          outputs: type=docker,dest=/tmp/server-image.tar
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,mode=max,scope=server
+      - name: Build client image
+        uses: docker/build-push-action@v6
+        with:
+          context: client
+          tags: localhost/postgres-azure-backup-client:test
+          outputs: type=docker,dest=/tmp/client-image.tar
+          cache-from: type=gha,scope=client
+          cache-to: type=gha,mode=max,scope=client
+      - name: Upload images
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-images
+          path: /tmp/*-image.tar
+          retention-days: 1
+
   test-e2e:
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-test-e2e-${{ github.ref }}
       cancel-in-progress: true
-    needs: test-client
+    needs: [test-client, build-images]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -44,28 +76,15 @@ jobs:
       - name: Install Playwright browsers
         working-directory: test
         run: npx playwright install chromium --with-deps
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Build server image
-        uses: docker/build-push-action@v6
+      - name: Download images
+        uses: actions/download-artifact@v4
         with:
-          context: server
-          load: true
-          tags: localhost/postgres-azure-backup-server:test
-          cache-from: type=gha,scope=server
-          cache-to: type=gha,mode=max,scope=server
-      - name: Build client image
-        uses: docker/build-push-action@v6
-        with:
-          context: client
-          load: true
-          tags: localhost/postgres-azure-backup-client:test
-          cache-from: type=gha,scope=client
-          cache-to: type=gha,mode=max,scope=client
+          name: container-images
+          path: /tmp
       - name: Load images into Podman
         run: |
-          docker save localhost/postgres-azure-backup-server:test | podman load
-          docker save localhost/postgres-azure-backup-client:test | podman load
+          podman load -i /tmp/server-image.tar
+          podman load -i /tmp/client-image.tar
       - name: Setup test environment and start pod
         env:
           SKIP_BUILD: "1"
