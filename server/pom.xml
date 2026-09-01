@@ -192,13 +192,14 @@
                         <enabled>true</enabled>
                     </metadataRepository>
                     <buildArgs>
-                        <!-- musl, to match the Alpine runtime image. Not
-                             --static: a fully static binary segfaulted on
-                             startup in the container, before GraalVM's own
-                             segfault handler was installed and so with no
-                             output at all, while the same build ran fine
-                             outside one. Dynamic musl is what the Liberica NIK
-                             musl image is built to produce. -->
+                        <!-- musl, to match the Alpine runtime image, and
+                             deliberately not a fully static link: a static
+                             binary segfaulted the moment it started in the
+                             container, before GraalVM installed its own
+                             segfault handler and so with no output at all,
+                             while the same build ran fine outside one. Dynamic
+                             musl is what the Liberica NIK musl image is built
+                             to produce. -->
                         <buildArg>--libc=musl</buildArg>
                         <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                         <!-- azure-core build-time initializes a few Jackson
