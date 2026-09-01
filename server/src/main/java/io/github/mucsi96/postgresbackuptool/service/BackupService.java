@@ -73,8 +73,7 @@ public class BackupService {
     // protocol: the protocol resolver comes from a Spring Cloud Azure
     // auto-configuration that is excluded because it breaks the GraalVM
     // native image build (see application.yml).
-    public void createBackup(String prefix, File dumpFile, String fileName)
-            throws IOException {
+    public void createBackup(String prefix, File dumpFile, String fileName) {
         blobContainerClient.getBlobClient(prefix + "/" + fileName)
                 .uploadFromFile(dumpFile.getAbsolutePath(), true);
     }
