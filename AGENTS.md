@@ -277,6 +277,13 @@ DATABASES_CONFIG_PATH              # Config file path
 SPRING_ACTUATOR_PORT               # Management port
 ```
 
+Native-image caveats: `SPRING_PROFILES_ACTIVE` cannot be overridden at
+runtime — the profile is baked into each image at build time (see the
+Docker build arg), and running an image with a different profile fails at
+startup with missing beans. `SPRING_ACTUATOR_PORT` must stay different
+from the server port: the "management runs on a separate port" condition
+is also fixed at build time.
+
 ### Environment Variables (Optional)
 ```bash
 BACKUP_SCHEDULE_ENABLED=true                # Enable scheduling

@@ -23,7 +23,9 @@ public class StorageConfiguration {
   // missing from the native image. All properties are resolved at runtime.
   // The credential precedence is tied to what the profiles set: test sets
   // connection-string, local sets client-id + client-secret, prod sets
-  // client-id only (workload/managed identity).
+  // client-id only (workload/managed identity). Because auto-configuration
+  // no longer applies, SDK tuning (retry policy, proxy, telemetry) must be
+  // configured on this builder manually.
   @Bean
   BlobContainerClient blobContainerClient(
       @Value("${spring.cloud.azure.storage.blob.endpoint:}") String endpoint,
