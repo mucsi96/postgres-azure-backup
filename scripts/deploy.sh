@@ -31,6 +31,20 @@ helm repo add mucsi96 https://mucsi96.github.io/k8s-helm-charts --force-update
 springAppChartVersion=$(helm search repo mucsi96/spring-app --output json | jq -r '.[0].version')
 clientAppChartVersion=$(helm search repo mucsi96/client-app --output json | jq -r '.[0].version')
 
+# The server is a GraalVM native image: around 150Mi resident at idle, and it
+# streams dumps and blobs through temp files instead of buffering them, so the
+# heap stays small. The memory limit has to cover that 150Mi, the 256Mi heap the
+# image is capped at (see the ENTRYPOINT in server/Dockerfile - keep the two in
+# step) and the pg_dump / pg_restore / psql child processes. Those children are
+# why the limit is not tighter: 150Mi + 256Mi would fit in 512Mi, but that would
+# leave them less room than the 1Gi/768Mi-heap sizing this replaced, and
+# pg_dump's own use is not constant - large objects and wide rows push it up.
+#
+# No CPU limit. pg_dump, pg_restore and psql run as child processes inside the
+# same cgroup, so a quota is shared with whatever is doing the actual work, and
+# CFS throttling would stretch a backup out even on an idle node. CPU is
+# compressible, so the request still gives the pod its share under contention.
+# null deletes the chart's default rather than overriding it.
 echo "Deploying server: $DOCKERHUB_USERNAME/postgres-azure-backup-server:$serverLatestTag using spring-app chart $springAppChartVersion"
 helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --install \
@@ -61,10 +75,10 @@ helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --set persistentVolumeClaims[2].mountPath=/app/storage/cooking \
     --set persistentVolumeClaims[2].storageClassName="" \
     --set persistentVolumeClaims[2].storage=5Gi \
-    --set resources.requests.memory=512Mi \
+    --set resources.requests.memory=256Mi \
     --set resources.requests.cpu=50m \
-    --set resources.limits.memory=1Gi \
-    --set resources.limits.cpu=500m \
+    --set resources.limits.memory=768Mi \
+    --set resources.limits.cpu=null \
     --wait
 
 echo "Deploying client: $DOCKERHUB_USERNAME/postgres-azure-backup-client:$clientLatestTag using client-app chart $clientAppChartVersion"
