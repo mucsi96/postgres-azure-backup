@@ -10,6 +10,11 @@
 
     <properties>
         <java.version>21</java.version>
+        <!-- Spring profile baked into the AOT-processed / native image at build
+             time. GraalVM native images resolve their bean definitions during
+             AOT processing, so the profile cannot be chosen at runtime any
+             more: build one image per profile instead (test, prod). -->
+        <app.profile>prod</app.profile>
     </properties>
 
     <parent>
@@ -27,6 +32,17 @@
                 <version>7.4.0</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <!-- Ahead of the version the Azure BOM pins (1.58.1), whose
+                 native-image.properties forces SLF4J and logback to build-time
+                 initialization. Spring Boot sets logging up at run time, and
+                 the mix leaves objects of run-time initialized types in the
+                 image heap, which the native-image builder rejects and refuses
+                 to let the build override. 1.59.0 dropped those directives. -->
+            <dependency>
+                <groupId>com.azure</groupId>
+                <artifactId>azure-core</artifactId>
+                <version>1.59.1</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -116,6 +132,62 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>process-aot</id>
+                        <configuration>
+                            <profiles>
+                                <profile>${app.profile}</profile>
+                            </profiles>
+                            <!-- AOT processing refreshes the application
+                                 context at build time, so every placeholder an
+                                 auto-configuration condition reads has to
+                                 resolve. These are build-time-only stand-ins:
+                                 they are never baked into the image, but the
+                                 conditions they make match are, so a stand-in
+                                 has to match what the real value does at
+                                 runtime. Deliberately absent: the Key Vault
+                                 endpoint, which is what the property source
+                                 (switched off here so the build never reaches
+                                 out to Azure) would supply. -->
+                            <systemPropertyVariables>
+                                <spring.cloud.azure.keyvault.secret.property-source-enabled>false</spring.cloud.azure.keyvault.secret.property-source-enabled>
+                                <SPRING_ACTUATOR_PORT>8162</SPRING_ACTUATOR_PORT>
+                                <storage-account-container-name>backups</storage-account-container-name>
+                                <storage-account-blob-url>https://aot-build.blob.core.windows.net/</storage-account-blob-url>
+                                <api-client-id>aot-build</api-client-id>
+                                <BLOBSTORAGE_CONNECTION_STRING>DefaultEndpointsProtocol=http;AccountName=aot-build;AccountKey=aot-build;BlobEndpoint=http://localhost:8163/aot-build;</BLOBSTORAGE_CONNECTION_STRING>
+                                <DATABASES_CONFIG_PATH>/app/databases_config.json</DATABASES_CONFIG_PATH>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.graalvm.buildtools</groupId>
+                <artifactId>native-maven-plugin</artifactId>
+                <configuration>
+                    <!-- Pull reachability metadata for libraries that do not
+                         ship their own (the PostgreSQL JDBC driver, ...). -->
+                    <metadataRepository>
+                        <enabled>true</enabled>
+                    </metadataRepository>
+                    <buildArgs>
+                        <!-- Fully static musl binary so the runtime image only
+                             needs the PostgreSQL client tools, no libc/JRE. -->
+                        <buildArg>--static</buildArg>
+                        <buildArg>--libc=musl</buildArg>
+                        <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                        <!-- azure-core build-time initializes a few Jackson
+                             core classes but not everything they hold on to,
+                             which would leave objects of run-time initialized
+                             types in the image heap; cover the whole package. -->
+                        <buildArg>--initialize-at-build-time=com.fasterxml.jackson.core</buildArg>
+                        <!-- See native-image.security for why the builder has
+                             to ignore jar signatures. -->
+                        <buildArg>-J-Djava.security.properties=${project.basedir}/native-image.security</buildArg>
+                    </buildArgs>
                 </configuration>
             </plugin>
         </plugins>

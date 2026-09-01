@@ -226,8 +226,8 @@ Backup file representation:
 ## Technology Stack
 
 ### Backend
-- **Java 21** - Runtime
-- **Spring Boot 3** - Framework
+- **Java 21** - Language level; built into a GraalVM native image
+- **Spring Boot 4** - Framework
 - **Spring Security** - Authentication/Authorization
 - **Spring Cloud Azure** - Entra ID integration
 - **Azure SDK** - Blob Storage client
@@ -484,12 +484,91 @@ images are loaded with `podman load`).
 
 ### Container Build
 ```bash
-podman build -t localhost/postgres-azure-backup-server:test server
+podman build --build-arg SPRING_PROFILE=test \
+  -t localhost/postgres-azure-backup-server:test server
 podman build -t localhost/postgres-azure-backup-client:test client
-# Server multi-stage: Maven → Liberica JRE Alpine
+# Server multi-stage: Maven + Liberica NIK (GraalVM) → Alpine
 # Client multi-stage: Node → nginx
-# Server image includes pg_dump, pg_restore, curl
+# Server image includes pg_dump, pg_restore, psql, curl
 ```
+
+#### Native image and the baked-in Spring profile
+
+The server is compiled ahead of time into a fully static GraalVM native
+executable, so there is no JRE in the runtime image and startup is in the
+tens of milliseconds rather than seconds.
+
+Ahead-of-time processing resolves bean definitions at build time, which
+means the active Spring profile is decided by the build, not by the
+environment: Spring AOT emits an `EnvironmentPostProcessor` that activates
+the profile the image was built with. `SPRING_PROFILES_ACTIVE` is no longer
+read at runtime, and `test/test-pod.yaml` no longer sets it. Build one image
+per profile with the `SPRING_PROFILE` build argument — `test` for the e2e
+pod, `prod` for the image published to Docker Hub.
+
+Three build-time details live in `server/pom.xml` and are easy to trip over:
+
+- AOT processing refreshes the application context, so every placeholder an
+  auto-configuration condition reads has to resolve during the build. The
+  `process-aot` execution supplies build-time stand-ins for them and turns
+  the Key Vault property source off, so the build never reaches out to
+  Azure. The stand-ins are not baked into the image; they only have to make
+  the same conditions match as the real values do at runtime. A new required
+  environment placeholder means adding it there too.
+- Spring AOT generates bean-definition classes into the packages of the
+  configuration classes it processes, including the signed Spring Cloud
+  Azure jars. Mixing generated (unsigned) and signed classes in one package
+  makes the native-image builder throw `SecurityException: ... signer
+  information does not match`, so the builder is pointed at
+  `server/native-image.security`, which disables jar signature verification.
+- Jars can ship a `META-INF/native-image/.../native-image.properties` that
+  forces classes to build-time initialization. When such a class holds on to
+  objects of types that are still initialized at run time, the builder fails
+  with `UnsupportedFeatureException: An object of type ... was found in the
+  image heap`. `--initialize-at-build-time` in the `native-maven-plugin`
+  config covers the Jackson core classes `azure-core` leaves behind that
+  way. Note that a build cannot undo such a directive: `--exclude-config`
+  does not apply to `native-image.properties`, and
+  `--initialize-at-run-time` for the same class is rejected outright. That
+  is why `azure-core` is pinned ahead of the version the Azure BOM selects
+  — the BOM's 1.58.1 forces SLF4J and logback to build-time initialization,
+  which is irreconcilable with Spring Boot setting logging up at run time.
+  Check this again when the Azure BOM moves.
+- The Azure SDK's `ExpandableStringEnum` constants are built by
+  instantiating the subclass reflectively, and `fromString` returns `null`
+  rather than failing when it cannot. Missing reflection metadata therefore
+  surfaces as every constant of a class being `null` and a
+  `NullPointerException` far from the cause. `AzureNativeHints` registers the
+  subclasses azure-identity does not ship metadata for. This kind of problem
+  only shows up in the native image, never in the AOT-on-JVM run described
+  below.
+
+Spring Cloud Azure needs one workaround in application code:
+`AzureGlobalPropertiesConfiguration` re-declares the
+`AzureGlobalProperties` bean. Spring Cloud Azure registers it from an
+`ImportBeanDefinitionRegistrar` using a lambda instance supplier, which AOT
+cannot turn into generated code, so it drops the bean and the image fails to
+start with "required a bean of type AzureGlobalProperties that could not be
+found". See the class comment for why it uses its own bean name.
+
+Most AOT problems reproduce without waiting for a native compile (which
+takes several minutes). Run the AOT-processed application on a normal JVM:
+
+```bash
+cd server
+mvn -Pnative package -DskipTests -Dapp.profile=test
+java -Dspring.aot.enabled=true -jar target/*-SNAPSHOT.jar
+```
+
+That exercises the generated context — missing bean definitions, profile
+and condition mismatches — in seconds. Only class-initialization and
+reflection problems need the real `mvn -Pnative native:compile`.
+
+Types that are only ever bound reflectively — the databases config read
+with a plain `ObjectMapper` — need explicit hints; see
+`@RegisterReflectionForBinding` on `DatabaseConfigurationProviderConfig`.
+Controller request/response types are covered by the framework's own AOT
+processing and do not need hints.
 
 ### Kubernetes (Helm)
 ```bash
