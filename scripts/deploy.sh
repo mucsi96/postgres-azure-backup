@@ -31,6 +31,12 @@ helm repo add mucsi96 https://mucsi96.github.io/k8s-helm-charts --force-update
 springAppChartVersion=$(helm search repo mucsi96/spring-app --output json | jq -r '.[0].version')
 clientAppChartVersion=$(helm search repo mucsi96/client-app --output json | jq -r '.[0].version')
 
+# The server is a GraalVM native image: around 150Mi resident at idle, and it
+# streams dumps and blobs through temp files instead of buffering them, so the
+# heap stays small. The limit has to cover that 150Mi, the 256Mi heap the image
+# is capped at (see the ENTRYPOINT in server/Dockerfile - keep the two in step)
+# and the pg_dump / pg_restore / psql child processes. CPU is left as it was:
+# the backup work itself is no cheaper than it was on the JVM.
 echo "Deploying server: $DOCKERHUB_USERNAME/postgres-azure-backup-server:$serverLatestTag using spring-app chart $springAppChartVersion"
 helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --install \
@@ -61,9 +67,9 @@ helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --set persistentVolumeClaims[2].mountPath=/app/storage/cooking \
     --set persistentVolumeClaims[2].storageClassName="" \
     --set persistentVolumeClaims[2].storage=5Gi \
-    --set resources.requests.memory=512Mi \
+    --set resources.requests.memory=256Mi \
     --set resources.requests.cpu=50m \
-    --set resources.limits.memory=1Gi \
+    --set resources.limits.memory=512Mi \
     --set resources.limits.cpu=500m \
     --wait
 

@@ -44,11 +44,14 @@ COPY --from=build /workspace/target/postgres-azure-backup /app/postgres-azure-ba
 # and the header allow-list below is what actually matters.
 RUN mkdir -p /app/conf && : > /app/conf/net.properties
 
-# MaximumHeapSizePercent (default 80) is trimmed to leave the container room for
-# the pg_dump / pg_restore / psql child processes. The Azure SDK sets
-# Content-Length explicitly on the JDK HTTP client, which the client rejects
-# unless the header is allow-listed.
+# An absolute heap cap rather than the percentage of physical memory the default
+# uses: the executable is already around 150Mi resident before any heap is
+# allocated, so the headroom the container needs is a constant, not a fraction.
+# 256Mi of heap fits the 512Mi limit in scripts/deploy.sh alongside that and the
+# pg_dump / pg_restore / psql child processes - keep the two in step. The Azure
+# SDK sets Content-Length explicitly on the JDK HTTP client, which the client
+# rejects unless the header is allow-listed.
 ENTRYPOINT ["/app/postgres-azure-backup", \
-    "-XX:MaximumHeapSizePercent=75", \
+    "-XX:MaxHeapSize=256m", \
     "-Djava.home=/app", \
     "-Djdk.httpclient.allowRestrictedHeaders=content-length"]
