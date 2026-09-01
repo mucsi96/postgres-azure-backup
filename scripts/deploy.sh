@@ -33,10 +33,15 @@ clientAppChartVersion=$(helm search repo mucsi96/client-app --output json | jq -
 
 # The server is a GraalVM native image: around 150Mi resident at idle, and it
 # streams dumps and blobs through temp files instead of buffering them, so the
-# heap stays small. The limit has to cover that 150Mi, the 256Mi heap the image
-# is capped at (see the ENTRYPOINT in server/Dockerfile - keep the two in step)
-# and the pg_dump / pg_restore / psql child processes. CPU is left as it was:
-# the backup work itself is no cheaper than it was on the JVM.
+# heap stays small. The memory limit has to cover that 150Mi, the 256Mi heap the
+# image is capped at (see the ENTRYPOINT in server/Dockerfile - keep the two in
+# step) and the pg_dump / pg_restore / psql child processes.
+#
+# No CPU limit. pg_dump, pg_restore and psql run as child processes inside the
+# same cgroup, so a quota is shared with whatever is doing the actual work, and
+# CFS throttling would stretch a backup out even on an idle node. CPU is
+# compressible, so the request still gives the pod its share under contention.
+# null deletes the chart's default rather than overriding it.
 echo "Deploying server: $DOCKERHUB_USERNAME/postgres-azure-backup-server:$serverLatestTag using spring-app chart $springAppChartVersion"
 helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --install \
@@ -70,7 +75,7 @@ helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --set resources.requests.memory=256Mi \
     --set resources.requests.cpu=50m \
     --set resources.limits.memory=512Mi \
-    --set resources.limits.cpu=500m \
+    --set resources.limits.cpu=null \
     --wait
 
 echo "Deploying client: $DOCKERHUB_USERNAME/postgres-azure-backup-client:$clientLatestTag using client-app chart $clientAppChartVersion"
