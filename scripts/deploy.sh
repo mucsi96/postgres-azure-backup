@@ -32,6 +32,9 @@ springAppChartVersion=$(helm search repo mucsi96/spring-app --output json | jq -
 clientAppChartVersion=$(helm search repo mucsi96/client-app --output json | jq -r '.[0].version')
 
 echo "Deploying server: $DOCKERHUB_USERNAME/postgres-azure-backup-server:$serverLatestTag using spring-app chart $springAppChartVersion"
+# CPU limits are intentionally omitted for both services (limits.cpu=null
+# clears the chart default): on a single-user node they only throttle
+# startup; memory limits are the ones that matter.
 helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --install \
     --version $springAppChartVersion \
@@ -64,7 +67,7 @@ helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --set resources.requests.memory=512Mi \
     --set resources.requests.cpu=50m \
     --set resources.limits.memory=1Gi \
-    --set resources.limits.cpu=500m \
+    --set resources.limits.cpu=null \
     --wait
 
 echo "Deploying client: $DOCKERHUB_USERNAME/postgres-azure-backup-client:$clientLatestTag using client-app chart $clientAppChartVersion"
@@ -75,4 +78,7 @@ helm upgrade $CLIENT_RELEASE_NAME mucsi96/client-app \
     --set image=$DOCKERHUB_USERNAME/postgres-azure-backup-client:$clientLatestTag \
     --set host=$HOSTNAME \
     --set entryPoint=web \
+    --set resources.requests.memory=16Mi \
+    --set resources.requests.cpu=5m \
+    --set resources.limits.memory=32Mi \
     --wait
