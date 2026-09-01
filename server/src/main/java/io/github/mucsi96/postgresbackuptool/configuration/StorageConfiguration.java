@@ -21,6 +21,9 @@ public class StorageConfiguration {
   // guarded by property conditions that GraalVM native images evaluate during
   // AOT processing (when no connection properties are set), so they would be
   // missing from the native image. All properties are resolved at runtime.
+  // The credential precedence is tied to what the profiles set: test sets
+  // connection-string, local sets client-id + client-secret, prod sets
+  // client-id only (workload/managed identity).
   @Bean
   BlobContainerClient blobContainerClient(
       @Value("${spring.cloud.azure.storage.blob.endpoint:}") String endpoint,

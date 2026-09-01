@@ -30,7 +30,9 @@ public class DatabaseConfigurationProviderConfig {
     // Profile-specific behavior is decided at runtime instead of with
     // @Profile-conditional beans: GraalVM native images evaluate bean
     // conditions during AOT processing, so profile-guarded beans would be
-    // missing from the native image.
+    // missing from the native image. The JSON parsing below never runs during
+    // AOT processing (where dbs-config is blank): AOT registers bean
+    // definitions without instantiating them.
     @Bean
     DatabaseConfigurationProvider databaseConfigurationProvider(
             Environment environment, ObjectMapper objectMapper)
@@ -38,6 +40,11 @@ public class DatabaseConfigurationProviderConfig {
         List<DatabaseConfiguration> databases;
 
         if (environment.matchesProfiles("test")) {
+            if (databasesConfigPath.isBlank()) {
+                throw new IllegalStateException(
+                        "databasesConfigPath (DATABASES_CONFIG_PATH) is required in the test profile");
+            }
+
             databases = Arrays.asList(objectMapper.readValue(
                     Paths.get(databasesConfigPath).toFile(),
                     DatabaseConfiguration[].class));
