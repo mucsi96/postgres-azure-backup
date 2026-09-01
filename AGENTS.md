@@ -558,6 +558,27 @@ Three build-time details live in `server/pom.xml` and are easy to trip over:
   instead of naming the ones missing today, so an SDK upgrade cannot
   reintroduce this.
 
+- The Key Vault property source is configured by an
+  `EnvironmentPostProcessor` that runs before there is an application
+  context and reads its own settings with a plain `Binder` over
+  `AzureKeyVaultSecretProperties`. Nothing in the framework infers that,
+  and the auto-configuration that would otherwise contribute the binding
+  metadata for that type never matches here - it is conditional on
+  `spring.cloud.azure.keyvault[.secret].endpoint`, while this application
+  configures the endpoint under `...secret.property-sources[0]`. With no
+  members in the image the binder binds nothing, and an absent binding is
+  indistinguishable from an empty configuration, so the post-processor
+  quietly concludes there is no property source to add. Nothing fails at
+  that point: the image starts and then dies much later on the first
+  secret-backed placeholder, `${storage-account-container-name}` while
+  creating `backupService`. `KeyVaultPropertySourceNativeHints` supplies
+  the metadata. Only the prod profile reads secrets from Key Vault, so no
+  test covers this - after changing anything about the Key Vault
+  configuration, check that the generated
+  `target/spring-aot/main/resources/META-INF/native-image/**/reachability-metadata.json`
+  still carries `AzureKeyVaultSecretProperties` and
+  `AzureKeyVaultPropertySourceProperties` with their accessors.
+
 Spring Cloud Azure needs one workaround in application code:
 `AzureGlobalPropertiesConfiguration` re-declares the
 `AzureGlobalProperties` bean. Spring Cloud Azure registers it from an
@@ -593,7 +614,10 @@ Types that are only ever bound reflectively — the databases config read
 with a plain `ObjectMapper` — need explicit hints; see
 `@RegisterReflectionForBinding` on `DatabaseConfigurationProviderConfig`.
 Controller request/response types are covered by the framework's own AOT
-processing and do not need hints.
+processing and do not need hints. Types bound by a `Binder` rather
+than Jackson want `BindableRuntimeHintsRegistrar`, which registers exactly
+what `JavaBeanBinder` looks for over the whole class hierarchy; see
+`KeyVaultPropertySourceNativeHints`.
 
 ### Kubernetes (Helm)
 ```bash
