@@ -542,6 +542,21 @@ Three build-time details live in `server/pom.xml` and are easy to trip over:
   subclasses azure-identity does not ship metadata for. This kind of problem
   only shows up in the native image, never in the AOT-on-JVM run described
   below.
+- azure-core decides how to read a response body by asking the model class
+  whether it declares the `fromXml` / `fromJson` pair azure-xml and
+  azure-json generate, and it asks with `Class.getDeclaredMethods()`. In a
+  native image that returns nothing for a class with no reachability
+  metadata, so the answer is silently "no" and azure-core falls back to
+  Jackson — for XML that means an `XmlMapper`, and jackson-dataformat-xml is
+  not on the classpath, so the call dies with `NoClassDefFoundError: Could
+  not initialize class ... JacksonAdapter$GlobalXmlMapper`. The SDK ships
+  metadata for most of its models but not all: the blob error model and the
+  exception carrying it are both missing, which turned every storage error
+  — including the 409 `createIfNotExists` swallows on an existing container
+  — into that error. `AzureNativeHints` scans `com.azure` and registers
+  every `XmlSerializable`, `JsonSerializable` and `HttpResponseException`
+  instead of naming the ones missing today, so an SDK upgrade cannot
+  reintroduce this.
 
 Spring Cloud Azure needs one workaround in application code:
 `AzureGlobalPropertiesConfiguration` re-declares the
