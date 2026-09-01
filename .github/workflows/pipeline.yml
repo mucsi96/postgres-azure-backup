@@ -9,6 +9,7 @@ on:
 jobs:
   test-client:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     concurrency:
       group: ${{ github.workflow }}-test-client-${{ github.ref }}
       cancel-in-progress: true
@@ -25,12 +26,67 @@ jobs:
       - name: Run client tests
         working-directory: client
         run: npm test
+  build-server-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: ${{ github.workflow }}-build-server-image-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      # The Spring profile is resolved during AOT processing and baked into the
+      # native executable, so the e2e image is built with the test profile and
+      # the published image (see publish-server) with the prod profile.
+      - name: Build server image
+        uses: docker/build-push-action@v6
+        with:
+          context: server
+          build-args: SPRING_PROFILE=test
+          tags: localhost/postgres-azure-backup-server:test
+          outputs: type=docker,dest=/tmp/server-image.tar
+          cache-from: type=gha,scope=server-test
+          cache-to: type=gha,mode=max,scope=server-test
+      - name: Upload server image
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-image
+          path: /tmp/server-image.tar
+          retention-days: 1
+
+  build-client-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: ${{ github.workflow }}-build-client-image-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build client image
+        uses: docker/build-push-action@v6
+        with:
+          context: client
+          tags: localhost/postgres-azure-backup-client:test
+          outputs: type=docker,dest=/tmp/client-image.tar
+          cache-from: type=gha,scope=client
+          cache-to: type=gha,mode=max,scope=client
+      - name: Upload client image
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-image
+          path: /tmp/client-image.tar
+          retention-days: 1
+
   test-e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     concurrency:
       group: ${{ github.workflow }}-test-e2e-${{ github.ref }}
       cancel-in-progress: true
-    needs: test-client
+    needs: [test-client, build-server-image, build-client-image]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -44,28 +100,27 @@ jobs:
       - name: Install Playwright browsers
         working-directory: test
         run: npx playwright install chromium --with-deps
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Build server image
-        uses: docker/build-push-action@v6
+      - name: Download server image
+        uses: actions/download-artifact@v4
         with:
-          context: server
-          load: true
-          tags: localhost/postgres-azure-backup-server:test
-          cache-from: type=gha,scope=server
-          cache-to: type=gha,mode=max,scope=server
-      - name: Build client image
-        uses: docker/build-push-action@v6
+          name: server-image
+          path: /tmp
+      - name: Download client image
+        uses: actions/download-artifact@v4
         with:
-          context: client
-          load: true
-          tags: localhost/postgres-azure-backup-client:test
-          cache-from: type=gha,scope=client
-          cache-to: type=gha,mode=max,scope=client
+          name: client-image
+          path: /tmp
       - name: Load images into Podman
         run: |
-          docker save localhost/postgres-azure-backup-server:test | podman load
-          docker save localhost/postgres-azure-backup-client:test | podman load
+          podman load -i /tmp/server-image.tar
+          podman load -i /tmp/client-image.tar
+      # The server is a single native executable, so if it cannot even start in
+      # the runtime image there is nothing to log and the pod just times out
+      # three minutes later with an empty container log. Fail here instead.
+      - name: Check the server executable runs
+        run: |
+          timeout 60 podman run --rm localhost/postgres-azure-backup-server:test \
+            -XX:PrintFlags= > /dev/null
       - name: Setup test environment and start pod
         env:
           SKIP_BUILD: "1"
@@ -90,6 +145,7 @@ jobs:
 
   publish-server:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     concurrency:
       group: ${{ github.workflow }}-publish-server-${{ github.ref }}
       cancel-in-progress: true
@@ -128,9 +184,10 @@ jobs:
         with:
           context: server
           push: true
+          build-args: SPRING_PROFILE=prod
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/postgres-azure-backup-server:${{ steps.get_next_version.outputs.version }}
-          cache-from: type=gha,scope=server
-          cache-to: type=gha,mode=max,scope=server
+          cache-from: type=gha,scope=server-prod
+          cache-to: type=gha,mode=max,scope=server-prod
 
       - name: Create release
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
@@ -141,6 +198,7 @@ jobs:
 
   publish-client:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     concurrency:
       group: ${{ github.workflow }}-publish-client-${{ github.ref }}
       cancel-in-progress: true
@@ -190,6 +248,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     concurrency:
       group: ${{ github.workflow }}-deploy
       cancel-in-progress: false

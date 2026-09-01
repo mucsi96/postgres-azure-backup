@@ -1,0 +1,3 @@
+# The native build produces a multi-GB target directory; keep it out of the
+# build context so local podman/docker builds stay fast.
+target

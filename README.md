@@ -28,12 +28,28 @@ Simple PostgreSQL backup tool to Azure with UI
 ## Stack
 
 - Java 21
-- Spring Boot 3
+- Spring Boot 4, compiled ahead of time into a GraalVM native image
 - Angular
 - OpenID Connect (`angular-auth-oidc-client`)
 - Azure
 - PostgreSQL 18 client
 - Podman (rootless containers + Kubernetes-style pod manifests)
+
+### One image per Spring profile
+
+The server is shipped as a GraalVM native executable. Bean definitions are
+resolved during ahead-of-time processing at build time, so the active Spring
+profile is baked into the executable and cannot be chosen at startup any more.
+The server image is therefore built once per profile, via the `SPRING_PROFILE`
+build argument:
+
+```bash
+podman build --build-arg SPRING_PROFILE=test -t postgres-azure-backup-server:test server   # e2e pod
+podman build --build-arg SPRING_PROFILE=prod -t postgres-azure-backup-server:prod server   # published image
+```
+
+`SPRING_PROFILES_ACTIVE` is not read at runtime; the pipeline builds the test
+image for the e2e job and the prod image when publishing to Docker Hub.
 
 ## Local development
 

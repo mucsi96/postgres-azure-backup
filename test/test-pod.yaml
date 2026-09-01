@@ -125,8 +125,6 @@ spec:
           value: "8168"
         - name: SPRING_ACTUATOR_PORT
           value: "8162"
-        - name: SPRING_PROFILES_ACTIVE
-          value: test
         - name: BLOBSTORAGE_CONNECTION_STRING
           value: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:8163/devstoreaccount1;"
         - name: STORAGE_ACCOUNT_CONTAINER_NAME
@@ -147,7 +145,7 @@ spec:
         httpGet:
           path: /actuator/health/readiness
           port: 8162
-        initialDelaySeconds: 16
+        initialDelaySeconds: 2
         periodSeconds: 2
         failureThreshold: 30
 
