@@ -555,6 +555,10 @@ public contract, so smoke-test the native image whenever
 `spring-cloud-azure-dependencies` moves - a change there could drop the bean
 again with no compile-time signal.
 
+The `--static` link needs a static zlib (`zlib-static`), which the Liberica
+NIK image does not ship. Without it the whole compile succeeds and only the
+final link fails, several minutes in, with "cannot find -lz".
+
 Most AOT problems reproduce without waiting for a native compile (which
 takes several minutes). Run the AOT-processed application on a normal JVM:
 

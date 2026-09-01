@@ -9,6 +9,10 @@ FROM docker.io/library/maven:3-eclipse-temurin-25-alpine AS maven
 # current Liberica NIK release ships.
 FROM docker.io/bellsoft/liberica-native-image-kit-container:jdk-25-nik-25-musl AS build
 
+# --static links libz in, and the NIK image ships only the shared zlib, so the
+# link step ends in "cannot find -lz" after the whole compile has succeeded.
+RUN apk add --no-cache zlib-static
+
 COPY --from=maven /usr/share/maven /usr/share/maven
 ENV PATH="/usr/share/maven/bin:${PATH}"
 
