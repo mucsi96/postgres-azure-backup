@@ -110,6 +110,13 @@ jobs:
         run: |
           podman load -i /tmp/server-image.tar
           podman load -i /tmp/client-image.tar
+      # The server is a single native executable, so if it cannot even start in
+      # the runtime image there is nothing to log and the pod just times out
+      # three minutes later with an empty container log. Fail here instead.
+      - name: Check the server executable runs
+        run: |
+          podman run --rm localhost/postgres-azure-backup-server:test \
+            -XX:PrintFlags= > /dev/null
       - name: Setup test environment and start pod
         env:
           SKIP_BUILD: "1"

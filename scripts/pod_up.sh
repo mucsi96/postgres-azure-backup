@@ -29,10 +29,16 @@ echo "Starting pod..."
 cd "$PROJECT_DIR"
 podman kube play "$POD_YAML"
 
+container_state() {
+  podman inspect "$1" \
+    --format 'status={{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}}' \
+    2>&1 || true
+}
+
 dump_logs() {
   for c in $CONTAINERS; do
     echo "$c" | grep -q "infra" && continue
-    echo "=== $c ==="
+    echo "=== $c === $(container_state "$c")"
     podman logs "$c" 2>&1 | tail -40
   done
 }
@@ -50,8 +56,15 @@ for container in $CONTAINERS; do
   # .State.Health.Status: Podman 5 on GitHub-hosted runners never schedules
   # or records probe runs, so the status alone never becomes "healthy".
   until podman healthcheck run "$container" > /dev/null 2>&1; do
+    # A container that has already exited is never going to pass its probe, and
+    # its state carries the reason a crash or a failed exec leaves no logs.
+    if [ "$(podman inspect "$container" --format '{{.State.Status}}' 2>/dev/null)" = "exited" ]; then
+      echo "$container exited before becoming healthy: $(container_state "$container")"
+      dump_logs
+      exit 1
+    fi
     if [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
-      echo "Timeout waiting for $container to become healthy"
+      echo "Timeout waiting for $container to become healthy: $(container_state "$container")"
       dump_logs
       exit 1
     fi
