@@ -49,8 +49,9 @@ COPY --from=build /workspace/target/postgres-azure-backup /app/postgres-azure-ba
 RUN mkdir -p /app/conf && : > /app/conf/net.properties
 
 # An absolute heap cap rather than the percentage of physical memory the default
-# uses: the executable is already around 150Mi resident before any heap is
-# allocated, so the headroom the container needs is a constant, not a fraction.
+# uses: the executable is around 77Mi resident before any heap is allocated
+# (measured in production), so the headroom the container needs is a constant,
+# not a fraction.
 # 256Mi of heap fits the 768Mi limit in scripts/deploy.sh alongside that and the
 # pg_dump / pg_restore / psql child processes - keep the two in step. The Azure
 # SDK sets Content-Length explicitly on the JDK HTTP client, which the client
