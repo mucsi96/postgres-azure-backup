@@ -62,6 +62,14 @@ public class StorageConfiguration {
     if (!connectionString.isBlank()) {
       builder.connectionString(connectionString);
     } else {
+      if (endpoint.isBlank() || clientId.isBlank()) {
+        throw new IllegalStateException(
+            "Blob storage is misconfigured: set either "
+                + "spring.cloud.azure.storage.blob.connection-string or both "
+                + "spring.cloud.azure.storage.blob.endpoint and "
+                + "spring.cloud.azure.storage.blob.credential.client-id");
+      }
+
       builder.endpoint(endpoint).credential(createCredential(clientId,
           clientSecret, tenantId));
     }
