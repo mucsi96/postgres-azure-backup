@@ -91,7 +91,7 @@ helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --set persistentVolumeClaims[2].storage=5Gi \
     --set resources.requests.memory=128Mi \
     --set resources.requests.cpu=50m \
-    --set resources.limits.memory=768Mi \
+    --set resources.limits.memory=512Mi \
     --set resources.limits.cpu=null \
     --wait
 
