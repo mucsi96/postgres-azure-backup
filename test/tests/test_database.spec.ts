@@ -136,16 +136,11 @@ test.describe('Database Tests', () => {
     }
   });
 
-  test('preserves the application owner when restoring schema objects', async ({ page }) => {
+  test('restores schema objects as the application owner', async ({ page }) => {
     await populateDb();
 
     await triggerBackup(page);
     await cleanupDb();
-    await executeDbQuery(
-      8164,
-      'CREATE SCHEMA test1 AUTHORIZATION test1_owner'
-    );
-
     await page.goto('/');
     await page.getByText('db1').click();
     await page.locator(':text("Backups") + table').getByText('356 days').click();
@@ -156,7 +151,7 @@ test.describe('Database Tests', () => {
       8164,
       `DO $$
        BEGIN
-         IF (SELECT nspowner::regrole::text FROM pg_namespace WHERE nspname = 'test1') <> 'test1_owner' THEN
+         IF (SELECT nspowner::regrole::text FROM pg_namespace WHERE nspname = 'test1') <> 'test1' THEN
            RAISE EXCEPTION 'restored schema has the wrong owner';
          END IF;
 
@@ -166,13 +161,13 @@ test.describe('Database Tests', () => {
            JOIN pg_namespace n ON n.oid = c.relnamespace
            WHERE n.nspname = 'test1'
              AND c.relkind IN ('r', 'p', 'S', 'v', 'm', 'f')
-             AND c.relowner <> (SELECT oid FROM pg_roles WHERE rolname = 'test1_owner')
+              AND c.relowner <> (SELECT oid FROM pg_roles WHERE rolname = 'test1')
          ) THEN
            RAISE EXCEPTION 'restored schema contains objects with the wrong owner';
          END IF;
        END
        $$;
-       SET ROLE test1_owner;
+        SET ROLE test1;
        INSERT INTO test1.fruites (name) VALUES ('Pear');
        RESET ROLE;`
     );

@@ -71,12 +71,6 @@ public class DatabaseConfiguration {
     }
 
     @JsonIgnore
-    public String getConnectionString() {
-        return String.format("postgresql://%s:%s@%s:%d/%s", username, password,
-                host, port, database);
-    }
-
-    @JsonIgnore
     public JdbcTemplate getJdbcTemplate() {
         DataSource dataSource = new DriverManagerDataSource(getJdbcUrl(),
                 username, password);
