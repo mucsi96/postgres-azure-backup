@@ -144,10 +144,10 @@ In production, the database configuration is stored as the `dbs-config` secret i
 
 Use the login role that owns the configured schema for each backup entry.
 `pg_restore --no-owner --no-acl` then creates every restored object as that
-application role, while the single-transaction restore preserves the existing
-target schema owner. The role needs `CONNECT` and `CREATE` on the database so
-the restore can drop and recreate its schema, but it does not need PostgreSQL
-administrator privileges and cannot access schemas owned by other applications.
+application role. The role needs `CONNECT` and `CREATE` on the database so the
+single-transaction restore can drop and recreate its schema, but it does not
+need PostgreSQL administrator privileges and cannot access schemas owned by
+other applications.
 
 ### Folder Backup Configuration (Optional)
 

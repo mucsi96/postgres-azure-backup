@@ -161,13 +161,13 @@ test.describe('Database Tests', () => {
            JOIN pg_namespace n ON n.oid = c.relnamespace
            WHERE n.nspname = 'test1'
              AND c.relkind IN ('r', 'p', 'S', 'v', 'm', 'f')
-              AND c.relowner <> (SELECT oid FROM pg_roles WHERE rolname = 'test1')
+             AND c.relowner <> (SELECT oid FROM pg_roles WHERE rolname = 'test1')
          ) THEN
            RAISE EXCEPTION 'restored schema contains objects with the wrong owner';
          END IF;
        END
        $$;
-        SET ROLE test1;
+       SET ROLE test1;
        INSERT INTO test1.fruites (name) VALUES ('Pear');
        RESET ROLE;`
     );

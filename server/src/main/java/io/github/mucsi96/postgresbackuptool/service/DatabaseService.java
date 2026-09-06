@@ -171,7 +171,6 @@ public class DatabaseService {
         DatabaseConfiguration databaseConfiguration = getDatabaseConfiguration(
                 databaseName);
         String schema = databaseConfiguration.getSchema();
-        String restoreOwner = getSchemaOwner(databaseConfiguration, schema);
 
         File pgRestoreSql = File.createTempFile("pg-restore-", ".sql");
         File combinedSql = File.createTempFile("restore-", ".sql");
@@ -195,11 +194,6 @@ public class DatabaseService {
                         + quoteIdentifier(schema) + " CASCADE;\n";
                 out.write(prelude.getBytes(StandardCharsets.UTF_8));
                 Files.copy(pgRestoreSql.toPath(), out);
-
-                if (restoreOwner != null && !restoreOwner.isBlank()) {
-                    out.write(createRestoreOwnerSql(schema, restoreOwner)
-                            .getBytes(StandardCharsets.UTF_8));
-                }
             }
 
             System.out.println("Applying restore in a single transaction");
@@ -220,54 +214,8 @@ public class DatabaseService {
         }
     }
 
-    private String getSchemaOwner(
-            DatabaseConfiguration databaseConfiguration, String schema) {
-        List<String> owners = databaseConfiguration.getJdbcTemplate().query(
-                "SELECT pg_get_userbyid(nspowner) FROM pg_namespace WHERE nspname = ?",
-                (resultSet, rowNumber) -> resultSet.getString(1), schema);
-        return owners.isEmpty() ? null : owners.get(0);
-    }
-
-    private String createRestoreOwnerSql(String schema, String restoreOwner) {
-        String schemaLiteral = quoteLiteral(schema);
-        String schemaIdentifier = quoteIdentifier(schema);
-        String ownerLiteral = quoteLiteral(restoreOwner);
-        String ownerIdentifier = quoteIdentifier(restoreOwner);
-
-        return "\nDO $restore_owner$\n"
-                + "DECLARE\n"
-                + "    restored_object record;\n"
-                + "BEGIN\n"
-                + "    FOR restored_object IN\n"
-                + "        SELECT c.relkind, format('%I.%I', n.nspname, c.relname) AS qualified_name\n"
-                + "        FROM pg_class c\n"
-                + "        JOIN pg_namespace n ON n.oid = c.relnamespace\n"
-                + "        WHERE n.nspname = " + schemaLiteral + "\n"
-                + "          AND c.relkind IN ('r', 'p', 'S', 'v', 'm', 'f')\n"
-                + "        ORDER BY CASE WHEN c.relkind = 'S' THEN 1 ELSE 0 END\n"
-                + "    LOOP\n"
-                + "        EXECUTE format(\n"
-                + "            CASE restored_object.relkind\n"
-                + "                WHEN 'S' THEN 'ALTER SEQUENCE %s OWNER TO %I'\n"
-                + "                WHEN 'v' THEN 'ALTER VIEW %s OWNER TO %I'\n"
-                + "                WHEN 'm' THEN 'ALTER MATERIALIZED VIEW %s OWNER TO %I'\n"
-                + "                WHEN 'f' THEN 'ALTER FOREIGN TABLE %s OWNER TO %I'\n"
-                + "                ELSE 'ALTER TABLE %s OWNER TO %I'\n"
-                + "            END,\n"
-                + "            restored_object.qualified_name, " + ownerLiteral + ");\n"
-                + "    END LOOP;\n"
-                + "END\n"
-                + "$restore_owner$;\n"
-                + "ALTER SCHEMA " + schemaIdentifier + " OWNER TO "
-                + ownerIdentifier + ";\n";
-    }
-
     private String quoteIdentifier(String value) {
         return "\"" + value.replace("\"", "\"\"") + "\"";
-    }
-
-    private String quoteLiteral(String value) {
-        return "'" + value.replace("'", "''") + "'";
     }
 
     private ProcessBuilder createPostgresProcess(List<String> command,
