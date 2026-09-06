@@ -142,6 +142,12 @@ In production, the database configuration is stored as the `dbs-config` secret i
 ]
 ```
 
+Restores preserve the owner of an existing target schema. The restore remains
+a single transaction and transfers the restored schema, tables, sequences,
+views, and foreign tables back to that role before commit. This keeps schemas
+writable when the application role differs from the backup administrator. The
+backup user must be allowed to transfer ownership to the schema owner.
+
 ### Folder Backup Configuration (Optional)
 
 Add a `folderBackups` array to include files from local file system folders in backups. When configured, backups are created as ZIP archives containing both the database dump and all files from specified local directories.

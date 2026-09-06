@@ -176,7 +176,16 @@ export async function cleanupDb(): Promise<void> {
 
 export async function populateDb(): Promise<void> {
   const db1Query = `
-    CREATE SCHEMA test1;
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'test1_owner') THEN
+        CREATE ROLE test1_owner;
+      END IF;
+    END
+    $$;
+    CREATE SCHEMA test1 AUTHORIZATION test1_owner;
+    SET ROLE test1_owner;
+    CREATE SEQUENCE test1.restore_owner_test_sequence;
     CREATE TABLE test1.fruites (NAME VARCHAR(20));
     INSERT INTO test1.fruites (NAME) VALUES ('Apple');
     INSERT INTO test1.fruites (NAME) VALUES ('Orange');
@@ -201,6 +210,7 @@ export async function populateDb(): Promise<void> {
     ANALYZE test1.vegetables;
     ANALYZE test1.passwords;
     ANALYZE test1.secrets;
+    RESET ROLE;
   `;
 
   const db2Query = `
