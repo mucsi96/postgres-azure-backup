@@ -136,6 +136,48 @@ test.describe('Database Tests', () => {
     }
   });
 
+  test('preserves the application owner when restoring schema objects', async ({ page }) => {
+    await populateDb();
+
+    await triggerBackup(page);
+    await cleanupDb();
+    await executeDbQuery(
+      8164,
+      'CREATE SCHEMA test1 AUTHORIZATION test1_owner'
+    );
+
+    await page.goto('/');
+    await page.getByText('db1').click();
+    await page.locator(':text("Backups") + table').getByText('356 days').click();
+    await page.getByRole('button', { name: 'Restore' }).click();
+    await expect(page.getByText('Backup restored')).toBeVisible();
+
+    await executeDbQuery(
+      8164,
+      `DO $$
+       BEGIN
+         IF (SELECT nspowner::regrole::text FROM pg_namespace WHERE nspname = 'test1') <> 'test1_owner' THEN
+           RAISE EXCEPTION 'restored schema has the wrong owner';
+         END IF;
+
+         IF EXISTS (
+           SELECT 1
+           FROM pg_class c
+           JOIN pg_namespace n ON n.oid = c.relnamespace
+           WHERE n.nspname = 'test1'
+             AND c.relkind IN ('r', 'p', 'S', 'v', 'm', 'f')
+             AND c.relowner <> (SELECT oid FROM pg_roles WHERE rolname = 'test1_owner')
+         ) THEN
+           RAISE EXCEPTION 'restored schema contains objects with the wrong owner';
+         END IF;
+       END
+       $$;
+       SET ROLE test1_owner;
+       INSERT INTO test1.fruites (name) VALUES ('Pear');
+       RESET ROLE;`
+    );
+  });
+
   test('creates backup using backup button', async ({ page }) => {
     await populateDb();
 
