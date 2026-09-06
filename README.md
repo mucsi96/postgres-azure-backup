@@ -117,8 +117,8 @@ In production, the database configuration is stored as the `dbs-config` secret i
     "port": 5432,
     "database": "test",
     "schema": "test1",
-    "username": "postgres",
-    "password": "postgres",
+    "username": "test1",
+    "password": "test1-password",
     "excludeTables": ["passwords", "secrets"],
     "dumpFormat": "custom",
     "createPlainDump": true,
@@ -134,19 +134,20 @@ In production, the database configuration is stored as the `dbs-config` secret i
     "port": 5432,
     "database": "test",
     "schema": "test2",
-    "username": "postgres",
-    "password": "postgres",
+    "username": "test2",
+    "password": "test2-password",
     "excludeTables": ["passwords", "secrets"],
     "dumpFormat": "tar"
   }
 ]
 ```
 
-Restores preserve the owner of an existing target schema. The restore remains
-a single transaction and transfers the restored schema, tables, sequences,
-views, and foreign tables back to that role before commit. This keeps schemas
-writable when the application role differs from the backup administrator. The
-backup user must be allowed to transfer ownership to the schema owner.
+Use the login role that owns the configured schema for each backup entry.
+`pg_restore --no-owner --no-acl` then creates every restored object as that
+application role. The role needs `CONNECT` and `CREATE` on the database so the
+single-transaction restore can drop and recreate its schema, but it does not
+need PostgreSQL administrator privileges and cannot access schemas owned by
+other applications.
 
 ### Folder Backup Configuration (Optional)
 

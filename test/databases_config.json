@@ -5,8 +5,8 @@
     "port": 8164,
     "database": "test",
     "schema": "test1",
-    "username": "postgres",
-    "password": "postgres",
+    "username": "test1",
+    "password": "test1-password",
     "excludeTables": ["passwords", "secrets"],
     "createPlainDump": true,
     "folderBackups": [
@@ -24,8 +24,8 @@
     "port": 8165,
     "database": "test",
     "schema": "test2",
-    "username": "postgres",
-    "password": "postgres",
+    "username": "test2",
+    "password": "test2-password",
     "excludeTables": ["passwords", "secrets"]
   }
 ]

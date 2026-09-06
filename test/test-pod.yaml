@@ -64,6 +64,10 @@ spec:
         initialDelaySeconds: 5
         periodSeconds: 5
         failureThreshold: 10
+      volumeMounts:
+        - name: db-init
+          mountPath: /docker-entrypoint-initdb.d/roles.sql
+          readOnly: true
 
     - name: db2
       image: docker.io/library/postgres:18.4-trixie
@@ -85,6 +89,10 @@ spec:
         initialDelaySeconds: 5
         periodSeconds: 5
         failureThreshold: 10
+      volumeMounts:
+        - name: db-init
+          mountPath: /docker-entrypoint-initdb.d/roles.sql
+          readOnly: true
 
     - name: mock-oauth2
       image: docker.io/mucsi96/mock-oidc-provider:latest
@@ -171,6 +179,10 @@ spec:
     - name: databases-config
       hostPath:
         path: test/databases_config.json
+        type: File
+    - name: db-init
+      hostPath:
+        path: test/db-init.sql
         type: File
     - name: test-uploads
       hostPath:
