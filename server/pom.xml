@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.0</version> <!-- Spring version mapping https://github.com/Azure/azure-sdk-for-java/wiki/Spring-Versions-Mapping -->
+        <version>4.1.1</version> <!-- Spring version mapping https://github.com/Azure/azure-sdk-for-java/wiki/Spring-Versions-Mapping -->
         <relativePath /> <!-- lookup parent from repository -->
     </parent>
 
