@@ -36,4 +36,59 @@ test.describe('Auth Error Tests', () => {
     await expect(page).toHaveTitle('Postgres Backup Tool');
     await expect(page.getByRole('button', { name: 'TU' })).toBeVisible();
   });
+
+  test('reauthenticates immediately when the refresh token expires', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'TU' })).toBeVisible();
+
+    const refreshToken = await page.evaluate(() => {
+      const key = Object.keys(localStorage).find((item) =>
+        item.startsWith('oidc.user:')
+      );
+      return key ? JSON.parse(localStorage.getItem(key)!).refresh_token : null;
+    });
+    expect(refreshToken).toBeTruthy();
+
+    const environment = await (
+      await page.request.get('/api/environment')
+    ).json();
+    const consumed = await page.request.post(
+      `${environment.mockOAuth2ServerUri}/default/token`,
+      {
+        form: { grant_type: 'refresh_token', refresh_token: refreshToken },
+      }
+    );
+    expect(consumed.ok()).toBeTruthy();
+
+    let authorizationRequests = 0;
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname === '/default/authorize') {
+        authorizationRequests += 1;
+      }
+    });
+
+    await page.evaluate(() => {
+      const originalDateNow = Date.now;
+      Date.now = () => originalDateNow() + 31_000;
+      window.dispatchEvent(new Event('focus'));
+      Date.now = originalDateNow;
+    });
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const key = Object.keys(localStorage).find((item) =>
+            item.startsWith('oidc.user:')
+          );
+          return key
+            ? JSON.parse(localStorage.getItem(key)!).refresh_token
+            : null;
+        })
+      )
+      .not.toBe(refreshToken);
+    await expect(page.getByRole('button', { name: 'TU' })).toBeVisible();
+    await expect(page.getByText(/^An error occurred/)).not.toBeVisible();
+    expect(authorizationRequests).toBe(1);
+  });
 });
