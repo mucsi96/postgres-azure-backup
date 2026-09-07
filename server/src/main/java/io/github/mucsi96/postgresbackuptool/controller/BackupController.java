@@ -38,21 +38,21 @@ public class BackupController {
     private final SmartBackupService smartBackupService;
     private final DownloadTokenService downloadTokenService;
 
-    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupCreator')")
+    @PreAuthorize("hasAuthority('APPROLE_createBackup')")
     @PostMapping("/smart-backup")
     @ResponseBody
     SmartBackupResult performSmartBackup() {
         return smartBackupService.performSmartBackup();
     }
 
-    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupCreator')")
+    @PreAuthorize("hasAuthority('APPROLE_createBackup')")
     @PostMapping("/backup-all")
     @ResponseBody
     void performBackupAll() throws IOException, InterruptedException {
         backupOrchestrationService.performBackup(7);
     }
 
-    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupCreator')")
+    @PreAuthorize("hasAuthority('APPROLE_createBackup')")
     @PostMapping("/database/{database_name}/backup")
     @ResponseBody
     void performBackup(@PathVariable("database_name") String databaseName)
@@ -62,7 +62,7 @@ public class BackupController {
         backupOrchestrationService.performBackupForDatabase(databaseConfiguration, 7);
     }
 
-    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupsReader') and hasAuthority('SCOPE_readBackups')")
+    @PreAuthorize("hasAuthority('APPROLE_readBackups')")
     @GetMapping("/database/{database_name}/backups")
     @ResponseBody
     List<Backup> list(@PathVariable("database_name") String databaseName) {
@@ -71,7 +71,7 @@ public class BackupController {
         return backupService.getBackups(databaseConfiguration.getPrefix());
     }
 
-    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupRestorer') and hasAuthority('SCOPE_restoreBackup')")
+    @PreAuthorize("hasAuthority('APPROLE_restoreBackup')")
     @PostMapping("/database/{database_name}/restore/{key}")
     @ResponseBody
     void restore(@PathVariable("database_name") String databaseName,
@@ -85,7 +85,7 @@ public class BackupController {
         backupFile.delete();
     }
 
-    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupsReader') and hasAuthority('SCOPE_readBackups')")
+    @PreAuthorize("hasAuthority('APPROLE_readBackups')")
     @GetMapping("/database/{database_name}/last-backup-time")
     @ResponseBody
     Optional<Instant> lastBackupTime(
@@ -95,7 +95,7 @@ public class BackupController {
         return backupService.getLastBackupTime(databaseConfiguration.getPrefix());
     }
 
-    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupDownloader') and hasAuthority('SCOPE_downloadBackup')")
+    @PreAuthorize("hasAuthority('APPROLE_downloadBackup')")
     @PostMapping("/database/{database_name}/backup/{key}/{type}/download-token")
     @ResponseBody
     Map<String, String> createDownloadToken(
@@ -109,7 +109,7 @@ public class BackupController {
         return Map.of("token", token);
     }
 
-    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupDownloader') and hasAuthority('SCOPE_downloadBackup')")
+    @PreAuthorize("hasAuthority('APPROLE_downloadBackup')")
     @PostMapping("/database/{database_name}/export-sql/download-token")
     @ResponseBody
     Map<String, String> createExportSqlDownloadToken(

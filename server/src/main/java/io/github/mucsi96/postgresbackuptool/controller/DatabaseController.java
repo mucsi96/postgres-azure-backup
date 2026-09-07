@@ -31,7 +31,7 @@ public class DatabaseController {
     private final BackupService backupService;
     private final FolderBackupService folderBackupService;
 
-    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupsReader') and hasAuthority('SCOPE_readBackups')")
+    @PreAuthorize("hasAuthority('APPROLE_readBackups')")
     @GetMapping("/databases")
     @ResponseBody
     public List<Database> getDatabases() {
@@ -55,7 +55,7 @@ public class DatabaseController {
         }).toList();
     }
 
-    @PreAuthorize("hasAuthority('APPROLE_DatabaseBackupsReader') and hasAuthority('SCOPE_readBackups')")
+    @PreAuthorize("hasAuthority('APPROLE_readBackups')")
     @GetMapping("/database/{database_name}/tables")
     @ResponseBody
     public DatabaseInfo getDatabaseInfo(
