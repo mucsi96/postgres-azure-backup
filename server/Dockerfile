@@ -31,7 +31,7 @@ RUN mvn -Pnative native:compile -DskipTests -B \
     -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 # Stage 3: Runtime image
-FROM docker.io/library/alpine:3.23
+FROM docker.io/library/alpine:3.24
 
 VOLUME /tmp
 
