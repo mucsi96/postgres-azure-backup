@@ -113,9 +113,9 @@ spec:
         - name: PREFERRED_USERNAME
           value: test-user@example.com
         - name: ROLES
-          value: DatabaseBackupsReader,DatabaseBackupCreator,DatabaseBackupDownloader,DatabaseBackupRestorer
+          value: readBackups,createBackup,cleanupBackups,restoreBackup,downloadBackup
         - name: SCP
-          value: readBackups createBackup cleanupBackups restoreBackup downloadBackup
+          value: api-access
         - name: AUD
           value: mock-api-client-id
       livenessProbe:

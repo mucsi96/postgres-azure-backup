@@ -164,20 +164,20 @@ backup.zip
 
 | Endpoint | Method | Auth Role | Purpose |
 |----------|--------|-----------|---------|
-| `/api/smart-backup` | POST | DatabaseBackupCreator | Execute intelligent backup |
-| `/api/database/{name}/backups` | GET | DatabaseBackupsReader | List all backups |
-| `/api/database/{name}/backup/{key}/archive` | GET | DatabaseBackupDownloader | Stream ZIP archive download |
-| `/api/database/{name}/backup/{key}/pgdump` | GET | DatabaseBackupDownloader | Stream pgdump file download |
-| `/api/database/{name}/backup/{key}/sql` | GET | DatabaseBackupDownloader | Stream SQL file download |
-| `/api/database/{name}/restore/{key}` | POST | DatabaseBackupRestorer | Restore backup |
-| `/api/database/{name}/last-backup-time` | GET | DatabaseBackupsReader | Get last backup timestamp |
+| `/api/smart-backup` | POST | createBackup | Execute intelligent backup |
+| `/api/database/{name}/backups` | GET | readBackups | List all backups |
+| `/api/database/{name}/backup/{key}/archive` | GET | downloadBackup | Stream ZIP archive download |
+| `/api/database/{name}/backup/{key}/pgdump` | GET | downloadBackup | Stream pgdump file download |
+| `/api/database/{name}/backup/{key}/sql` | GET | downloadBackup | Stream SQL file download |
+| `/api/database/{name}/restore/{key}` | POST | restoreBackup | Restore backup |
+| `/api/database/{name}/last-backup-time` | GET | readBackups | Get last backup timestamp |
 
 ### Database Information (`DatabaseController`)
 
 | Endpoint | Method | Auth Role | Purpose |
 |----------|--------|-----------|---------|
-| `/api/databases` | GET | DatabaseBackupsReader | List databases with stats |
-| `/api/database/{name}/tables` | GET | DatabaseBackupsReader | Get tables and row counts |
+| `/api/databases` | GET | readBackups | List databases with stats |
+| `/api/database/{name}/tables` | GET | readBackups | Get tables and row counts |
 
 ## Data Models
 
@@ -310,10 +310,11 @@ JSON file with database configurations:
 - **Frontend**: `angular-auth-oidc-client` (OIDC PKCE flow)
 
 ### Roles (RBAC)
-- `APPROLE_DatabaseBackupsReader` - Read backups
-- `APPROLE_DatabaseBackupCreator` - Create backups
-- `APPROLE_DatabaseBackupDownloader` - Download backups
-- `APPROLE_DatabaseBackupRestorer` - Restore backups
+- `APPROLE_readBackups` - Read backups
+- `APPROLE_createBackup` - Create backups
+- `APPROLE_cleanupBackups` - Clean up backups
+- `APPROLE_downloadBackup` - Download backups
+- `APPROLE_restoreBackup` - Restore backups
 
 ### Secure Downloads
 - Server-side file streaming through backend endpoints

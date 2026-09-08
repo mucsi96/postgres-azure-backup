@@ -29,7 +29,7 @@ public class SecurityConfiguration {
                 .requestMatchers("/environment").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/download/**").permitAll()
-                .anyRequest().authenticated());
+                .anyRequest().hasAuthority("SCOPE_api-access"));
 
         return http.build();
     }
