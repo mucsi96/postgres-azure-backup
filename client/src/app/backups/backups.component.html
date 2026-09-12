@@ -68,7 +68,8 @@
           </button>
           }
           <button
-            bt
+            mat-flat-button
+            bt-color="warn"
             [disabled]="processing() || backup.name !== selectedBackup()"
             (click)="restoreBackup()"
           >
