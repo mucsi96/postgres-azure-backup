@@ -1,8 +1,8 @@
 @if (tableData.isLoading()) {
 <bt-bar-loader />
 } @else {
-<button bt [disabled]="processing()" (click)="createBackup()">Backup</button>
-<button bt [disabled]="processing()" (click)="exportSql()">Export SQL</button>
+<button mat-flat-button bt-color="primary" [disabled]="processing()" (click)="createBackup()">Backup</button>
+<button mat-flat-button bt-color="primary" [disabled]="processing()" (click)="exportSql()">Export SQL</button>
 <h2 bt>
   Records <span bt-badge>{{ totalRowCount() }}</span>
 </h2>

@@ -23,7 +23,7 @@
     "@angular/platform-browser-dynamic": "22.1.0",
     "@angular/router": "22.1.0",
     "@grafana/faro-web-sdk": "^2.7.0",
-    "@mucsi96/angular-material-theme": "1.10.0",
+    "@mucsi96/angular-material-theme": "1.12.0",
     "@mucsi96/ui-elements": "69.0.0",
     "oidc-client-ts": "^3.1.0",
     "rxjs": "7.8.2",
