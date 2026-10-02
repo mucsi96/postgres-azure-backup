@@ -16,6 +16,7 @@ jobs:
       contents: write
       pull-requests: write # Requires also "Allow GitHub Actions to create and approve pull requests" to be enabled in the repository settings
       issues: write
+      statuses: write
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-java@v5
