@@ -524,7 +524,7 @@ environment: Spring AOT emits an `EnvironmentPostProcessor` that activates
 the profile the image was built with. `SPRING_PROFILES_ACTIVE` is no longer
 read at runtime, and `test/test-pod.yaml` no longer sets it. Build one image
 per profile with the `SPRING_PROFILE` build argument — `test` for the e2e
-pod, `prod` for the image published to Docker Hub.
+pod, `prod` for the image published to GHCR.
 
 Three build-time details live in `server/pom.xml` and are easy to trip over:
 
@@ -641,20 +641,16 @@ what `JavaBeanBinder` looks for over the whole class hierarchy; see
 
 ### Release and image publishing
 
-`publish-server` and `publish-client` each ask `mucsi96/get-next-version` for
-a version. It answers from the newest `server-N` / `client-N` tag: no changes
-under the component's directory since that tag means no version, and every
-publish step is skipped. The release step must therefore tag the commit its
-image was built from - `target_commitish: ${{ github.sha }}` - because the
-action otherwise tags whatever the default branch points at when the release
-is created, and the server's native build takes long enough that another push
-frequently lands first. A tag left on a commit that was never built makes the
-next run believe that commit is already released, so nothing is published for
-it. That is silent: `deploy` resolves the newest tag on Docker Hub by
-`last_updated` and succeeds, deploying the previous commit's image, so a
-fix can look deployed while the running image predates it. When a change does
-not reach production, check that a release tag exists on the commit and that
-`publish-server` did not skip its build steps.
+`publish-server` and `publish-client` publish GHCR images tagged
+`sha-${{ github.sha }}` on every validated main push or manual run, using
+`GITHUB_TOKEN` with job-scoped `packages: write`. Version detection through
+`mucsi96/get-next-version` controls GitHub component releases only; it must never
+skip image publication. Release tags still use `target_commitish: ${{ github.sha }}`.
+The workflow serializes publication and rollout. `deploy` passes that commit's
+`SERVER_IMAGE` and `CLIENT_IMAGE` explicitly to Helm; the script requires GHCR
+images with a full SHA tag or digest and never discovers a latest registry tag.
+Both packages must be public for anonymous Kubernetes pulls. See README for
+manual deployment inputs.
 
 ### Kubernetes (Helm)
 ```bash

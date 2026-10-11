@@ -3,7 +3,13 @@
 set -e  # Exit immediately if a command exits with a non-zero status
 
 : "${AZURE_KEYVAULT_NAME:?Environment variable AZURE_KEYVAULT_NAME is required}"
-: "${DOCKERHUB_USERNAME:?Environment variable DOCKERHUB_USERNAME is required}"
+: "${SERVER_IMAGE:?Set the immutable server image to deploy}"
+: "${CLIENT_IMAGE:?Set the immutable client image to deploy}"
+if [[ ! "$SERVER_IMAGE" =~ ^ghcr\.io/.+(:sha-[a-f0-9]{40}|@sha256:[a-f0-9]{64})$ ]] ||
+   [[ ! "$CLIENT_IMAGE" =~ ^ghcr\.io/.+(:sha-[a-f0-9]{40}|@sha256:[a-f0-9]{64})$ ]]; then
+    printf '%s\n' 'SERVER_IMAGE and CLIENT_IMAGE must use GHCR with a full commit SHA tag or sha256 digest.' >&2
+    exit 1
+fi
 
 AZURE_KEYVAULT_ENDPOINT="https://${AZURE_KEYVAULT_NAME}.vault.azure.net/"
 SERVER_RELEASE_NAME=postgres-azure-backup-server
@@ -20,10 +26,6 @@ trap 'rm -f "$KUBECONFIG"' EXIT
 
 HOSTNAME=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name hostname --query value -o tsv)
 API_CLIENT_ID=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name api-client-id --query value -o tsv)
-
-# Get latest tags for both server and client
-serverLatestTag=$(curl -s "https://registry.hub.docker.com/v2/repositories/$DOCKERHUB_USERNAME/postgres-azure-backup-server/tags" | jq -r '.results | map(select(.name != "latest")) | sort_by(.last_updated) | reverse | .[0].name')
-clientLatestTag=$(curl -s "https://registry.hub.docker.com/v2/repositories/$DOCKERHUB_USERNAME/postgres-azure-backup-client/tags" | jq -r '.results | map(select(.name != "latest")) | sort_by(.last_updated) | reverse | .[0].name')
 
 echo "Updating Helm repositories..."
 # The mucsi96 charts no longer bundle Prometheus exporter sidecars or
@@ -59,11 +61,11 @@ clientAppChartVersion=$(helm search repo mucsi96/client-app --output json | jq -
 # which is why the 50m request is not cut to the 1m seen at idle either. It is
 # the share the pod is guaranteed while pg_dump runs, and idle CPU says nothing
 # about that. null deletes the chart's default rather than overriding it.
-echo "Deploying server: $DOCKERHUB_USERNAME/postgres-azure-backup-server:$serverLatestTag using spring-app chart $springAppChartVersion"
+echo "Deploying server: $SERVER_IMAGE using spring-app chart $springAppChartVersion"
 helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --install \
     --version $springAppChartVersion \
-    --set image=$DOCKERHUB_USERNAME/postgres-azure-backup-server:$serverLatestTag \
+    --set-string image="$SERVER_IMAGE" \
     --set entryPoint=web \
     --set host=$HOSTNAME \
     --set basePath=/api \
@@ -100,12 +102,12 @@ helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
 # memory limit only has to cover request buffers and these numbers stand.
 # No CPU limit, for the same reason as the server: the chart defaults to 100m,
 # which on a single-user node only throttles nginx's startup and request bursts.
-echo "Deploying client: $DOCKERHUB_USERNAME/postgres-azure-backup-client:$clientLatestTag using client-app chart $clientAppChartVersion"
+echo "Deploying client: $CLIENT_IMAGE using client-app chart $clientAppChartVersion"
 
 helm upgrade $CLIENT_RELEASE_NAME mucsi96/client-app \
     --install \
     --version $clientAppChartVersion \
-    --set image=$DOCKERHUB_USERNAME/postgres-azure-backup-client:$clientLatestTag \
+    --set-string image="$CLIENT_IMAGE" \
     --set host=$HOSTNAME \
     --set entryPoint=web \
     --set resources.requests.memory=16Mi \

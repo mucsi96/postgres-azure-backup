@@ -49,7 +49,7 @@ podman build --build-arg SPRING_PROFILE=prod -t postgres-azure-backup-server:pro
 ```
 
 `SPRING_PROFILES_ACTIVE` is not read at runtime; the pipeline builds the test
-image for the e2e job and the prod image when publishing to Docker Hub.
+image for the e2e job and the prod image when publishing to GHCR.
 
 ## Local development
 
@@ -213,6 +213,34 @@ Scheduling can be disabled by setting `BACKUP_SCHEDULE_ENABLED=false` or customi
 
 ## Deployment with Helm
 
+After tests pass, main pushes and manual `Pipeline` runs publish both images to
+GHCR with `GITHUB_TOKEN` and job-scoped `packages: write` permission, following
+`observatory-app`:
+
+```text
+ghcr.io/mucsi96/postgres-azure-backup-server:sha-<full commit SHA>
+ghcr.io/mucsi96/postgres-azure-backup-client:sha-<full commit SHA>
+```
+
+Both images are published for each run, including workflow-only changes.
+Component version detection controls GitHub releases only. Publication and
+rollout are serialized, and deployment uses the same commit's image pair.
+Make both GHCR packages public after their first publication, then rerun the
+deploy job so Kubernetes can pull them anonymously.
+
+For manual deployment, provide explicit immutable images:
+
+```bash
+AZURE_KEYVAULT_NAME=p07-backup \
+SERVER_IMAGE=ghcr.io/mucsi96/postgres-azure-backup-server:sha-<full-commit> \
+CLIENT_IMAGE=ghcr.io/mucsi96/postgres-azure-backup-client:sha-<full-commit> \
+bash scripts/deploy.sh
+```
+
+The script also accepts GHCR images pinned by `@sha256:<digest>`.
+
+An example server-only Helm invocation:
+
 ```bash
 hostname=$(az keyvault secret show --vault-name p07-backup --name hostname --query value --output tsv)
 apiClientId=$(az keyvault secret show --vault-name p07-backup --name api-client-id --query value --output tsv)
@@ -221,7 +249,7 @@ helm repo add mucsi96 https://mucsi96.github.io/k8s-helm-charts
 helm upgrade postgres-azure-backup-server mucsi96/spring-app \
     --install \
     --namespace backup \
-    --set image=mucsi96/postgres-azure-backup-server:latest \
+    --set-string image=ghcr.io/mucsi96/postgres-azure-backup-server:sha-<full-commit> \
     --set entryPoint=web \
     --set host=$hostname \
     --set basePath=/api \

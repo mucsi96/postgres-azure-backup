@@ -5,6 +5,14 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   test-client:
@@ -159,13 +167,12 @@ jobs:
     timeout-minutes: 40
     concurrency:
       group: ${{ github.workflow }}-publish-server-${{ github.ref }}
-      cancel-in-progress: true
+      cancel-in-progress: false
     needs: test-e2e
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     permissions:
       contents: write
-    outputs:
-      hasNextVersion: ${{ steps.get_next_version.outputs.hasNextVersion }}
+      packages: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -179,34 +186,27 @@ jobs:
           src: server
 
       - name: Set up Docker Buildx
-        if: steps.get_next_version.outputs.hasNextVersion == 'true'
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        if: steps.get_next_version.outputs.hasNextVersion == 'true'
+      - name: Login to GHCR
         uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push server image
-        if: steps.get_next_version.outputs.hasNextVersion == 'true'
         uses: docker/build-push-action@v6
         with:
           context: server
           push: true
           build-args: SPRING_PROFILE=prod
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/postgres-azure-backup-server:${{ steps.get_next_version.outputs.version }}
+          tags: ghcr.io/${{ github.repository }}-server:sha-${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha,scope=server-prod
           cache-to: type=gha,mode=max,scope=server-prod
 
-      # Tag the commit this image was actually built from. Without
-      # target_commitish the release action tags whatever main points at when
-      # the release is created, which is a different commit whenever another
-      # push lands during the eight minutes the native build takes. The next
-      # run then asks get-next-version for a version, sees the tag already on
-      # its own HEAD, concludes nothing changed and publishes nothing - while
-      # deploy still succeeds, on the previous commit's image.
+      # Component releases record the built commit independently of SHA image publication.
       - name: Create release
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
         uses: softprops/action-gh-release@v2
@@ -220,11 +220,12 @@ jobs:
     timeout-minutes: 20
     concurrency:
       group: ${{ github.workflow }}-publish-client-${{ github.ref }}
-      cancel-in-progress: true
+      cancel-in-progress: false
     needs: test-e2e
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     permissions:
       contents: write
+      packages: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -238,23 +239,22 @@ jobs:
           src: client
 
       - name: Set up Docker Buildx
-        if: steps.get_next_version.outputs.hasNextVersion == 'true'
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        if: steps.get_next_version.outputs.hasNextVersion == 'true'
+      - name: Login to GHCR
         uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push client image
-        if: steps.get_next_version.outputs.hasNextVersion == 'true'
         uses: docker/build-push-action@v6
         with:
           context: client
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/postgres-azure-backup-client:${{ steps.get_next_version.outputs.version }}
+          tags: ghcr.io/${{ github.repository }}-client:sha-${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha,scope=client
           cache-to: type=gha,mode=max,scope=client
 
@@ -275,7 +275,7 @@ jobs:
       group: ${{ github.workflow }}-deploy
       cancel-in-progress: false
     needs: [publish-server, publish-client]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     permissions:
       id-token: write
       contents: read
@@ -300,5 +300,6 @@ jobs:
       - name: Deploy to Kubernetes
         env:
           AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          SERVER_IMAGE: ghcr.io/${{ github.repository }}-server:sha-${{ github.sha }}
+          CLIENT_IMAGE: ghcr.io/${{ github.repository }}-client:sha-${{ github.sha }}
         run: scripts/deploy.sh
