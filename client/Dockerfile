@@ -17,6 +17,7 @@ RUN npm run build
 
 # Stage 2: Serve with nginx
 FROM docker.io/library/nginx:1.31-alpine
+LABEL org.opencontainers.image.source="https://github.com/mucsi96/postgres-azure-backup"
 
 # Install wget for health checks
 RUN apk add --no-cache wget

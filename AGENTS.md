@@ -641,14 +641,16 @@ what `JavaBeanBinder` looks for over the whole class hierarchy; see
 
 ### Release and image publishing
 
-`publish-server` and `publish-client` publish GHCR images tagged
-`sha-${{ github.sha }}` on every validated main push or manual run, using
-`GITHUB_TOKEN` with job-scoped `packages: write`. Version detection through
-`mucsi96/get-next-version` controls GitHub component releases only; it must never
-skip image publication. Release tags still use `target_commitish: ${{ github.sha }}`.
-The workflow serializes publication and rollout. `deploy` passes that commit's
-`SERVER_IMAGE` and `CLIENT_IMAGE` explicitly to Helm; the script requires GHCR
-images with a full SHA tag or digest and never discovers a latest registry tag.
+`publish-server` and `publish-client` publish numbered GHCR images only when
+`get_next_version.outputs.hasNextVersion == 'true'`, tagging them with
+`get_next_version.outputs.version`. Authentication uses `GITHUB_TOKEN` with
+job-scoped `packages: write`. Release tags use `target_commitish: ${{ github.sha }}`.
+The workflow serializes publication and rollout. Each job resolves its image
+from the new version or, when unchanged, the last reachable component release
+tag using the same `git describe` selection as get-next-version. `deploy` passes
+both resolved images explicitly to Helm; require numbered GHCR tags or digests.
+The production Dockerfiles carry GHCR source labels, triggering both initial
+publications through normal component version detection.
 Both packages must be public for anonymous Kubernetes pulls. See README for
 manual deployment inputs.
 

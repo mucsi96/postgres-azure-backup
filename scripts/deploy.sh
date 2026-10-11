@@ -3,11 +3,11 @@
 set -e  # Exit immediately if a command exits with a non-zero status
 
 : "${AZURE_KEYVAULT_NAME:?Environment variable AZURE_KEYVAULT_NAME is required}"
-: "${SERVER_IMAGE:?Set the immutable server image to deploy}"
-: "${CLIENT_IMAGE:?Set the immutable client image to deploy}"
-if [[ ! "$SERVER_IMAGE" =~ ^ghcr\.io/.+(:sha-[a-f0-9]{40}|@sha256:[a-f0-9]{64})$ ]] ||
-   [[ ! "$CLIENT_IMAGE" =~ ^ghcr\.io/.+(:sha-[a-f0-9]{40}|@sha256:[a-f0-9]{64})$ ]]; then
-    printf '%s\n' 'SERVER_IMAGE and CLIENT_IMAGE must use GHCR with a full commit SHA tag or sha256 digest.' >&2
+: "${SERVER_IMAGE:?Set the versioned server image to deploy}"
+: "${CLIENT_IMAGE:?Set the versioned client image to deploy}"
+if [[ ! "$SERVER_IMAGE" =~ ^ghcr\.io/.+(:[1-9][0-9]*|@sha256:[a-f0-9]{64})$ ]] ||
+   [[ ! "$CLIENT_IMAGE" =~ ^ghcr\.io/.+(:[1-9][0-9]*|@sha256:[a-f0-9]{64})$ ]]; then
+    printf '%s\n' 'SERVER_IMAGE and CLIENT_IMAGE must use GHCR with a release version or sha256 digest.' >&2
     exit 1
 fi
 

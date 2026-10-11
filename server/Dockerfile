@@ -32,6 +32,7 @@ RUN mvn -Pnative native:compile -DskipTests -B \
 
 # Stage 3: Runtime image
 FROM docker.io/library/alpine:3.24
+LABEL org.opencontainers.image.source="https://github.com/mucsi96/postgres-azure-backup"
 
 VOLUME /tmp
 
