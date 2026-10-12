@@ -223,12 +223,15 @@ ghcr.io/mucsi96/postgres-azure-backup-client:<client version>
 ```
 
 Each component publishes only when `get_next_version.outputs.hasNextVersion`
-is `true`, using `get_next_version.outputs.version` as its image tag. Unchanged
-components retain the version of their last reachable `server-N` / `client-N`
-release. Both resolved image references are passed directly to deployment.
+is `true`, using `get_next_version.outputs.version` as its image tag. The action
+always returns a version: the next number for changed components, or the last
+reachable `server-N` / `client-N` release number for unchanged components.
+Publication jobs forward that output directly to deployment.
 Publication and rollout are serialized. The GHCR source label added to each
 production Dockerfile triggers both first publications through normal version
 detection; subsequent workflow-only changes skip image publication.
+Merge [get-next-version#6](https://github.com/mucsi96/get-next-version/pull/6)
+before this application migration; the workflow consumes the action's `main` branch.
 Make both GHCR packages public after their first publication, then rerun the
 deploy job so Kubernetes can pull them anonymously.
 

@@ -174,7 +174,7 @@ jobs:
       contents: write
       packages: write
     outputs:
-      image: ${{ steps.image.outputs.image }}
+      version: ${{ steps.get_next_version.outputs.version }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -186,15 +186,6 @@ jobs:
         with:
           prefix: 'server'
           src: server
-
-      - name: Resolve server image
-        id: image
-        env:
-          COMPONENT: server
-          IMAGE_REPOSITORY: ghcr.io/${{ github.repository }}-server
-          HAS_NEXT_VERSION: ${{ steps.get_next_version.outputs.hasNextVersion }}
-          NEXT_VERSION: ${{ steps.get_next_version.outputs.version }}
-        run: bash scripts/resolve_image.sh >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
@@ -241,7 +232,7 @@ jobs:
       contents: write
       packages: write
     outputs:
-      image: ${{ steps.image.outputs.image }}
+      version: ${{ steps.get_next_version.outputs.version }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -253,15 +244,6 @@ jobs:
         with:
           prefix: 'client'
           src: client
-
-      - name: Resolve client image
-        id: image
-        env:
-          COMPONENT: client
-          IMAGE_REPOSITORY: ghcr.io/${{ github.repository }}-client
-          HAS_NEXT_VERSION: ${{ steps.get_next_version.outputs.hasNextVersion }}
-          NEXT_VERSION: ${{ steps.get_next_version.outputs.version }}
-        run: bash scripts/resolve_image.sh >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
@@ -328,6 +310,6 @@ jobs:
       - name: Deploy to Kubernetes
         env:
           AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
-          SERVER_IMAGE: ${{ needs.publish-server.outputs.image }}
-          CLIENT_IMAGE: ${{ needs.publish-client.outputs.image }}
+          SERVER_IMAGE: ghcr.io/${{ github.repository }}-server:${{ needs.publish-server.outputs.version }}
+          CLIENT_IMAGE: ghcr.io/${{ github.repository }}-client:${{ needs.publish-client.outputs.version }}
         run: scripts/deploy.sh

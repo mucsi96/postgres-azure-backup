@@ -645,10 +645,11 @@ what `JavaBeanBinder` looks for over the whole class hierarchy; see
 `get_next_version.outputs.hasNextVersion == 'true'`, tagging them with
 `get_next_version.outputs.version`. Authentication uses `GITHUB_TOKEN` with
 job-scoped `packages: write`. Release tags use `target_commitish: ${{ github.sha }}`.
-The workflow serializes publication and rollout. Each job resolves its image
-from the new version or, when unchanged, the last reachable component release
-tag using the same `git describe` selection as get-next-version. `deploy` passes
-both resolved images explicitly to Helm; require numbered GHCR tags or digests.
+The action always returns `version` and `tag`, including the current reachable
+release when unchanged; `hasNextVersion` alone controls publication. Forward its
+version output directly to deployment without a consumer-side tag lookup.
+The workflow serializes publication and rollout; require numbered GHCR tags or
+digests. Merge the action change linked in README before the application MR.
 The production Dockerfiles carry GHCR source labels, triggering both initial
 publications through normal component version detection.
 Both packages must be public for anonymous Kubernetes pulls. See README for
