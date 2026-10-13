@@ -6,6 +6,15 @@
   "separateMajorMinor": false,
   "separateMultipleMajor": false,
   "separateMinorPatch": false,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^test\\/test-pod\\.yaml$/"],
+      "matchStrings": ["image:\\s*(?<depName>ghcr\\.io/mucsi96/mock-oidc-provider):(?<currentValue>[1-9][0-9]*)\\b"],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "loose"
+    }
+  ],
   "packageRules": [
     {
       "description": "Angular 22 requires TypeScript >=6.0 <6.1; review this range when upgrading Angular.",
