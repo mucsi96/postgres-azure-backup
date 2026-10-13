@@ -473,7 +473,7 @@ shared patterns include:
   `localhost/postgres-azure-backup-client:test` for local builds.
 - **Traefik** as the single entry point that fronts the client and
   reverse-proxies `/api` to the server.
-- **Mock OIDC provider** (`mucsi96/mock-oidc-provider`) for local /
+- **Mock OIDC provider** (`ghcr.io/mucsi96/mock-oidc-provider:12`) for local /
   test authentication; production uses real Microsoft Entra ID.
 - **OIDC client** (`angular-auth-oidc-client`) on the frontend (no
   MSAL).
@@ -678,7 +678,7 @@ same inside the pod network and on the host.
 | 8163  | Azurite blob storage | yes            | Azure Blob Storage emulator (`--blobPort 8163`)     |
 | 8164  | PostgreSQL `db1`     | yes            | First test database (`PGPORT=8164`)                 |
 | 8165  | PostgreSQL `db2`     | yes            | Second test database (`PGPORT=8165`)                |
-| 8166  | Mock OAuth2          | yes            | `mucsi96/mock-oidc-provider` (JWKS / OIDC)          |
+| 8166  | Mock OAuth2          | yes            | `ghcr.io/mucsi96/mock-oidc-provider:12` (JWKS / OIDC)          |
 
 ## Testing
 

@@ -82,7 +82,7 @@ the host.
 | 8163  | Azurite blob storage | Azure Blob Storage emulator                              |
 | 8164  | PostgreSQL `db1`     | First test database                                      |
 | 8165  | PostgreSQL `db2`     | Second test database                                     |
-| 8166  | Mock OAuth2          | `mucsi96/mock-oidc-provider` — issues JWTs in test mode  |
+| 8166  | Mock OAuth2          | `ghcr.io/mucsi96/mock-oidc-provider:12` — issues JWTs in test mode  |
 | 8168  | Server (Spring Boot) | Local port served by the server container                |
 
 When running tests or accessing the application from a browser on the
