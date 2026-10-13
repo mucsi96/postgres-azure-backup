@@ -524,7 +524,7 @@ environment: Spring AOT emits an `EnvironmentPostProcessor` that activates
 the profile the image was built with. `SPRING_PROFILES_ACTIVE` is no longer
 read at runtime, and `test/test-pod.yaml` no longer sets it. Build one image
 per profile with the `SPRING_PROFILE` build argument — `test` for the e2e
-pod, `prod` for the image published to Docker Hub.
+pod, `prod` for the image published to GHCR.
 
 Three build-time details live in `server/pom.xml` and are easy to trip over:
 
@@ -641,20 +641,18 @@ what `JavaBeanBinder` looks for over the whole class hierarchy; see
 
 ### Release and image publishing
 
-`publish-server` and `publish-client` each ask `mucsi96/get-next-version` for
-a version. It answers from the newest `server-N` / `client-N` tag: no changes
-under the component's directory since that tag means no version, and every
-publish step is skipped. The release step must therefore tag the commit its
-image was built from - `target_commitish: ${{ github.sha }}` - because the
-action otherwise tags whatever the default branch points at when the release
-is created, and the server's native build takes long enough that another push
-frequently lands first. A tag left on a commit that was never built makes the
-next run believe that commit is already released, so nothing is published for
-it. That is silent: `deploy` resolves the newest tag on Docker Hub by
-`last_updated` and succeeds, deploying the previous commit's image, so a
-fix can look deployed while the running image predates it. When a change does
-not reach production, check that a release tag exists on the commit and that
-`publish-server` did not skip its build steps.
+`publish-server` and `publish-client` publish numbered GHCR images only when
+`get_next_version.outputs.hasNextVersion == 'true'`, tagging them with
+`get_next_version.outputs.version`. Authentication uses `GITHUB_TOKEN` with
+job-scoped `packages: write`. Release tags use `target_commitish: ${{ github.sha }}`.
+The action always returns `version` and `tag`, including the current reachable
+release when unchanged; `hasNextVersion` alone controls publication. Forward its
+version output directly to deployment without a consumer-side tag lookup.
+The workflow serializes publication and rollout; require numbered GHCR tags or
+digests.
+The production Dockerfiles carry GHCR source labels, triggering both initial
+publications through normal component version detection.
+Both packages must be public for anonymous Kubernetes pulls.
 
 ### Kubernetes (Helm)
 ```bash

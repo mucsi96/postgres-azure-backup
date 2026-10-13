@@ -49,7 +49,7 @@ podman build --build-arg SPRING_PROFILE=prod -t postgres-azure-backup-server:pro
 ```
 
 `SPRING_PROFILES_ACTIVE` is not read at runtime; the pipeline builds the test
-image for the e2e job and the prod image when publishing to Docker Hub.
+image for the e2e job and the prod image when publishing to GHCR.
 
 ## Local development
 
@@ -221,7 +221,7 @@ helm repo add mucsi96 https://mucsi96.github.io/k8s-helm-charts
 helm upgrade postgres-azure-backup-server mucsi96/spring-app \
     --install \
     --namespace backup \
-    --set image=mucsi96/postgres-azure-backup-server:latest \
+    --set-string image=ghcr.io/mucsi96/postgres-azure-backup-server:42 \
     --set entryPoint=web \
     --set host=$hostname \
     --set basePath=/api \
