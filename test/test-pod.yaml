@@ -95,7 +95,7 @@ spec:
           readOnly: true
 
     - name: mock-oauth2
-      image: docker.io/mucsi96/mock-oidc-provider:latest
+      image: ghcr.io/mucsi96/mock-oidc-provider:12
       ports:
         - containerPort: 8166
           hostPort: 8166
