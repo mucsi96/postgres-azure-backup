@@ -257,7 +257,7 @@ Backup file representation:
 ### Frontend
 - **Angular 20** - Framework (standalone components)
 - **Angular Material** - UI components
-- **angular-auth-oidc-client** - OpenID Connect authentication
+- **Gateway sessions** - Entra/oauth2-proxy with HttpOnly cookies; no browser OAuth client
 - **RxJS** - Reactive programming
 - **TypeScript** - Language
 
@@ -279,7 +279,6 @@ Backup file representation:
 ### Environment Variables (Required)
 ```bash
 AZURE_CLIENT_ID                    # Service principal ID
-UI_CLIENT_ID                       # Frontend auth client ID
 AZURE_TENANT_ID                    # Azure AD tenant
 STORAGE_ACCOUNT_BLOB_URL           # Blob Storage endpoint
 STORAGE_ACCOUNT_CONTAINER_NAME     # Backup container
@@ -326,7 +325,9 @@ JSON file with database configurations:
 ### Authentication & Authorization
 - **Framework**: Spring Security + Azure AD (Entra ID)
 - **Token**: JWT from Entra ID
-- **Frontend**: `angular-auth-oidc-client` (OIDC PKCE flow)
+- **Frontend**: gateway-authenticated documents and read-only `/oauth2/userinfo`
+- **CSRF**: Spring SPA CSRF remains active for proxy-injected bearer requests;
+  Angular uses `__Host-XSRF-TOKEN`. Public Faro settings are built into the bundle.
 
 ### Roles (RBAC)
 - `APPROLE_readBackups` - Read backups
@@ -469,14 +470,14 @@ shared patterns include:
 - **Podman + pod manifests** instead of Docker Compose. The local /
   CI test stack is a single Kubernetes-style pod (`test/test-pod.yaml`)
   brought up with `podman kube play`.
-- **Image naming**: `localhost/postgres-azure-backup-server:test` and
-  `localhost/postgres-azure-backup-client:test` for local builds.
+- **Image naming**: `localhost/postgres-azure-backup-server:test` for local builds;
+  mount Node-built `client/dist` into stock nginx for local/E2E testing.
 - **Traefik** as the single entry point that fronts the client and
   reverse-proxies `/api` to the server.
 - **Mock OIDC provider** (`ghcr.io/mucsi96/mock-oidc-provider:12`) for local /
   test authentication; production uses real Microsoft Entra ID.
-- **OIDC client** (`angular-auth-oidc-client`) on the frontend (no
-  MSAL).
+- **Gateway identity fixtures**: app tests inject mock-issued bearer tokens into
+  API requests and mock profile data; platform tests own browser session flows.
 - **Port range `xx60–xx69`** for every port the project allocates
   (see "Port Mapping" below).
 
@@ -497,18 +498,17 @@ scripts/pod_down.sh
 
 Open http://localhost:8160 once the pod is healthy.
 
-`scripts/pod_up.sh` builds the `server` and `client` images with
-`podman build`, then starts the pod with `podman kube play`. Set
-`SKIP_BUILD=1` to reuse already-loaded images (used in CI after
-images are loaded with `podman load`).
+`scripts/pod_up.sh` builds the server image and the static client with Node/npm,
+then starts the pod with `podman kube play`. Set `SKIP_BUILD=1` to reuse the loaded
+server image and existing `client/dist` artifact (as CI does).
 
 ### Container Build
 ```bash
 podman build --build-arg SPRING_PROFILE=test \
   -t localhost/postgres-azure-backup-server:test server
-podman build -t localhost/postgres-azure-backup-client:test client
+(cd client && npm ci && npm run build)
 # Server multi-stage: Maven + Liberica NIK (GraalVM) → Alpine
-# Client multi-stage: Node → nginx
+# Client: Node build, stock nginx mounted only for local tests
 # Server image includes pg_dump, pg_restore, psql, curl
 ```
 
@@ -641,7 +641,7 @@ what `JavaBeanBinder` looks for over the whole class hierarchy; see
 
 ### Release and image publishing
 
-`publish-server` and `publish-client` publish numbered GHCR images only when
+`publish-server` publishes numbered GHCR images only when
 `get_next_version.outputs.hasNextVersion == 'true'`, tagging them with
 `get_next_version.outputs.version`. Authentication uses `GITHUB_TOKEN` with
 job-scoped `packages: write`. Release tags use `target_commitish: ${{ github.sha }}`.
@@ -650,9 +650,25 @@ release when unchanged; `hasNextVersion` alone controls publication. Forward its
 version output directly to deployment without a consumer-side tag lookup.
 The workflow serializes publication and rollout; require numbered GHCR tags or
 digests.
-The production Dockerfiles carry GHCR source labels, triggering both initial
-publications through normal component version detection.
-Both packages must be public for anonymous Kubernetes pulls.
+The server Dockerfile carries its GHCR source label; its package must be public
+for anonymous Kubernetes pulls. `publish-client` attaches the tested static
+artifact to client releases. Deployment uses official Azure login/CLI actions,
+uploads Blob assets before index, and retains old bundles.
+
+### Static hosting and build-time configuration
+
+- p07 provisions Web auth, ForwardAuth, shared Redis access, static storage and
+  scoped deploy permissions. Client/API charts own their authentication policies.
+- Use `spring-app` 37.0.0 and `static-client-app` 5.0.0. Keep the existing release
+  names and all server PVC mounts; reset Helm values on upgrades.
+- Read `forward-auth-config.auth` and `client-storage-config` at deploy time.
+  No `runtimeConfig`, environment endpoint, HTML marker or config fetch.
+- Compile `postgres-azure-backup-client` and `/_telemetry/collect` into the client;
+  resolve telemetry against the browser application origin, not the Blob origin.
+- Documents are authenticated and deep links rewritten by the gateway. Assets
+  load directly from Blob with app-origin CORS. Production has no client container.
+- Private backup archives retain their existing storage and one-time download
+  tokens; static website storage contains only public build resources.
 
 ### Kubernetes (Helm)
 ```bash

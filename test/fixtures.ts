@@ -6,10 +6,25 @@ import { cleanupBackups, cleanupDb, cleanupFolder } from './utils';
 // Define a type for our fixtures
 type TestFixtures = {
   setupTestEnvironment: void;
+  apiHeaders: Record<string, string>;
 };
 
 // Extend the base test with our fixtures
 export const test = base.extend<TestFixtures>({
+  apiHeaders: async ({ request }, use) => {
+    const issuer = 'http://localhost:8166/default';
+    const redirect = 'http://localhost/test';
+    const authorization = await request.get(`${issuer}/authorize`, {
+      params: { client_id: 'test-client', redirect_uri: redirect, response_type: 'code' },
+      maxRedirects: 0,
+    });
+    const code = new URL(authorization.headers()['location']).searchParams.get('code')!;
+    const tokens = await request.post(`${issuer}/token`, {
+      form: { grant_type: 'authorization_code', client_id: 'test-client', redirect_uri: redirect, code },
+    });
+    if (!tokens.ok()) throw new Error(`Mock token request failed: ${tokens.status()}`);
+    await use({ Authorization: `Bearer ${(await tokens.json()).access_token}` });
+  },
   // This fixture runs automatically for each test
   setupTestEnvironment: [async ({}, use) => {
     // Cleanup before each test
@@ -29,7 +44,11 @@ export const test = base.extend<TestFixtures>({
 
   // Capture browser console logs and page errors, attaching them to the
   // report on failure to help debug flaky/failed E2E runs from CI artifacts
-  page: async ({ page }, use, testInfo: TestInfo) => {
+  page: async ({ page, apiHeaders }, use, testInfo: TestInfo) => {
+    // Mock the gateway's identity boundary, not its session implementation.
+    await page.route('**/api/**', route => route.continue({ headers: { ...route.request().headers(), ...apiHeaders } }));
+    await page.route('**/oauth2/userinfo', route => route.fulfill({ json: { email: 'test-user@example.com', additionalClaims: { name: 'Test User' } } }));
+    await page.route('**/_telemetry/collect', route => route.fulfill({ status: 202, body: 'ok' }));
     const consoleLogs: string[] = [];
     page.on('console', (msg) => {
       const type = msg.type();

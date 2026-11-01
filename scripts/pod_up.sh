@@ -17,9 +17,8 @@ else
   # The Spring profile is baked into the native executable during AOT
   # processing, so the pod image has to be built with the test profile.
   podman build --build-arg SPRING_PROFILE=test \
-    -t localhost/postgres-azure-backup-server:test "$PROJECT_DIR/server" &
-  podman build -t localhost/postgres-azure-backup-client:test "$PROJECT_DIR/client" &
-  wait
+    -t localhost/postgres-azure-backup-server:test "$PROJECT_DIR/server"
+  (cd "$PROJECT_DIR/client" && npm ci && npm run build)
 fi
 
 echo "Cleaning up existing pod..."

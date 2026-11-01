@@ -1,13 +1,11 @@
 #!/bin/bash
 
-set -e  # Exit immediately if a command exits with a non-zero status
+set -euo pipefail
 
 : "${AZURE_KEYVAULT_NAME:?Environment variable AZURE_KEYVAULT_NAME is required}"
 : "${SERVER_IMAGE:?Set the versioned server image to deploy}"
-: "${CLIENT_IMAGE:?Set the versioned client image to deploy}"
-if [[ ! "$SERVER_IMAGE" =~ ^ghcr\.io/.+(:[1-9][0-9]*|@sha256:[a-f0-9]{64})$ ]] ||
-   [[ ! "$CLIENT_IMAGE" =~ ^ghcr\.io/.+(:[1-9][0-9]*|@sha256:[a-f0-9]{64})$ ]]; then
-    printf '%s\n' 'SERVER_IMAGE and CLIENT_IMAGE must use GHCR with a release version or sha256 digest.' >&2
+if [[ ! "$SERVER_IMAGE" =~ ^ghcr\.io/.+(:[1-9][0-9]*|@sha256:[a-f0-9]{64})$ ]]; then
+    printf '%s\n' 'SERVER_IMAGE must use GHCR with a release version or sha256 digest.' >&2
     exit 1
 fi
 
@@ -26,6 +24,11 @@ trap 'rm -f "$KUBECONFIG"' EXIT
 
 HOSTNAME=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name hostname --query value -o tsv)
 API_CLIENT_ID=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name api-client-id --query value -o tsv)
+AUTH_CONFIG=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name forward-auth-config --query value -o tsv)
+AUTH_RELEASE=$(jq -er '.release_name | select(type == "string" and length > 0)' <<<"$AUTH_CONFIG")
+PROXY_AUTH=$(jq -ce '.auth | select(.proxyService | type == "string" and length > 0) | select(.proxyPort | type == "number") | select(.mode == "api-token")' <<<"$AUTH_CONFIG")
+CLIENT_STORAGE_CONFIG=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name client-storage-config --query value -o tsv)
+CLIENT_ORIGIN=$(jq -er '.hostname | select(test("^[a-z0-9.-]+\\.web\\.core\\.windows\\.net$"))' <<<"$CLIENT_STORAGE_CONFIG")
 
 echo "Updating Helm repositories..."
 # The mucsi96 charts no longer bundle Prometheus exporter sidecars or
@@ -33,8 +36,11 @@ echo "Updating Helm repositories..."
 # This deploy rolls out the updated charts and drops those containers.
 helm repo add mucsi96 https://mucsi96.github.io/k8s-helm-charts --force-update
 
-springAppChartVersion=$(helm search repo mucsi96/spring-app --output json | jq -r '.[0].version')
-clientAppChartVersion=$(helm search repo mucsi96/client-app --output json | jq -r '.[0].version')
+springAppChartVersion=37.0.0
+staticClientAppChartVersion=5.0.0
+helm status "$AUTH_RELEASE" --namespace backup >/dev/null
+helm show chart mucsi96/spring-app --version "$springAppChartVersion" >/dev/null
+helm show chart mucsi96/static-client-app --version "$staticClientAppChartVersion" >/dev/null
 
 # The server is a GraalVM native image: 77Mi resident at idle in production
 # (metrics-server, 2026-09-01), where this cluster's JVM services sit at
@@ -64,6 +70,8 @@ clientAppChartVersion=$(helm search repo mucsi96/client-app --output json | jq -
 echo "Deploying server: $SERVER_IMAGE using spring-app chart $springAppChartVersion"
 helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --install \
+    --namespace backup \
+    --reset-values \
     --version $springAppChartVersion \
     --set-string image="$SERVER_IMAGE" \
     --set entryPoint=web \
@@ -72,7 +80,7 @@ helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --set clientId=$API_CLIENT_ID \
     --set serviceAccountName=postgres-azure-backup-api-workload-identity \
     --set env.AZURE_KEYVAULT_ENDPOINT=$AZURE_KEYVAULT_ENDPOINT \
-    --set env.CLIENT_APP_NAME=$CLIENT_RELEASE_NAME \
+    --set-json auth="$PROXY_AUTH" \
     --set persistentVolumeClaims[0].name=learn-language-backup-pvc \
     --set persistentVolumeClaims[0].accessMode=ReadWriteOnce \
     --set persistentVolumeClaims[0].volumeName=learn-language-backup \
@@ -97,21 +105,15 @@ helm upgrade $SERVER_RELEASE_NAME mucsi96/spring-app \
     --set resources.limits.cpu=null \
     --wait
 
-# The client is nginx serving prebuilt static assets: 11Mi resident in
-# production (metrics-server, 2026-09-01) against this 16Mi request, so the
-# memory limit only has to cover request buffers and these numbers stand.
-# No CPU limit, for the same reason as the server: the chart defaults to 100m,
-# which on a single-user node only throttles nginx's startup and request bursts.
-echo "Deploying client: $CLIENT_IMAGE using client-app chart $clientAppChartVersion"
+echo "Deploying static client using static-client-app chart $staticClientAppChartVersion"
 
-helm upgrade $CLIENT_RELEASE_NAME mucsi96/client-app \
+helm upgrade $CLIENT_RELEASE_NAME mucsi96/static-client-app \
     --install \
-    --version $clientAppChartVersion \
-    --set-string image="$CLIENT_IMAGE" \
+    --namespace backup \
+    --reset-values \
+    --version $staticClientAppChartVersion \
+    --set-string staticOrigin="$CLIENT_ORIGIN" \
     --set host=$HOSTNAME \
     --set entryPoint=web \
-    --set resources.requests.memory=16Mi \
-    --set resources.requests.cpu=5m \
-    --set resources.limits.memory=32Mi \
-    --set resources.limits.cpu=null \
+    --set-json auth="$PROXY_AUTH" \
     --wait

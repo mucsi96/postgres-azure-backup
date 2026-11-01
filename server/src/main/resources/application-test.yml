@@ -15,5 +15,3 @@ spring:
         jwt:
           issuer-uri: http://localhost:8166/default
           audiences: mock-api-client-id
-
-mock-oauth2-server-uri: ${MOCK_OAUTH2_SERVER_URI:}

@@ -30,7 +30,7 @@ Simple PostgreSQL backup tool to Azure with UI
 - Java 21
 - Spring Boot 4, compiled ahead of time into a GraalVM native image
 - Angular
-- OpenID Connect (`angular-auth-oidc-client`)
+- Entra gateway sessions (oauth2-proxy), backend JWT roles and SPA CSRF
 - Azure
 - PostgreSQL 18 client
 - Podman (rootless containers + Kubernetes-style pod manifests)
@@ -51,7 +51,37 @@ podman build --build-arg SPRING_PROFILE=prod -t postgres-azure-backup-server:pro
 `SPRING_PROFILES_ACTIVE` is not read at runtime; the pipeline builds the test
 image for the e2e job and the prod image when publishing to GHCR.
 
-## Local development
+## Gateway authentication and static hosting
+
+Production follows [Skeleton's shared architecture](https://github.com/mucsi96/skeleton-app/issues/105).
+p07 owns the Backup Web registration, host-only HttpOnly sessions, shared Redis,
+ForwardAuth and a dedicated static storage account. The application charts own
+document/API authentication. Backend JWT scope and role checks remain active;
+Spring SPA CSRF protects all mutations, including gateway-injected bearer requests.
+Angular uses its built-in `__Host-XSRF-TOKEN` cookie support. External API callers
+must obtain the CSRF cookie with an authenticated GET and send it with the matching
+`X-XSRF-TOKEN` header for mutations. Scheduled in-process backups are unaffected.
+
+The UI reads profile data from `/oauth2/userinfo`; it handles no OAuth tokens or
+login/logout flows. Faro's `postgres-azure-backup-client` name and same-origin
+`/_telemetry/collect` URL are built into the bundle. There is no environment endpoint,
+runtime configuration fetch, global marker or document body injection.
+
+CI builds Angular with Node, tests the static artifact and attaches it to client
+releases. Deployment uploads assets to the public `assets` Blob container before
+uploading index to `$web`; old bundles are retained. Fonts are bundled locally.
+The gateway serves authenticated documents and deep links through `static-client-app`
+5.0.0; assets load directly from Blob storage with app-origin CORS. Only public
+build resources go into this storage; backup archives stay in their existing
+private container and retain their authorized, one-time download flow.
+
+`scripts/deploy.sh` reads `forward-auth-config.auth` and `client-storage-config`,
+deploys `spring-app` 37.0.0 and `static-client-app` 5.0.0 with `--reset-values`,
+and preserves the three backup PVC mounts. The client Helm release name stays
+the same; upgrading it removes the old client Deployment/Service. Provision the
+corresponding p07 infrastructure before deploying this application version.
+
+### Local tests
 
 Local end-to-end environment is orchestrated by Podman using a
 Kubernetes-style pod manifest at [`test/test-pod.yaml`](test/test-pod.yaml).
@@ -95,7 +125,6 @@ host, only **8160–8166** are exposed.
 - `SPRING_ACTUATOR_PORT`
 - `STORAGE_ACCOUNT_BLOB_URL`
 - `STORAGE_ACCOUNT_CONTAINER_NAME`
-- `UI_CLIENT_ID`
 
 ## Optional environment variables for backup scheduling
 

@@ -1,25 +1,12 @@
 <mat-toolbar class="header">
   <nav>
     <a mat-button href="/">Postgres Backup Tool</a>
-    @if(isAuthenticated()) {
     <div class="header-right">
       <app-header></app-header>
     </div>
-    }
   </nav>
 </mat-toolbar>
 
 <main>
-  @if (authError(); as error) {
-  <div class="auth-error" role="alert">
-    <h1>Sign-in failed</h1>
-    <p>The sign-in service rejected the request:</p>
-    <p class="auth-error-details">{{ error }}</p>
-    <button mat-flat-button (click)="retryLogin()">
-      Try again
-    </button>
-  </div>
-  } @else {
   <router-outlet></router-outlet>
-  }
 </main>
