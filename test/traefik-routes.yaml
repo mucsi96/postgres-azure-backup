@@ -2,16 +2,30 @@ http:
   routers:
     server:
       rule: "PathPrefix(`/api`) || PathPrefix(`/actuator`)"
-      priority: 2
+      priority: 10
       service: server
       entryPoints:
         - web
+    document:
+      rule: "(Method(`GET`) || Method(`HEAD`)) && (Path(`/`) || Path(`/index.html`) || Header(`Sec-Fetch-Dest`, `document`) || HeaderRegexp(`Accept`, `(?i)(^|[ ,])text/html([ ;,]|$)`))"
+      priority: 2
+      service: client
+      middlewares: [index-path, index-headers]
+      entryPoints: [web]
     client:
       rule: "PathPrefix(`/`)"
       priority: 1
       service: client
       entryPoints:
         - web
+  middlewares:
+    index-path:
+      replacePath:
+        path: /index.html
+    index-headers:
+      headers:
+        customResponseHeaders:
+          Cache-Control: private, no-cache, no-store
   services:
     server:
       loadBalancer:

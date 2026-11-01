@@ -1,4 +1,8 @@
 @use '@mucsi96/angular-material-theme/styles' as bt;
+@import '@fontsource/roboto/300.css';
+@import '@fontsource/roboto/400.css';
+@import '@fontsource/roboto/500.css';
+@import 'material-icons/iconfont/material-icons.css';
 
 html {
   @include bt.theme();

@@ -1,47 +1,22 @@
-import { Injectable, inject, linkedSignal } from '@angular/core';
-import { AuthService } from './auth.service';
+import { computed, Injectable } from '@angular/core';
+import { httpResource } from '@angular/common/http';
 
-interface UserProfile {
-  name: string;
-  initials: string;
+interface UserInfo {
+  email: string;
+  additionalClaims?: { name?: string };
 }
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class UserProfileService {
-  private readonly authService = inject(AuthService);
+  private readonly userInfo = httpResource<UserInfo>(() => '/oauth2/userinfo');
 
-  // Derive the profile from the auth user data, but keep the last known value
-  // while the user data is momentarily empty during a token renewal (which
-  // happens when the installed PWA resumes on mobile). A plain computed would
-  // blank out and make the avatar disappear; linkedSignal lets us fall back to
-  // the previous value instead.
-  profile = linkedSignal<unknown, UserProfile | undefined>({
-    source: this.authService.userData,
-    computation: (profile, previous) => {
-      const claims = profile as
-        | { name?: string; preferred_username?: string }
-        | null
-        | undefined;
-      const name = claims?.name ?? claims?.preferred_username;
-
-      if (!name) {
-        return previous?.value;
-      }
-
-      return {
-        name,
-        initials: this.getInitials(name),
-      };
-    },
+  readonly profile = computed(() => {
+    const user = this.userInfo.value();
+    if (!user) return undefined;
+    const name = user.additionalClaims?.name ?? user.email;
+    return {
+      name,
+      initials: name.split(' ').map(part => part[0]).join('').toUpperCase(),
+    };
   });
-
-  private getInitials(name: string): string {
-    return name
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase();
-  }
 }

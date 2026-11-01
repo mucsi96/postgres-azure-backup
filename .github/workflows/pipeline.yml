@@ -63,29 +63,29 @@ jobs:
           path: /tmp/server-image.tar
           retention-days: 1
 
-  build-client-image:
+  build-client:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
-      group: ${{ github.workflow }}-build-client-image-${{ github.ref }}
+      group: ${{ github.workflow }}-build-client-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v6
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Build client image
-        uses: docker/build-push-action@v6
+      - uses: actions/setup-node@v6
         with:
-          context: client
-          tags: localhost/postgres-azure-backup-client:test
-          outputs: type=docker,dest=/tmp/client-image.tar
-          cache-from: type=gha,scope=client
-          cache-to: type=gha,mode=max,scope=client
-      - name: Upload client image
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: Build static client
+        working-directory: client
+        run: |
+          npm ci
+          npm run build
+      - name: Upload static client
         uses: actions/upload-artifact@v4
         with:
-          name: client-image
-          path: /tmp/client-image.tar
+          name: client-static
+          path: client/dist
           retention-days: 1
 
   test-e2e:
@@ -94,7 +94,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-test-e2e-${{ github.ref }}
       cancel-in-progress: true
-    needs: [test-client, build-server-image, build-client-image]
+    needs: [test-client, build-server-image, build-client]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -124,15 +124,16 @@ jobs:
         with:
           name: server-image
           path: /tmp
-      - name: Download client image
+      - name: Download static client
         uses: actions/download-artifact@v4
         with:
-          name: client-image
-          path: /tmp
+          name: client-static
+          path: client/dist
+      - name: Check direct static assets and build-time Faro
+        run: node test/static-assets.mjs
       - name: Load images into Podman
         run: |
           podman load -i /tmp/server-image.tar
-          podman load -i /tmp/client-image.tar
       # The server is a single native executable, so if it cannot even start in
       # the runtime image there is nothing to log and the pod just times out
       # three minutes later with an empty container log. Fail here instead.
@@ -230,7 +231,6 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     permissions:
       contents: write
-      packages: write
     outputs:
       version: ${{ steps.get_next_version.outputs.version }}
     steps:
@@ -245,30 +245,15 @@ jobs:
           prefix: 'client'
           src: client
 
-      - name: Set up Docker Buildx
-        if: steps.get_next_version.outputs.hasNextVersion == 'true'
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GHCR
-        if: steps.get_next_version.outputs.hasNextVersion == 'true'
-        uses: docker/login-action@v4
+      - name: Download tested static client
+        uses: actions/download-artifact@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          name: client-static
+          path: /tmp/client-static
+      - name: Package client release
+        run: tar -czf /tmp/client-static.tar.gz -C /tmp/client-static .
 
-      - name: Build and push client image
-        if: steps.get_next_version.outputs.hasNextVersion == 'true'
-        uses: docker/build-push-action@v6
-        with:
-          context: client
-          push: true
-          tags: ghcr.io/${{ github.repository }}-client:${{ steps.get_next_version.outputs.version }}
-          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
-          cache-from: type=gha,scope=client
-          cache-to: type=gha,mode=max,scope=client
-
-      # Tag the commit this image was built from, not whatever main points
+      # Tag the commit this artifact was built from, not whatever main points
       # at by the time the release is created - see publish-server above.
       - name: Create release
         if: steps.get_next_version.outputs.hasNextVersion == 'true'
@@ -277,6 +262,7 @@ jobs:
           tag_name: ${{ steps.get_next_version.outputs.tag }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
+          files: /tmp/client-static.tar.gz
 
   deploy:
     runs-on: ubuntu-latest
@@ -291,12 +277,50 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Download tested static client
+        uses: actions/download-artifact@v4
+        with:
+          name: client-static
+          path: client-static
 
       - uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Prepare static client URLs
+        id: client
+        env:
+          AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
+        run: |
+          config=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name client-storage-config --query value -o tsv)
+          account=$(jq -er '.account_name' <<< "$config")
+          assets_url=$(jq -er '.assets_base_url' <<< "$config")
+          hostname=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name hostname --query value -o tsv)
+          node scripts/prepare-client.mjs client-static client-publish "$assets_url" "https://$hostname"
+          echo "account=$account" >> "$GITHUB_OUTPUT"
+      - name: Publish client assets then document
+        uses: azure/cli@v2
+        env:
+          STORAGE_ACCOUNT: ${{ steps.client.outputs.account }}
+        with:
+          inlineScript: |
+            set -euo pipefail
+            az storage blob upload-batch --auth-mode login --account-name "$STORAGE_ACCOUNT" \
+              --destination assets --source client-publish/assets --overwrite true \
+              --content-cache-control no-cache --only-show-errors --output none
+            az storage blob upload --auth-mode login --account-name "$STORAGE_ACCOUNT" \
+              --container-name assets --name manifest.webmanifest --file client-publish/assets/manifest.webmanifest \
+              --overwrite true --content-type application/manifest+json --content-cache-control no-cache \
+              --only-show-errors --output none
+            az storage blob upload --auth-mode login --account-name "$STORAGE_ACCOUNT" \
+              --container-name '$web' --name index.html --file client-publish/documents/index.html \
+              --overwrite true --content-type text/html --content-cache-control no-store \
+              --only-show-errors --output none
 
       - uses: azure/use-kubelogin@v1
         with:
@@ -311,5 +335,4 @@ jobs:
         env:
           AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
           SERVER_IMAGE: ghcr.io/${{ github.repository }}-server:${{ needs.publish-server.outputs.version }}
-          CLIENT_IMAGE: ghcr.io/${{ github.repository }}-client:${{ needs.publish-client.outputs.version }}
         run: scripts/deploy.sh
