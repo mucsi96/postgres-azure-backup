@@ -78,8 +78,8 @@ private container and retain their authorized, one-time download flow.
 `scripts/deploy.sh` reads `forward-auth-config.auth` and `client-storage-config`,
 deploys `spring-app` 37.0.0 and `static-client-app` 5.0.0 with `--reset-values`,
 and preserves the three backup PVC mounts. The client Helm release name stays
-the same; upgrading it removes the old client Deployment/Service. See p07's
-`docs/backup-static-hosting.md` for the coordinated infrastructure cutover.
+the same; upgrading it removes the old client Deployment/Service. Provision the
+corresponding p07 infrastructure before deploying this application version.
 
 ### Local tests
 
