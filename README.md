@@ -68,8 +68,9 @@ login/logout flows. Faro's `postgres-azure-backup-client` name and same-origin
 runtime configuration fetch, global marker or document body injection.
 
 CI builds Angular with Node, tests the static artifact and attaches it to client
-releases. Deployment uploads assets to the public `assets` Blob container before
-uploading index to `$web`; old bundles are retained. Fonts are bundled locally.
+releases. Deployment empties `$web` and `assets`, uploads the latest assets to the
+public `assets` container with one-year caching, then publishes index with
+`no-store`. Downtime is intentional; old bundles are removed. Fonts are bundled locally.
 The gateway serves authenticated documents and deep links through `static-client-app`
 5.0.0; assets load directly from Blob storage with app-origin CORS. Only public
 build resources go into this storage; backup archives stay in their existing

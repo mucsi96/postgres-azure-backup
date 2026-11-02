@@ -301,23 +301,24 @@ jobs:
           account=$(jq -er '.account_name' <<< "$config")
           assets_url=$(jq -er '.assets_base_url' <<< "$config")
           hostname=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name hostname --query value -o tsv)
-          asset_prefix="releases/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          node scripts/prepare-client.mjs client-static client-publish "${assets_url}${asset_prefix}/" "https://$hostname"
-          echo "asset_prefix=$asset_prefix" >> "$GITHUB_OUTPUT"
+          node scripts/prepare-client.mjs client-static client-publish "$assets_url" "https://$hostname"
           echo "account=$account" >> "$GITHUB_OUTPUT"
       - name: Publish client assets then document
         uses: azure/cli@v2
         env:
           STORAGE_ACCOUNT: ${{ steps.client.outputs.account }}
-          ASSET_PREFIX: ${{ steps.client.outputs.asset_prefix }}
         with:
           inlineScript: |
             set -euo pipefail
+            az storage blob delete-batch --auth-mode login --account-name "$STORAGE_ACCOUNT" \
+              --source '$web' --only-show-errors --output none
+            az storage blob delete-batch --auth-mode login --account-name "$STORAGE_ACCOUNT" \
+              --source assets --only-show-errors --output none
             az storage blob upload-batch --auth-mode login --account-name "$STORAGE_ACCOUNT" \
-              --destination assets --destination-path "$ASSET_PREFIX" --source client-publish/assets --overwrite true \
+              --destination assets --source client-publish/assets --overwrite true \
               --content-cache-control 'public, max-age=31536000, immutable' --only-show-errors --output none
             az storage blob upload --auth-mode login --account-name "$STORAGE_ACCOUNT" \
-              --container-name assets --name "$ASSET_PREFIX/manifest.webmanifest" --file client-publish/assets/manifest.webmanifest \
+              --container-name assets --name manifest.webmanifest --file client-publish/assets/manifest.webmanifest \
               --overwrite true --content-type application/manifest+json --content-cache-control 'public, max-age=31536000, immutable' \
               --only-show-errors --output none
             az storage blob upload --auth-mode login --account-name "$STORAGE_ACCOUNT" \
