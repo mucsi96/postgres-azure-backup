@@ -653,7 +653,8 @@ digests.
 The server Dockerfile carries its GHCR source label; its package must be public
 for anonymous Kubernetes pulls. `publish-client` attaches the tested static
 artifact to client releases. Deployment uses official Azure login/CLI actions,
-uploads Blob assets before index, and retains old bundles.
+empties `$web` and `assets`, then uploads the latest assets before index.
+Deployment downtime is intentional; old bundles are removed.
 
 ### Static hosting and build-time configuration
 
