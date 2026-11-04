@@ -1,0 +1,9 @@
+.table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.table th, .table td { padding: 12px 10px; border-bottom: 1px solid var(--bt-outline); text-align: center; white-space: nowrap; }
+.table th { color: var(--bt-text-muted); font-weight: 500; }
+.table td:first-child, .table th:first-child { text-align: left; }
+.table tbody tr:hover { background: var(--bt-surface-1); }
+.table tr[aria-selected="true"] { background: var(--bt-surface-2); }
+.table a { text-decoration: none; }
+.old { color: var(--bt-error); }
+.recent { color: var(--bt-success); }

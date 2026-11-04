@@ -72,8 +72,8 @@
     },
     {
       "type": "shell",
-      "label": "Test client",
-      "command": "npm test",
+      "label": "Lint client",
+      "command": "npm run lint",
       "options": {
         "cwd": "${workspaceFolder}/client"
       },
@@ -81,9 +81,8 @@
     },
     {
       "type": "shell",
-      "label": "Test client (UI)",
-      "command": "npm run test:ui",
-      "isBackground": true,
+      "label": "Type-check client",
+      "command": "npm run typecheck",
       "options": {
         "cwd": "${workspaceFolder}/client"
       },
@@ -92,10 +91,10 @@
     {
       "type": "shell",
       "label": "Test e2e",
-      "command": "mvn test",
+      "command": "npx playwright test",
       "isBackground": true,
       "options": {
-        "cwd": "${workspaceFolder}/server"
+        "cwd": "${workspaceFolder}/test"
       },
       "problemMatcher": []
     },

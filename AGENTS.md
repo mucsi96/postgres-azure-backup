@@ -17,25 +17,31 @@ This document provides a comprehensive overview of the postgres-azure-backup app
 ## Overview
 
 **postgres-azure-backup** is a cloud-native PostgreSQL backup management application featuring:
-- Full-stack architecture (Angular frontend + Spring Boot backend)
+- Full-stack architecture (React frontend + Spring Boot backend)
 - Azure Blob Storage integration for backup persistence
 - Intelligent backup scheduling with retention management
 - Multi-database support with configurable backup strategies
 - Microsoft Entra ID authentication and RBAC authorization
 - ZIP-based backup format supporting both database dumps and blob storage files
 
-## Button styling
+## Frontend conventions
 
-- Follow `@mucsi96/angular-material-theme`'s documented button-color API: use `bt-color="primary|success|warn|error"` on `mat-flat-button`, `mat-raised-button`, `mat-fab` (including extended FABs), and `mat-mini-fab`, including anchor buttons. Use `[attr.bt-color]` for dynamic tones; no directive import is needed.
-- Solid buttons default to primary. Use `error` for destructive actions, `warn` for caution, and `success` for positive outcomes. Material's legacy `color="warn"` means error/red, not the theme's orange `bt-color="warn"`; migrate solid buttons accordingly.
-- For an arbitrary solid-button color, set only `--bt-button-bg` without `bt-color`. Let the theme derive label contrast and hover colors; do not override Material container/label/state-layer color tokens, `--mat-sys-primary`, or button `background`, `color`, and `:hover` separately. Keep the intended button variant; raised buttons support the same API and retain elevation.
-- The `bt-color` API does not cover text, outlined, icon, or menu buttons. Use their documented Material APIs instead; do not apply solid-button color workarounds to them. Check the installed theme README when upgrading or changing component styles.
+- Use function components, hooks, React Router, and colocated CSS Modules.
+- TanStack Query owns server state; include database names in query keys and
+  invalidate affected queries after mutations. Do not automatically retry mutations.
+- Validate JSON API boundaries with Zod. Keep OAuth at the gateway and send the
+  host-only CSRF cookie proof on same-origin mutations.
+- Use `@mucsi96/react-ui` buttons with `onPress`, `isDisabled`, and semantic
+  `tone="primary|success|warn|error"`. Restore uses `warn`. Import library styles
+  once in `main.tsx`; use the documented palette in CSS Modules.
+- Verify with lint, type checking, production build, static-hosting checks, and
+  Playwright E2E tests. Do not add React unit/component tests.
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────┐
-│         Angular UI (Client-Side)                │
+│         React UI (Client-Side)                  │
 │    - Backups Management                         │
 │    - Database Monitoring                        │
 │    - Tables/Records Viewer                      │
@@ -255,10 +261,12 @@ Backup file representation:
 - **Jackson** - JSON processing
 
 ### Frontend
-- **Angular 20** - Framework (standalone components)
-- **Angular Material** - UI components
+- **React 19 + Vite** - Function components, hooks, and static builds
+- **@mucsi96/react-ui** - Accessible UI components and semantic theme
 - **Gateway sessions** - Entra/oauth2-proxy with HttpOnly cookies; no browser OAuth client
-- **RxJS** - Reactive programming
+- **TanStack Query** - Server state and mutations
+- **Zod** - Runtime API validation
+- **React Router** - Routes and database selection
 - **TypeScript** - Language
 
 ### Testing
@@ -327,7 +335,8 @@ JSON file with database configurations:
 - **Token**: JWT from Entra ID
 - **Frontend**: gateway-authenticated documents and read-only `/oauth2/userinfo`
 - **CSRF**: Spring SPA CSRF remains active for proxy-injected bearer requests;
-  Angular uses `__Host-XSRF-TOKEN`. Public Faro settings are built into the bundle.
+  the fetch client sends `__Host-XSRF-TOKEN` as `X-XSRF-TOKEN` on mutations.
+  Public Faro settings are built into the bundle.
 
 ### Roles (RBAC)
 - `APPROLE_readBackups` - Read backups
@@ -436,12 +445,13 @@ postgres-azure-backup/
 │   │   └── scheduler/              # Scheduled tasks
 │   └── pom.xml
 │
-├── client/                          # Angular
-│   ├── src/app/
-│   │   ├── backups/                # Backup UI
-│   │   ├── databases/              # Database list
-│   │   ├── tables/                 # Tables viewer
-│   │   └── utils/                  # Pipes/utilities
+├── client/                          # React + Vite
+│   ├── src/
+│   │   ├── Backups.tsx             # Backup selection, restore and download
+│   │   ├── Databases.tsx           # Database list and bulk backup
+│   │   ├── Tables.tsx              # Tables, backup and SQL export
+│   │   ├── api.ts                  # Zod schemas, queries and CSRF-aware fetch
+│   │   └── *.module.css            # Colocated component layouts
 │   └── package.json
 │
 ├── test/                            # Playwright E2E
@@ -696,6 +706,7 @@ same inside the pod network and on the host.
 | 8164  | PostgreSQL `db1`     | yes            | First test database (`PGPORT=8164`)                 |
 | 8165  | PostgreSQL `db2`     | yes            | Second test database (`PGPORT=8165`)                |
 | 8166  | Mock OAuth2          | yes            | `ghcr.io/mucsi96/mock-oidc-provider:12` (JWKS / OIDC)          |
+| 8169  | Vite dev/preview     | local only     | Optional frontend development server                    |
 
 ## Testing
 

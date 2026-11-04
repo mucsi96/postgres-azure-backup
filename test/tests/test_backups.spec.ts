@@ -52,7 +52,7 @@ test.describe('Backups Tests', () => {
     await page.goto('/');
     await page.getByText('db1').click();
     const lastBackupText = await page
-      .locator('.last-backup')
+      .getByTestId('last-backup')
       .textContent();
     expect(lastBackupText).toContain('Last backup');
     expect(lastBackupText).not.toContain('Last backup —');
@@ -115,7 +115,7 @@ test.describe('Backups Tests', () => {
     await page.getByText('db1').click();
     await page.getByRole('button', { name: 'db1' }).click();
     await page.getByRole('menuitem', { name: 'db2' }).click();
-    await expect(page.locator('.last-backup')).toHaveText(
+    await expect(page.getByTestId('last-backup')).toHaveText(
       'Last backup —'
     );
     await expect(page.getByRole('heading', { name: 'Backups' })).toHaveText(

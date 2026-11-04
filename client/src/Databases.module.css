@@ -1,0 +1,2 @@
+.databases { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 20px; overflow-x: auto; }
+.databases table { grid-column: 1 / -1; }

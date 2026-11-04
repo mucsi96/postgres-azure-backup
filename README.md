@@ -29,7 +29,7 @@ Simple PostgreSQL backup tool to Azure with UI
 
 - Java 21
 - Spring Boot 4, compiled ahead of time into a GraalVM native image
-- Angular
+- React 19, Vite, TypeScript, TanStack Query, Zod and `@mucsi96/react-ui`
 - Entra gateway sessions (oauth2-proxy), backend JWT roles and SPA CSRF
 - Azure
 - PostgreSQL 18 client
@@ -58,7 +58,8 @@ p07 owns the Backup Web registration, host-only HttpOnly sessions, shared Redis,
 ForwardAuth and a dedicated static storage account. The application charts own
 document/API authentication. Backend JWT scope and role checks remain active;
 Spring SPA CSRF protects all mutations, including gateway-injected bearer requests.
-Angular uses its built-in `__Host-XSRF-TOKEN` cookie support. External API callers
+The React API client sends the `__Host-XSRF-TOKEN` cookie as `X-XSRF-TOKEN`
+on same-origin mutations. External API callers
 must obtain the CSRF cookie with an authenticated GET and send it with the matching
 `X-XSRF-TOKEN` header for mutations. Scheduled in-process backups are unaffected.
 
@@ -67,7 +68,7 @@ login/logout flows. Faro's `postgres-azure-backup-client` name and same-origin
 `/_telemetry/collect` URL are built into the bundle. There is no environment endpoint,
 runtime configuration fetch, global marker or document body injection.
 
-CI builds Angular with Node, tests the static artifact and attaches it to client
+CI lints and type-checks React with Node 24, builds with Vite, tests the static artifact and attaches it to client
 releases. Deployment empties `$web` and `assets`, uploads the latest assets to the
 public `assets` container with one-year caching, then publishes index with
 `no-store`. Downtime is intentional; old bundles are removed. Fonts are bundled locally.
@@ -97,6 +98,11 @@ scripts/pod_up.sh
 # Stop and clean up the test pod
 scripts/pod_down.sh
 ```
+
+Frontend development and verification commands are documented in
+[`client/README.md`](client/README.md). Run `npm run lint`, `npm run typecheck`
+and `npm run build` in `client`, then `node test/static-assets.mjs` from the root
+and `npx playwright test` in `test` with the pod running.
 
 ## Port Mapping
 
