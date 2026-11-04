@@ -2,6 +2,7 @@ import { test as base, TestInfo } from '@playwright/test';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { cleanupBackups, cleanupDb, cleanupFolder } from './utils';
+import { apiIdentity } from './auth';
 
 // Define a type for our fixtures
 type TestFixtures = {
@@ -12,18 +13,7 @@ type TestFixtures = {
 // Extend the base test with our fixtures
 export const test = base.extend<TestFixtures>({
   apiHeaders: async ({ request }, use) => {
-    const issuer = 'http://localhost:8166/default';
-    const redirect = 'http://localhost/test';
-    const authorization = await request.get(`${issuer}/authorize`, {
-      params: { client_id: 'test-client', redirect_uri: redirect, response_type: 'code' },
-      maxRedirects: 0,
-    });
-    const code = new URL(authorization.headers()['location']).searchParams.get('code')!;
-    const tokens = await request.post(`${issuer}/token`, {
-      form: { grant_type: 'authorization_code', client_id: 'test-client', redirect_uri: redirect, code },
-    });
-    if (!tokens.ok()) throw new Error(`Mock token request failed: ${tokens.status()}`);
-    await use({ Authorization: `Bearer ${(await tokens.json()).access_token}` });
+    await use(await apiIdentity(request));
   },
   // This fixture runs automatically for each test
   setupTestEnvironment: [async ({}, use) => {

@@ -19,12 +19,7 @@ jobs:
       statuses: write
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-java@v5
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'maven'
-          cache-dependency-path: 'server/pom.xml'
+      - uses: dtolnay/rust-toolchain@1.99.1
       - uses: actions/setup-node@v6
         with:
           # Current Renovate releases require Node 24.

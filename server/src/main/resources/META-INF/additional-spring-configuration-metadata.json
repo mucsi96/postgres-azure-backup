@@ -1,9 +1,0 @@
-{
-  "properties": [
-    {
-      "name": "databasesConfigPath",
-      "type": "java.lang.String",
-      "description": "Path to the databases configuration file"
-    }
-  ]
-}

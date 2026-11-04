@@ -27,6 +27,8 @@ spec:
 
     - name: blobstorage
       image: mcr.microsoft.com/azure-storage/azurite:latest
+      securityContext:
+        runAsUser: 0
       args:
         - azurite-blob
         - --blobHost
@@ -46,6 +48,8 @@ spec:
 
     - name: db1
       image: docker.io/library/postgres:18.4-trixie
+      securityContext:
+        runAsUser: 0
       ports:
         - containerPort: 8164
           hostPort: 8164
@@ -71,6 +75,8 @@ spec:
 
     - name: db2
       image: docker.io/library/postgres:18.4-trixie
+      securityContext:
+        runAsUser: 0
       ports:
         - containerPort: 8165
           hostPort: 8165
@@ -96,12 +102,18 @@ spec:
 
     - name: mock-oauth2
       image: ghcr.io/mucsi96/mock-oidc-provider:14
+      volumeMounts:
+        - name: oidc-fixtures
+          mountPath: /app/fixtures.json
+          readOnly: true
       ports:
         - containerPort: 8166
           hostPort: 8166
       env:
         - name: PORT
           value: "8166"
+        - name: FIXTURE_CONFIG_FILE
+          value: /app/fixtures.json
         - name: ISSUER_ID
           value: default
         - name: SUB
@@ -128,11 +140,14 @@ spec:
 
     - name: server
       image: localhost/postgres-azure-backup-server:test
+      securityContext:
+        runAsUser: 65532
+        runAsGroup: 65532
       env:
-        - name: SERVER_PORT
+        - name: PORT
           value: "8168"
-        - name: SPRING_ACTUATOR_PORT
-          value: "8162"
+        - name: LOCO_ENV
+          value: test
         - name: BLOBSTORAGE_CONNECTION_STRING
           value: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:8163/devstoreaccount1;"
         - name: STORAGE_ACCOUNT_CONTAINER_NAME
@@ -148,15 +163,16 @@ spec:
         - name: test-documents
           mountPath: /tmp/test-documents
       livenessProbe:
-        httpGet:
-          path: /actuator/health/readiness
-          port: 8162
+        exec:
+          command: ["/app/server", "--healthcheck"]
         initialDelaySeconds: 2
         periodSeconds: 2
         failureThreshold: 30
 
     - name: client
       image: docker.io/library/nginx:1.29-alpine
+      securityContext:
+        runAsUser: 0
       volumeMounts:
         - name: client-dist
           mountPath: /usr/share/nginx/html
@@ -173,6 +189,10 @@ spec:
         failureThreshold: 10
 
   volumes:
+    - name: oidc-fixtures
+      hostPath:
+        path: test/oidc-fixtures.json
+        type: File
     - name: client-dist
       hostPath:
         path: client/dist

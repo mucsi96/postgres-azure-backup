@@ -1,0 +1,31 @@
+logger:
+  enable: true
+  level: info
+  format: compact
+server:
+  binding: <%= get_env(name="BINDING", default="0.0.0.0") %>
+  port: <%= get_env(name="PORT", default="8168") %>
+  host: http://localhost
+  middlewares:
+    etag:
+      enable: false
+    fallback:
+      enable: false
+    secure_headers:
+      enable: true
+      preset: empty
+      overrides:
+        Cache-Control: no-store
+        X-Content-Type-Options: nosniff
+workers:
+  mode: BackgroundAsync
+settings:
+  oidc:
+    issuer: <%= get_env(name="OIDC_ISSUER", default="http://localhost:8166/default") %>
+    audience: <%= get_env(name="API_CLIENT_ID", default="mock-api-client-id") %>
+  storage:
+    endpoint: ""
+    container: <%= get_env(name="STORAGE_ACCOUNT_CONTAINER_NAME", default="backups") %>
+    connection_string: <%= get_env(name="BLOBSTORAGE_CONNECTION_STRING", default="") %>
+  databases_path: <%= get_env(name="DATABASES_CONFIG_PATH", default="../test/databases_config.json") %>
+  schedule_enabled: false
