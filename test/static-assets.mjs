@@ -24,6 +24,12 @@ const documentServer = createServer(async (request, response) => {
   const path = new URL(request.url, 'http://app').pathname;
   if (path === '/api/databases') {
     response.writeHead(200, { 'Content-Type': 'application/json' }).end('[]');
+  } else if (path === '/api/database/db1/tables') {
+    response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ tables: [], totalRowCount: 0, fileCount: 0 }));
+  } else if (path === '/api/database/db1/backups') {
+    response.writeHead(200, { 'Content-Type': 'application/json' }).end('[]');
+  } else if (path === '/api/database/db1/last-backup-time') {
+    response.writeHead(200, { 'Content-Type': 'application/json' }).end('null');
   } else if (path === '/oauth2/userinfo') {
     response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ email: 'test@example.com', additionalClaims: { name: 'Test User' } }));
   } else if (request.headers.accept?.includes('text/html')) {
@@ -58,6 +64,9 @@ try {
   await expect(page.getByRole('button', { name: 'TU' })).toBeVisible();
   assert.equal((await telemetry).postDataJSON().meta.app.name, 'postgres-azure-backup-client');
   assert.equal(await page.evaluate(() => '__APP_CONFIG__' in window), false);
+  await page.goto(`${appOrigin}/database/db1?bookmark=1`);
+  await expect(page.getByRole('heading', { name: 'Backups 0' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tables 0' })).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   assert(assets.some(request => request.resourceType() === 'script'));
   assert(assets.some(request => request.resourceType() === 'stylesheet'));

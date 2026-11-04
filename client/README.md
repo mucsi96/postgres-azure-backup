@@ -1,27 +1,42 @@
-# ClientNg
+# Postgres Backup Tool client
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.1.4.
+React 19 function components, Vite, strict TypeScript, TanStack Query, Zod and
+`@mucsi96/react-ui`. Component layouts use colocated CSS Modules.
 
-## Development server
+Requires Node.js 24 or newer. From this directory:
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+```sh
+npm ci
+npm run lint
+npm run typecheck
+npm run build
+```
 
-## Code scaffolding
+`npm start` serves Vite on port 8169, proxying `/api`, `/oauth2` and telemetry
+to the local gateway on 8160. Local automated tests supply gateway identity
+through Playwright fixtures; production authentication belongs to the platform.
+`npm run preview` serves the production build on 8169.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+Routes are `/` and `/database/:name`. React Router owns navigation; database
+query keys include the route name and mutations invalidate affected server
+state. API responses are validated with Zod. Failed reads have explicit retry
+controls and failed mutations show notifications without automatic replay.
 
-## Build
+The browser reads `/oauth2/userinfo` and sends the readable
+`__Host-XSRF-TOKEN` cookie as `X-XSRF-TOKEN` on same-origin mutations. It never
+acquires or stores OAuth credentials. Downloads request a one-time backend token
+before navigating to `/api/download/:token`.
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+`dist/` is the static deployment artifact. Relative bundle/font URLs support
+direct Blob hosting; `scripts/prepare-client.mjs` rewrites document asset URLs.
+API and Faro URLs resolve against the application origin. The base element
+keeps local deep-link asset loading rooted at `/`.
 
-## Running unit tests
+Behavior is covered by Playwright, with no React unit/component tests:
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+```sh
+# From the repository root
+scripts/pod_up.sh
+node test/static-assets.mjs
+cd test && npx playwright test
+```
