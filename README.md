@@ -1,283 +1,172 @@
 # postgres-azure-backup
 
-Simple PostgreSQL backup tool to Azure with UI
+PostgreSQL backups to private Azure Blob Storage, with a React management UI and
+a native Rust/Loco backend.
 
-![PostgreSQL backup tool screenshot 1](docs/postrgress-backup-tool-1.png)
-![PostgreSQL backup tool screenshot 2](docs/postrgress-backup-tool-2.png)
+![PostgreSQL backup tool](docs/postrgress-backup-tool-1.png)
 
 ## Features
 
-- Supports multiple databases
-- List tables and records of actual database
-- Show last backup time
-- Creates backups with retention period
-- Based on `pg_dump` and `pg_restore` official PostgreSQL utilities
-- Persists dumps in Azure Blob Storage
-- Cleanup expired backups
-- Restore backups
-- Exclude tables from backup
-- Built-in scheduled backups (daily, weekly, monthly) using Spring @Scheduled
-- Smart backup with automatic retention management (daily/7-day, weekly/30-day, monthly/356-day)
-- Folder backup support - package database dumps with files from local file system folders in unified ZIP archives
-- Can be used without UI as REST API for manual/external triggers
-- Fully covered with E2E Selenium tests
-- Compatible with PostgreSQL 16
-- Secured with Microsoft Entra ID
-- Azure cloud-native application
+- Multiple configured databases and schema-scoped backups/restores.
+- Table counts, backup history, SQL export and single-use downloads.
+- ZIP archives containing custom PostgreSQL dumps, plain SQL and mounted folders.
+- Smart daily/weekly/monthly retention and expired-backup cleanup.
+- Microsoft Entra gateway sessions, backend JWT role checks and CSRF protection.
+- Transactional restores preserving application role ownership and sequences.
 
-## Stack
+## Development and verification
 
-- Java 21
-- Spring Boot 4, compiled ahead of time into a GraalVM native image
-- React 19, Vite, TypeScript, TanStack Query, Zod and `@mucsi96/react-ui`
-- Entra gateway sessions (oauth2-proxy), backend JWT roles and SPA CSRF
-- Azure
-- PostgreSQL 18 client
-- Podman (rootless containers + Kubernetes-style pod manifests)
-
-### One image per Spring profile
-
-The server is shipped as a GraalVM native executable. Bean definitions are
-resolved during ahead-of-time processing at build time, so the active Spring
-profile is baked into the executable and cannot be chosen at startup any more.
-The server image is therefore built once per profile, via the `SPRING_PROFILE`
-build argument:
+Requires Rust (pinned in `server/rust-toolchain.toml`), Node 24+, Podman and
+PostgreSQL 18 client utilities for running the backend outside its container.
+`scripts/install_dependencies.sh` installs development dependencies on Ubuntu.
 
 ```bash
-podman build --build-arg SPRING_PROFILE=test -t postgres-azure-backup-server:test server   # e2e pod
-podman build --build-arg SPRING_PROFILE=prod -t postgres-azure-backup-server:prod server   # published image
-```
-
-`SPRING_PROFILES_ACTIVE` is not read at runtime; the pipeline builds the test
-image for the e2e job and the prod image when publishing to GHCR.
-
-## Gateway authentication and static hosting
-
-Production follows [Skeleton's shared architecture](https://github.com/mucsi96/skeleton-app/issues/105).
-p07 owns the Backup Web registration, host-only HttpOnly sessions, shared Redis,
-ForwardAuth and a dedicated static storage account. The application charts own
-document/API authentication. Backend JWT scope and role checks remain active;
-Spring SPA CSRF protects all mutations, including gateway-injected bearer requests.
-The React API client sends the `__Host-XSRF-TOKEN` cookie as `X-XSRF-TOKEN`
-on same-origin mutations. External API callers
-must obtain the CSRF cookie with an authenticated GET and send it with the matching
-`X-XSRF-TOKEN` header for mutations. Scheduled in-process backups are unaffected.
-
-The UI reads profile data from `/oauth2/userinfo`; it handles no OAuth tokens or
-login/logout flows. Faro's `postgres-azure-backup-client` name and same-origin
-`/_telemetry/collect` URL are built into the bundle. There is no environment endpoint,
-runtime configuration fetch, global marker or document body injection.
-
-CI lints and type-checks React with Node 24, builds with Vite, tests the static artifact and attaches it to client
-releases. Deployment empties `$web` and `assets`, uploads the latest assets to the
-public `assets` container with one-year caching, then publishes index with
-`no-store`. Downtime is intentional; old bundles are removed. Fonts are bundled locally.
-The gateway serves authenticated documents and deep links through `static-client-app`
-5.0.0; assets load directly from Blob storage with app-origin CORS. Only public
-build resources go into this storage; backup archives stay in their existing
-private container and retain their authorized, one-time download flow.
-
-`scripts/deploy.sh` reads `forward-auth-config.auth` and `client-storage-config`,
-deploys `spring-app` 37.0.0 and `static-client-app` 5.0.0 with `--reset-values`,
-and preserves the three backup PVC mounts. The client Helm release name stays
-the same; upgrading it removes the old client Deployment/Service. Provision the
-corresponding p07 infrastructure before deploying this application version.
-
-### Local tests
-
-Local end-to-end environment is orchestrated by Podman using a
-Kubernetes-style pod manifest at [`test/test-pod.yaml`](test/test-pod.yaml).
-The skeleton patterns (image naming, pod manifest layout, Traefik
-gateway, mock OIDC provider) follow
-[mucsi96/skeleton-app](https://github.com/mucsi96/skeleton-app).
-
-```bash
-# Build images and start the test pod
 scripts/pod_up.sh
-
-# Stop and clean up the test pod
+# Open http://localhost:8160
+(cd server && cargo fmt --check && cargo clippy --locked --all-targets -- -D warnings && cargo build --locked)
+(cd client && npm run lint && npm run typecheck && npm run build)
+node test/static-assets.mjs
+(cd test && npm ci && npx playwright test)
 scripts/pod_down.sh
 ```
 
-Frontend development and verification commands are documented in
-[`client/README.md`](client/README.md). Run `npm run lint`, `npm run typecheck`
-and `npm run build` in `client`, then `node test/static-assets.mjs` from the root
-and `npx playwright test` in `test` with the pod running.
+The pod runs two PostgreSQL databases, Azurite, mock OIDC, the Rust API, nginx and
+Traefik. Tests exercise real database dumps/restores and storage through Playwright.
+`SKIP_BUILD=1 scripts/pod_up.sh` reuses the server image and `client/dist`.
+Frontend details: [client/README.md](client/README.md).
 
-## Port Mapping
+The native server image is identical across environments:
 
-All host-bound ports used by the project live in the **8160–8169** range
-(i.e. `xx60–xx69`). local container ports inside the pod also use
-this range so that the same numbers work both inside the pod and from
-the host.
+```bash
+podman build -t localhost/postgres-azure-backup-server:test server
+# Loco CLI, with local dependencies already running and storage configured:
+cd server
+LOCO_ENV=test cargo run -- start --no-banner
+```
 
-| Port  | Service              | Notes                                                    |
-| ----- | -------------------- | -------------------------------------------------------- |
-| 8160  | Traefik web entry    | Application entry point — UI + `/api` reverse-proxy      |
-| 8161  | Traefik dashboard    | Traefik admin/ping endpoint                              |
-| 8162  | Server actuator      | Spring Boot management port (`/actuator/health/...`)     |
-| 8163  | Azurite blob storage | Azure Blob Storage emulator                              |
-| 8164  | PostgreSQL `db1`     | First test database                                      |
-| 8165  | PostgreSQL `db2`     | Second test database                                     |
-| 8166  | Mock OAuth2          | `ghcr.io/mucsi96/mock-oidc-provider:12` — issues JWTs in test mode  |
-| 8168  | Server (Spring Boot) | Local port served by the server container                |
+`LOCO_ENV=production` loads Key Vault secrets using Azure workload identity.
+`LOCO_ENV=test` reads `DATABASES_CONFIG_PATH` and disables scheduling.
+The API uses `/api`; readiness is `/healthz` on the same listener.
 
-When running tests or accessing the application from a browser on the
-host, only **8160–8166** are exposed.
+## Configuration
 
-## Required environment variables
+| Variable | Purpose |
+|---|---|
+| `LOCO_ENV` | `production` (container default) or `test` |
+| `PORT`, `BINDING` | API listener; production defaults to 8080 / 0.0.0.0; test to 8168 |
+| `AZURE_KEYVAULT_ENDPOINT` | Production vault URL |
+| `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_FEDERATED_TOKEN_FILE` | Workload identity, injected by Kubernetes |
+| `BACKUP_SCHEDULE_ENABLED` | Production smart scheduler, default true |
+| `DATABASES_CONFIG_PATH` | Test JSON file; default `../test/databases_config.json` |
+| `BLOBSTORAGE_CONNECTION_STRING` | Test storage connection string |
+| `STORAGE_ACCOUNT_CONTAINER_NAME` | Test container, default `backups` |
+| `OIDC_ISSUER`, `API_CLIENT_ID` | Test overrides; defaults match the mock OIDC pod |
 
-- `AZURE_CLIENT_ID`
-- `AZURE_TENANT_ID`
-- `SPRING_ACTUATOR_PORT`
-- `STORAGE_ACCOUNT_BLOB_URL`
-- `STORAGE_ACCOUNT_CONTAINER_NAME`
+Production retains the existing secrets: `tenant-id`, `api-client-id`,
+`storage-account-blob-url`, `storage-account-container-name`, and `dbs-config`.
+The private backup container must exist. The workload identity needs secret-read
+and blob data permissions. Startup never migrates or seeds backed-up databases.
 
-## Optional environment variables for backup scheduling
+### Database configuration
 
-- `BACKUP_SCHEDULE_ENABLED` - Enable/disable scheduled backups (default: `true`)
-- `BACKUP_DAILY_CRON` - Cron expression for daily backups (default: `0 30 6 2-31 * MON-SAT`)
-- `BACKUP_WEEKLY_CRON` - Cron expression for weekly backups (default: `0 30 6 * * SUN`)
-- `BACKUP_MONTHLY_CRON` - Cron expression for monthly backups (default: `0 30 6 1 * *`)
-- `BACKUP_CLEANUP_CRON` - Cron expression for cleanup (default: `0 0 7 * * *`)
-
-## Database configuration
-
-In production, the database configuration is stored as the `dbs-config` secret in Azure Key Vault and loaded automatically via Spring Cloud Azure. The secret value is a JSON array:
+`dbs-config` (production) or the test JSON file contains an array:
 
 ```json
 [
   {
-    "name": "db1",
-    "host": "db1",
+    "name": "my-app",
+    "host": "postgres",
     "port": 5432,
-    "database": "test",
-    "schema": "test1",
-    "username": "test1",
-    "password": "test1-password",
-    "excludeTables": ["passwords", "secrets"],
-    "dumpFormat": "custom",
-    "createPlainDump": true,
-    "folderBackups": [
-      {
-        "path": "/var/lib/app/uploads"
-      }
-    ]
-  },
-  {
-    "name": "db2",
-    "host": "db2",
-    "port": 5432,
-    "database": "test",
-    "schema": "test2",
-    "username": "test2",
-    "password": "test2-password",
-    "excludeTables": ["passwords", "secrets"],
-    "dumpFormat": "tar"
+    "database": "apps",
+    "schema": "my_app",
+    "username": "my_app",
+    "password": "secret",
+    "excludeTables": ["audit_log"],
+    "folderBackups": [{ "path": "/app/storage/my-app" }]
   }
 ]
 ```
 
-Use the login role that owns the configured schema for each backup entry.
-`pg_restore --no-owner --no-acl` then creates every restored object as that
-application role. The role needs `CONNECT` and `CREATE` on the database so the
-single-transaction restore can drop and recreate its schema, but it does not
-need PostgreSQL administrator privileges and cannot access schemas owned by
-other applications.
+Use the login role that owns the configured schema. It needs CONNECT and CREATE
+on the database, but no administrator privileges. Restore converts the custom
+dump with `pg_restore --no-owner --no-acl`, then drops/recreates the schema through
+`psql --single-transaction --variable=ON_ERROR_STOP=1`. Errors roll back the database
+restore. Folder files are restored afterward, only to configured mounts.
 
-### Folder Backup Configuration (Optional)
+Excluded tables retain their definitions but their data is omitted. Both custom
+and plain SQL dumps are always created; legacy `dumpFormat` and `createPlainDump`
+fields remain accepted and ignored, matching the preceding backend's behavior.
 
-Add a `folderBackups` array to include files from local file system folders in backups. When configured, backups are created as ZIP archives containing both the database dump and all files from specified local directories.
+Folder paths must be absolute with distinct basenames per database. Missing or
+non-directory mounts fail with an actionable PVC error. Backup collection does
+not follow symlinks. Archives retain the existing layout:
 
-**Configuration:**
-- `path` (required): Absolute path to the local folder to backup (all files within this folder will be included recursively)
-
-**Example - backup multiple folders:**
-```json
-"folderBackups": [
-  {
-    "path": "/var/lib/app/uploads"
-  },
-  {
-    "path": "/var/lib/app/documents"
-  }
-]
-```
-
-**Backup structure:**
-```
-backup.zip
+```text
+YYYYMMdd-HHmmss.rowCount.fileCount.filesTotalSize.retention.zip
 ├── database.pgdump
-├── database.sql (optional)
-└── folders/
-    └── /var/lib/app/uploads/
-        └── user123/
-            └── avatar.jpg
+├── database.sql
+└── folders/{configured-folder-basename}/{relative-file-path}
 ```
 
-## Dump formats
+Existing archives with different dump filenames remain readable. Blob prefixes
+remain the lowercased database name with non-ASCII-alphanumeric characters replaced
+by `-`. Metadata comes from the UTC filename, preserving existing retention dates.
 
-- `custom` (default) - Output a custom-format archive suitable for input into pg_restore. Together with the directory output format, this is the most flexible output format in that it allows manual selection and reordering of archived items during restore. This format is also compressed by default.
-- `directory` - Output a directory-format archive suitable for input into pg_restore. This will create a directory with one file for each table and large object being dumped, plus a so-called Table of Contents file describing the dumped objects in a machine-readable format that pg_restore can read. A directory format archive can be manipulated with standard Unix tools; for example, files in an uncompressed archive can be compressed with the gzip, lz4, or zstd tools. This format is compressed by default using gzip and also supports parallel dumps.
-- `tar` - Output a tar-format archive suitable for input into pg_restore. The tar format is compatible with the directory format: extracting a tar-format archive produces a valid directory-format archive. However, the tar format does not support compression. Also, when using tar format the relative order of table data items cannot be changed during restore.
+### Smart backups
 
-## Smart Backup
+Production runs smart backup immediately at startup, then 24 hours after each
+completed run. `BACKUP_SCHEDULE_ENABLED=false` disables it. The prior backend's
+documented `BACKUP_*_CRON` variables were unused; scheduling remains fixed-delay.
 
-Smart backup (`POST /api/smart-backup`) intelligently determines which backups are needed based on existing backups and elapsed time. It analyzes backup history and creates only necessary backups with appropriate retention periods.
+| Tier | Retention | Minimum interval |
+|---|---|---|
+| Monthly | 356 days | 30 days |
+| Weekly | 30 days | 7 days |
+| Daily | 7 days | 1 day |
 
-**How it works:**
-1. Checks time since last backup for each retention tier (daily/weekly/monthly)
-2. Creates backups only when the interval has elapsed:
-   - **Daily**: If 1+ days passed since last daily/weekly/monthly backup → create 7-day retention backup
-   - **Weekly**: If 7+ days passed since last weekly/monthly backup → create 30-day retention backup
-   - **Monthly**: If 30+ days passed since last monthly backup → create 356-day retention backup
-3. Higher retention backups satisfy lower retention requirements (e.g., a monthly backup also counts as a weekly backup)
-4. Performs cleanup of expired backups after creating new ones
+Higher tiers satisfy lower-tier intervals. Each run creates at most one backup per
+database and then cleans expired archives. Manual backup always uses seven days.
 
-**Example:** If a monthly backup was created 5 days ago, smart backup will skip daily and weekly backups since the monthly backup satisfies those requirements.
+## Authentication and downloads
 
-## Scheduled Backups
+The gateway owns OAuth sessions; the UI reads `/oauth2/userinfo`. The API validates
+RS256 JWT signature, issuer, audience, expiration, `api-access` scope and endpoint
+roles (`readBackups`, `createBackup`, `restoreBackup`, `downloadBackup`).
 
-The application includes built-in scheduled backups with the following default schedule:
+All mutations, including gateway-injected bearer requests, require the host-only
+Secure `__Host-XSRF-TOKEN` cookie echoed in `X-XSRF-TOKEN`. External clients obtain
+the cookie through an authenticated GET first. Download-token creation requires
+the download role and CSRF; `/api/download/{token}` accepts the resulting
+30-second single-use capability. No private blob URLs are exposed.
 
-- **Daily backups**: Run at 06:30 every day (except Sunday and 1st of month) with 7-day retention
-- **Weekly backups**: Run at 06:30 every Sunday with 30-day retention
-- **Monthly backups**: Run at 06:30 on the 1st of every month with 356-day retention
-- **Cleanup**: Run at 07:00 daily to remove expired backups
+## Deployment
 
-Scheduling can be disabled by setting `BACKUP_SCHEDULE_ENABLED=false` or customized using the cron environment variables.
-
-## Deployment with Helm
+CI checks Rust formatting/Clippy/build, React lint/types/static hosting and the
+Playwright suite. Native images are published to numbered GHCR tags. Deploy with:
 
 ```bash
-hostname=$(az keyvault secret show --vault-name p07-backup --name hostname --query value --output tsv)
-apiClientId=$(az keyvault secret show --vault-name p07-backup --name api-client-id --query value --output tsv)
-
-helm repo add mucsi96 https://mucsi96.github.io/k8s-helm-charts
-helm upgrade postgres-azure-backup-server mucsi96/spring-app \
-    --install \
-    --namespace backup \
-    --set-string image=ghcr.io/mucsi96/postgres-azure-backup-server:42 \
-    --set entryPoint=web \
-    --set host=$hostname \
-    --set basePath=/api \
-    --set clientId=$apiClientId \
-    --set serviceAccountName=postgres-azure-backup-api-workload-identity \
-    --wait
+AZURE_KEYVAULT_NAME=p07-backup \
+SERVER_IMAGE=ghcr.io/mucsi96/postgres-azure-backup-server:42 \
+scripts/deploy.sh
 ```
 
-## Resources
+Deployment uses `rust-app` 7.0.0 and `static-client-app` 5.0.0 with reset values,
+preserving release names, gateway authentication, workload identity and the three
+existing backup PVCs. The server runs as UID/GID 65532 with fsGroup 65532 for PVC
+access; `/tmp` is a disk-backed emptyDir for dumps/archives. Memory remains 512Mi
+to accommodate PostgreSQL child processes. No Java runtime or actuator is used.
 
-- https://github.com/kananindzya/hello-world-aws-sdk-r2/blob/master/src/main/java/com/example/aws/api/r2/App.java
-- https://github.com/esfandiar/vs-code-spring-boot-setup
-- https://gist.github.com/valferon/4d6ebfa8a7f3d4e84085183609d10f14
-- https://cwienczek.com/2020/06/simple-backup-of-postgres-database-in-kubernetes/
-- https://developers.cloudflare.com/r2/examples/aws/boto3/
-- https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html
-- https://florianbuchner.com/kubernetes-curl-cronjob-for-internal-service/
+p07 provisions Web auth, ForwardAuth, Redis and static storage. Deploy reads
+`forward-auth-config.auth` and `client-storage-config`. Client assets are public,
+documents are gateway-authenticated, and backup storage remains private. Static
+deployment clears old assets, uploads new assets, then index; downtime is intentional.
+Faro uses the compiled name `postgres-azure-backup-client` and the same-origin
+`/_telemetry/collect`; there is no runtime configuration fetch.
 
-- https://flowbite.com/docs/components/tables/
-- https://hslpicker.com/
-- https://learn.microsoft.com/en-us/azure/developer/java/spring-framework/spring-security-support?tabs=SpringCloudAzure5x#accessing-a-resource-server
+## Local ports
 
-- https://github.com/Azure/azure-sdk-for-java/tree/main/sdk/spring/spring-cloud-azure-core/src/main/java/com/azure/spring/cloud/core/resource
+8160: app gateway; 8161: gateway ping/dashboard; 8163: Azurite;
+8164/8165: PostgreSQL; 8166: mock OIDC; 8168: API/readiness (pod only);
+8169: optional Vite. New local ports must remain within 8160–8169.
+
+Architecture and API details: [AGENTS.md](AGENTS.md).

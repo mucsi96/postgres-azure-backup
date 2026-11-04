@@ -44,7 +44,7 @@
     {
       "type": "shell",
       "label": "Build server",
-      "command": "mvn clean package -DskipTests",
+      "command": "cargo build --locked",
       "isBackground": true,
       "options": {
         "cwd": "${workspaceFolder}/server"
@@ -63,7 +63,7 @@
     {
       "type": "shell",
       "label": "Start server",
-      "command": "mvn spring-boot:run",
+      "command": "cargo run -- start --environment test",
       "isBackground": true,
       "options": {
         "cwd": "${workspaceFolder}/server"

@@ -1,20 +1,13 @@
 {
+  "version": "0.2.0",
   "configurations": [
     {
-      "type": "java",
-      "name": "Spring Boot-App<postgres-azure-backup>",
+      "name": "Rust backend",
+      "type": "lldb",
       "request": "launch",
-      "cwd": "${workspaceFolder}/server",
-      "mainClass": "io.github.mucsi96.postgresbackuptool.App",
-      "projectName": "postgres-azure-backup",
-      "args": "--spring.profiles.active=local",
-    },
-    {
-      "name": "Python: Unittest",
-      "type": "debugpy",
-      "request": "launch",
-      "console": "integratedTerminal",
-      "justMyCode": true
+      "cargo": { "args": ["build", "--manifest-path", "server/Cargo.toml"] },
+      "args": ["start", "--environment", "test"],
+      "cwd": "${workspaceFolder}/server"
     }
   ]
 }

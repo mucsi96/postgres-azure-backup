@@ -1,16 +1,5 @@
 {
-    "maven.terminal.favorites": [
-        {
-            "command": "spring-boot:run",
-            "debug": false,
-        }
-    ],
-    "java.format.enabled": true,
-    "[java]": {
-        "editor.tabSize": 2
-    },
-    "java.format.settings.url": ".vscode/java-formatter.xml",
-    "java.compile.nullAnalysis.mode": "disabled",
+    "rust-analyzer.linkedProjects": ["server/Cargo.toml"],
     "sqltools.connections": [
         {
             "previewLimit": 50,
@@ -25,7 +14,6 @@
     ],
     "python.analysis.autoImportCompletions": true,
     "python.analysis.typeCheckingMode": "basic",
-    "java.configuration.updateBuildConfiguration": "interactive",
     "vs-kubernetes": {
         "vs-kubernetes.kubeconfig": "${workspaceFolder}/.kube/config"
     },

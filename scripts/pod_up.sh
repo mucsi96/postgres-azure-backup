@@ -14,9 +14,7 @@ if [ "${SKIP_BUILD:-}" = "1" ]; then
   echo "Skipping image build (SKIP_BUILD=1)..."
 else
   echo "Building container images..."
-  # The Spring profile is baked into the native executable during AOT
-  # processing, so the pod image has to be built with the test profile.
-  podman build --build-arg SPRING_PROFILE=test \
+  podman build \
     -t localhost/postgres-azure-backup-server:test "$PROJECT_DIR/server"
   (cd "$PROJECT_DIR/client" && npm ci && npm run build)
 fi
@@ -26,7 +24,8 @@ podman kube down "$POD_YAML" 2>/dev/null || true
 
 echo "Starting pod..."
 cd "$PROJECT_DIR"
-podman kube play "$POD_YAML"
+# Map the nonroot API UID to the host user so mounted test files remain writable.
+podman kube play --userns keep-id:uid=65532,gid=65532 "$POD_YAML"
 
 container_state() {
   podman inspect "$1" \

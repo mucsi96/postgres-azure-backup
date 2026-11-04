@@ -3,7 +3,8 @@
   "recommendations": [
     "dbaeumer.vscode-eslint",
     "editorconfig.editorconfig",
-    "vscjava.vscode-java-pack",
+    "rust-lang.rust-analyzer",
+    "vadimcn.vscode-lldb",
     "ms-kubernetes-tools.vscode-kubernetes-tools",
     "esbenp.prettier-vscode",
     "ms-playwright.playwright"
