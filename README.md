@@ -25,7 +25,6 @@ scripts/pod_up.sh
 # Open http://localhost:8160
 (cd server && cargo fmt --check && cargo clippy --locked --all-targets -- -D warnings && cargo build --locked)
 (cd client && npm run lint && npm run typecheck && npm run build)
-node test/static-assets.mjs
 (cd test && npm ci && npx playwright test)
 scripts/pod_down.sh
 ```

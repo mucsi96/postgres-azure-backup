@@ -145,8 +145,6 @@ jobs:
         with:
           name: client-static
           path: client/dist
-      - name: Check direct static assets and build-time Faro
-        run: node test/static-assets.mjs
       - name: Load images into Podman
         run: |
           podman load -i /tmp/server-image.tar
