@@ -1,6 +1,6 @@
 import { Link, useMatch, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Badge, Button, Menu, MenuItem, MenuPopover, MenuTrigger } from '@mucsi96/react-ui';
+import { AppHeader, AppHeaderActions, Badge, Button, Menu, MenuItem, MenuPopover, MenuTrigger } from '@mucsi96/react-ui';
 import { databasesQuery, lastBackupQuery, profileQuery } from './api';
 import { olderThanOneDay, relativeTime } from './format';
 import { QueryError } from './QueryError';
@@ -15,10 +15,11 @@ export function Header() {
   const fullName = (profile.data?.additionalClaims?.name ?? profile.data?.email)?.trim();
   const initials = fullName?.split(/\s+/).map(part => part[0]).join('').toUpperCase();
 
-  return <header className={styles.header}>
+  return <AppHeader className={styles.header}>
     <nav aria-label="Main navigation">
       <Link to="/">Postgres Backup Tool</Link>
-      <div className={styles.right}>
+    </nav>
+      <AppHeaderActions>
         {name && <>
           <MenuTrigger>
             <Button variant="text">{name}</Button>
@@ -39,7 +40,6 @@ export function Header() {
             <Button variant="avatar" aria-label={initials}>{initials}</Button>
             <MenuPopover><Menu aria-label="Profile"><MenuItem isDisabled>{fullName}</MenuItem></Menu></MenuPopover>
           </MenuTrigger>}
-      </div>
-    </nav>
-  </header>;
+      </AppHeaderActions>
+  </AppHeader>;
 }

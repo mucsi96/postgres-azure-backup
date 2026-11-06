@@ -1,1 +1,1 @@
-.main { padding: 1px max(1rem, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(1rem, env(safe-area-inset-left)); max-width: 90rem; margin: 50px auto 0; }
+.main { --bt-app-content-gap: 50px; }
