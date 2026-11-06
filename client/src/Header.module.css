@@ -1,6 +1,5 @@
 .header { border-bottom: 1px solid var(--bt-outline); padding-top: env(safe-area-inset-top); }
 .header nav { padding: 0 max(1rem, env(safe-area-inset-right)) 0 max(1rem, env(safe-area-inset-left)); max-width: 90rem; margin: auto; display: flex; justify-content: space-between; align-items: center; min-height: 64px; gap: 1rem; flex-wrap: wrap; }
 .header a { text-decoration: none; }
-.avatar { font-family: system-ui; }
 .right { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .lastBackup { display: inline-flex; align-items: center; gap: .5rem; font-size: 14px; }
