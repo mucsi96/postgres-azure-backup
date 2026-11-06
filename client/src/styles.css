@@ -1,4 +1,4 @@
-:root { --bt-font: Roboto, sans-serif; color-scheme: dark; font-family: var(--bt-font); background: var(--bt-surface-0); color: var(--bt-text-default); }
+:root { color-scheme: dark; background: var(--bt-surface-0); color: var(--bt-text-default); }
 * { box-sizing: border-box; }
 body { margin: 0; }
 a { color: var(--bt-link); }
