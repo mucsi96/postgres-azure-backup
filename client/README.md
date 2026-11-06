@@ -37,6 +37,5 @@ Behavior is covered by Playwright, with no React unit/component tests:
 ```sh
 # From the repository root
 scripts/pod_up.sh
-node test/static-assets.mjs
 cd test && npx playwright test
 ```
