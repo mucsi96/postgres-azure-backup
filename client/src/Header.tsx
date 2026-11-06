@@ -36,7 +36,7 @@ export function Header() {
         </>}
         {profile.isError ? <QueryError label="profile" retry={() => void profile.refetch()} /> : fullName &&
           <MenuTrigger>
-            <Button variant="avatar" aria-label={initials}>{initials}</Button>
+            <Button variant="avatar" className={styles.avatar} aria-label={initials}>{initials}</Button>
             <MenuPopover><Menu aria-label="Profile"><MenuItem isDisabled>{fullName}</MenuItem></Menu></MenuPopover>
           </MenuTrigger>}
       </div>
