@@ -47,8 +47,10 @@ try {
   browser = await chromium.launch();
   const page = await browser.newPage();
   const assets = [];
+  const fontRequests = [];
   const failures = [];
   page.on('request', request => {
+    if (request.resourceType() === 'font') fontRequests.push(request.url());
     if (request.url().startsWith(assetOrigin)) {
       assets.push(request);
       assert.equal(request.headers().authorization, undefined);
@@ -70,11 +72,14 @@ try {
   await page.evaluate(() => document.fonts.ready);
   assert(assets.some(request => request.resourceType() === 'script'));
   assert(assets.some(request => request.resourceType() === 'stylesheet'));
-  assert(assets.some(request => request.resourceType() === 'font'));
+  await expect(page.locator('body')).toHaveCSS('font-family', 'system-ui');
+  await expect(page.getByRole('heading', { name: 'Backups 0' })).toHaveCSS('font-family', 'system-ui');
+  await expect(page.getByRole('button', { name: 'TU' })).toHaveCSS('font-family', 'system-ui');
+  assert.deepEqual(fontRequests, [], 'System typography must not download font files');
   const manifest = JSON.parse(await readFile(join(output, 'assets/manifest.webmanifest'), 'utf8'));
   for (const field of ['id', 'start_url', 'scope']) assert.equal(new URL(manifest[field]).origin, appOrigin);
   assert.deepEqual(failures, []);
-  console.log('Direct Blob-style assets, fonts, profile and same-origin Faro passed.');
+  console.log('Direct Blob-style assets, system typography, profile and same-origin Faro passed.');
 } finally {
   await browser?.close();
   await Promise.all([new Promise(resolve => assetServer.close(resolve)), new Promise(resolve => documentServer.close(resolve))]);
