@@ -6,7 +6,7 @@ import { Database } from './Database';
 import styles from './App.module.css';
 
 export function App() {
-  return <>
+  return <div className={styles.layout}>
     <Header />
     <AppMain className={styles.main}>
       <Routes>
@@ -15,5 +15,5 @@ export function App() {
         <Route path="*" element={<><Heading level={1}>Page not found</Heading><Link to="/">Databases</Link></>} />
       </Routes>
     </AppMain>
-  </>;
+  </div>;
 }

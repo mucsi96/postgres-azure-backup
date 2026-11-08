@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router';
 import { useIsMutating, useQuery } from '@tanstack/react-query';
-import { Badge, BarLoader, Heading, MenuItem, SplitButton } from '@mucsi96/react-ui';
+import { Badge, LoadingArea, Heading, MenuItem, SplitButton } from '@mucsi96/react-ui';
 import { createBackup, databasesQuery, smartBackup } from './api';
 import { olderThanOneDay, relativeTime } from './format';
 import { QueryError } from './QueryError';
@@ -14,7 +14,7 @@ export function Databases() {
   const backup = useBackupAction(() => createBackup(), 'Backup completed');
   const smart = useBackupAction(smartBackup, 'Smart backup completed');
   const processing = useIsMutating({ mutationKey: ['backup-action'] }) > 0;
-  if (databases.isPending) return <BarLoader label="Loading databases" />;
+  if (databases.isPending) return <LoadingArea label="Loading databases" fill />;
   if (databases.isError) return <QueryError label="databases" retry={() => void databases.refetch()} />;
 
   return <section className={styles.databases} aria-label="Databases">

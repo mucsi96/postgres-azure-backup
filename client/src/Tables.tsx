@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Badge, BarLoader, Button, Heading } from '@mucsi96/react-ui';
+import { Badge, LoadingArea, Button, Heading } from '@mucsi96/react-ui';
 import { createBackup, databasePath, download, tablesQuery } from './api';
 import { QueryError } from './QueryError';
 import { useBackupAction } from './useBackupAction';
@@ -10,7 +10,7 @@ export function Tables({ name, processing }: { name: string; processing: boolean
   const tables = useQuery(tablesQuery(name));
   const backup = useBackupAction(() => createBackup(name), 'Backup created');
   const exportSql = useBackupAction(() => download(`${databasePath(name)}/export-sql`));
-  if (tables.isPending) return <BarLoader label="Loading tables" />;
+  if (tables.isPending) return <LoadingArea label="Loading tables" />;
   if (tables.isError) return <QueryError label="tables" retry={() => void tables.refetch()} />;
 
   return <section className={styles.tables} aria-label="Database tables">
