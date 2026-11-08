@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Badge, BarLoader, Button, Heading } from '@mucsi96/react-ui';
+import { Badge, LoadingArea, Button, Heading } from '@mucsi96/react-ui';
 import { backupsQuery, databasePath, download, restoreBackup } from './api';
 import { relativeTime, retention, size } from './format';
 import { QueryError } from './QueryError';
@@ -14,7 +14,7 @@ export function Backups({ name, processing }: { name: string; processing: boolea
   const restore = useBackupAction((key: string) => restoreBackup(name, key), 'Backup restored');
   const downloadBackup = useBackupAction(({ key, type }: { key: string; type: string }) =>
     download(`${databasePath(name)}/backup/${encodeURIComponent(key)}/${type}`));
-  if (backups.isPending) return <BarLoader label="Loading backups" />;
+  if (backups.isPending) return <LoadingArea label="Loading backups" />;
   if (backups.isError) return <QueryError label="backups" retry={() => void backups.refetch()} />;
 
   return <section className={styles.backups} aria-label="Backups">
