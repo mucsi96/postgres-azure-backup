@@ -1,0 +1,52 @@
+@if (databases.isLoading()) {
+<bt-bar-loader />
+} @else {
+<h2 bt>
+  Databases <span bt-badge>{{ databases.value()?.length }}</span>
+</h2>
+<bt-split-button
+  label="Backup"
+  menuAriaLabel="More backup options"
+  [disabled]="processing()"
+  (primaryAction)="backup()"
+>
+  <button mat-menu-item (click)="smartBackup()">Backup if needed</button>
+</bt-split-button>
+@if (databases.value()?.length) {
+<table bt id="backups">
+  <thead>
+    <tr>
+      <th></th>
+      <th>Name</th>
+      <th bt-center-align>Tables</th>
+      <th bt-center-align>Records</th>
+      <th bt-center-align>Files</th>
+      <th bt-center-align>Backups</th>
+      <th bt-right-align>Last backup</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (database of databases.value(); track database.name) {
+    <tr (click)="selectDatabase(database)">
+      <td bt-row-selector></td>
+      <td bt-no-wrap bt-now-wrap bt-highlighted>{{ database.name }}</td>
+      <td bt-no-wrap bt-center-align>{{ database.tablesCount }}</td>
+      <td bt-no-wrap bt-center-align>{{ database.totalRowCount }}</td>
+      <td bt-no-wrap bt-center-align>{{ database.fileCount }}</td>
+      <td bt-no-wrap bt-center-align>{{ database.backupsCount }}</td>
+
+      <td
+        bt-no-wrap
+        bt-right-align
+        bt-text
+        [attr.bt-green]="!olderThenOneDay(database.lastBackupTime) ? '' : null"
+        [attr.bt-red]="olderThenOneDay(database.lastBackupTime) ? '' : null"
+      >
+        @if (database.lastBackupTime)
+        {{{ database.lastBackupTime | relativeTime }}}@else { — }
+      </td>
+    </tr>
+    }
+  </tbody>
+</table>
+} }

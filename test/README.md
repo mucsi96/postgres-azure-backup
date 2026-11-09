@@ -4,7 +4,7 @@ This directory contains the TypeScript version of the Playwright tests for the P
 
 ## Prerequisites
 
-- Node.js 24+ installed
+- Node.js 18+ installed
 - npm or yarn package manager
 - Podman installed (for the test environment)
 
@@ -63,7 +63,7 @@ npm run test:report
 The tests expect the following services to be running:
 - Application (Traefik web entry) on http://localhost:8160
 - Traefik dashboard on http://localhost:8161
-- Rust API readiness at `/healthz` on port 8168 inside the pod
+- Server actuator on http://localhost:8162
 - Azure Blob Storage emulator (Azurite) on http://localhost:8163
 - PostgreSQL databases on ports 8164 (db1) and 8165 (db2)
 - Mock OAuth2 provider on http://localhost:8166

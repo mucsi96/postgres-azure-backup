@@ -1,5 +1,0 @@
-:root { color-scheme: dark; background: var(--bt-surface-0); color: var(--bt-text-default); }
-* { box-sizing: border-box; }
-body { margin: 0; }
-a { color: var(--bt-link); }
-button, a, input { touch-action: manipulation; }

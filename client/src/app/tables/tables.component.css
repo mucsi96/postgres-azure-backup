@@ -1,0 +1,10 @@
+:host {
+  display: grid;
+  gap: 40px;
+
+  .tables {
+    display: grid;
+    gap: 20px;
+  }
+}
+

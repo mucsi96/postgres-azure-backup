@@ -44,7 +44,7 @@
     {
       "type": "shell",
       "label": "Build server",
-      "command": "cargo build --locked",
+      "command": "mvn clean package -DskipTests",
       "isBackground": true,
       "options": {
         "cwd": "${workspaceFolder}/server"
@@ -63,7 +63,7 @@
     {
       "type": "shell",
       "label": "Start server",
-      "command": "cargo run -- start --environment test",
+      "command": "mvn spring-boot:run",
       "isBackground": true,
       "options": {
         "cwd": "${workspaceFolder}/server"
@@ -72,8 +72,8 @@
     },
     {
       "type": "shell",
-      "label": "Lint client",
-      "command": "npm run lint",
+      "label": "Test client",
+      "command": "npm test",
       "options": {
         "cwd": "${workspaceFolder}/client"
       },
@@ -81,8 +81,9 @@
     },
     {
       "type": "shell",
-      "label": "Type-check client",
-      "command": "npm run typecheck",
+      "label": "Test client (UI)",
+      "command": "npm run test:ui",
+      "isBackground": true,
       "options": {
         "cwd": "${workspaceFolder}/client"
       },
@@ -91,10 +92,10 @@
     {
       "type": "shell",
       "label": "Test e2e",
-      "command": "npx playwright test",
+      "command": "mvn test",
       "isBackground": true,
       "options": {
-        "cwd": "${workspaceFolder}/test"
+        "cwd": "${workspaceFolder}/server"
       },
       "problemMatcher": []
     },

@@ -1,0 +1,15 @@
+server:
+  port: 8168
+management:
+  server:
+    port: 8162
+
+spring:
+  cloud:
+    azure:
+      storage:
+        blob:
+          endpoint: ${storage-account-blob-url}
+          credential:
+            client-id: ${api-client-id}
+            client-secret: ${api-client-secret}
