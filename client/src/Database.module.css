@@ -1,2 +1,0 @@
-.database { display: grid; grid-template-columns: minmax(12rem, 1fr) minmax(0, 4fr); align-items: start; gap: 32px; }
-@media (max-width: 800px) { .database { grid-template-columns: minmax(0, 1fr); } }

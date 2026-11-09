@@ -1,0 +1,84 @@
+@if (backups.isLoading()) {
+<bt-bar-loader />
+} @else {
+<h2 bt>
+  Backups <span bt-badge>{{ backups.value()?.length }}</span>
+</h2>
+@if (backups.value()?.length) {
+<table bt id="backups">
+  <thead>
+    <tr>
+      <th></th>
+      <th bt-right-align>Date</th>
+      <th bt-center-align>Records</th>
+      <th bt-center-align>Size</th>
+      <th bt-center-align>Files</th>
+      <th bt-center-align>Files Size</th>
+      <th bt-right-align>Retention</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (backup of backups.value(); track backup.name) {
+    <tr
+      (click)="selectBackup(backup)"
+      [attr.aria-selected]="backup.name === selectedBackup()"
+    >
+      <td bt-row-selector></td>
+      <td bt-highlighted bt-no-wrap bt-right-align>
+        @if (backup.lastModified) {
+        {{ backup.lastModified | relativeTime }}
+        } @else { - }
+      </td>
+      <td bt-center-align>{{ backup.totalRowCount }}</td>
+      <td bt-no-wrap bt-center-align>{{ backup.size | size }}</td>
+      <td bt-center-align>{{ backup.fileCount }}</td>
+      <td bt-no-wrap bt-center-align>{{ backup.filesTotalSize | size }}</td>
+      <td bt-right-align>{{ backup.retentionPeriod | retention }}</td>
+      <td bt-center-align>
+        <div
+          class="actions"
+          [class.disabled]="processing() || backup.name !== selectedBackup()"
+          [class.hasPlainDump]="backup.hasPlainDump"
+        >
+          <button
+            mat-icon-button
+            (click)="downloadBackup({ type: 'archive' })"
+            class="download"
+            aria-label="Download archive"
+          >
+            <mat-icon>folder_zip</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            (click)="downloadBackup({ type: 'pgdump' })"
+            class="download"
+            aria-label="Download pgdump"
+          >
+            <mat-icon>archive</mat-icon>
+          </button>
+          @if (backup.hasPlainDump) {
+          <button
+            mat-icon-button
+            (click)="downloadBackup({ type: 'plain' })"
+            class="download"
+            aria-label="Download plain SQL"
+          >
+            <mat-icon>description</mat-icon>
+          </button>
+          }
+          <button
+            mat-flat-button
+            bt-color="warn"
+            [disabled]="processing() || backup.name !== selectedBackup()"
+            (click)="restoreBackup()"
+          >
+            Restore
+          </button>
+        </div>
+      </td>
+    </tr>
+    }
+  </tbody>
+</table>
+} }
