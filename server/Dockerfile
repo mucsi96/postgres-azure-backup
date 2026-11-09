@@ -5,7 +5,7 @@ COPY src/ ./src/
 RUN cargo build --release --locked
 
 # PostgreSQL's maintained image supplies matching pg_dump, pg_restore and psql.
-FROM docker.io/library/postgres:18.4-trixie
+FROM docker.io/library/postgres:18.6-trixie
 # Azure SDK HTTPS clients need the system trust store for Key Vault and identity.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \
