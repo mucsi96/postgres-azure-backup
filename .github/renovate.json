@@ -17,6 +17,12 @@
   ],
   "packageRules": [
     {
+      "description": "Keep client TypeScript within typescript-eslint's supported peer range.",
+      "matchFileNames": ["client/package.json"],
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<6.1.0"
+    },
+    {
       "groupName": "all dependencies",
       "groupSlug": "all",
       "matchPackageNames": [
