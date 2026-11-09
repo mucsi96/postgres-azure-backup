@@ -76,8 +76,8 @@ pub fn extract_download(archive: &Path, directory: &Path, plain: bool) -> anyhow
     for i in 0..zip.len() {
         let mut entry = zip.by_index(i)?;
         if entry.is_dir()
-            || entry.name().starts_with("folders/")
-            || entry.name().ends_with(".sql") != plain
+            || entry.name()?.starts_with("folders/")
+            || entry.name()?.ends_with(".sql") != plain
         {
             continue;
         }

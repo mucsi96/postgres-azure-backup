@@ -1,6 +1,6 @@
 use crate::{models::Table, settings::Database};
 use sqlx::{
-    Connection, Row,
+    AssertSqlSafe, Connection, Row,
     postgres::{PgConnectOptions, PgConnection},
 };
 use std::path::Path;
@@ -43,11 +43,11 @@ pub async fn tables(db: &Database, estimated: bool) -> anyhow::Result<Vec<Table>
         let count = if estimated {
             row.try_get("count")?
         } else {
-            sqlx::query_scalar::<_, i64>(&format!(
+            sqlx::query_scalar::<_, i64>(AssertSqlSafe(format!(
                 "SELECT COUNT(*) FROM {}.{}",
                 quote(&db.schema),
                 quote(&name)
-            ))
+            )))
             .fetch_one(&mut conn)
             .await?
         };
